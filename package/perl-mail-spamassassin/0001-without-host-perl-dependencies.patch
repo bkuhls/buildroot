@@ -1,0 +1,64 @@
+Remove host-perl-* dependencies
+
+The module  Mail-SpamAssassin tries to do the following things:
+1) as usual CPAN module, install many .pm files in /usr/lib/perl5/site_perl/
+and few scripts in /usr/bin.
+2) "compile" SpamAssassin rules, that requires to install/run SpamAssassin on the host side.
+As we don't want install host-perl modules, this step is disabled.
+Please, consider the installed script `sa-update` for installing the rules for the first time.
+3) spamc, an executable which embeds libperl
+The cross-compilation case is not supported, a host executable gets built.
+For this reason, this step is disabled.
+(note: the option BUILD_SPAMC=yes/no is handled only on Windows)
+
+Signed-off-by: Francois Perrad <francois.perrad@gadz.org>
+
+--- a/Makefile.PL
++++ b/Makefile.PL
+@@ -133,10 +133,8 @@
+       'spamassassin.raw' => 'spamassassin',
+       'sa-learn.raw'     => 'sa-learn',
+       'sa-update.raw'    => 'sa-update',
+-      'sa-compile.raw'   => 'sa-compile',
+       'sa-awl.raw'       => 'sa-awl',
+       'sa-check_spamd.raw' => 'sa-check_spamd',
+-      'spamc/spamc.c'    => 'spamc/spamc$(EXE_EXT)',
+       'spamd/spamd.raw'  => 'spamd/spamd',
+     },
+ 
+@@ -304,16 +302,6 @@
+ 
+ ';
+ 
+-# check optional module versions
+-use lib 'lib';
+-use Mail::SpamAssassin::Util::DependencyInfo;
+-if (Mail::SpamAssassin::Util::DependencyInfo::long_diagnostics() != 0) {
+-  # missing required module?  die!
+-  # bug 5908: http://cpantest.grango.org/wiki/CPANAuthorNotes says
+-  # we should exit with a status of 0, but without creating Makefile
+-  exit 0;
+-}
+-
+ foreach my $file (@FILES_THAT_MUST_EXIST) {
+   open (TOUCH, ">>$file") or die "cannot touch '$file'";
+   close TOUCH;
+@@ -1013,7 +1001,7 @@
+ 
+ FIXBANG		= -Msharpbang \
+                   -Mconditional \
+-		  -DPERL_BIN="$(PERL_BIN)" \
++		  -DPERL_BIN="/usr/bin/perl" \
+ 		  -DPERL_WARN="$(PERL_WARN)" \
+ 		  -DPERL_TAINT="$(PERL_TAINT)"
+ 
+@@ -1023,7 +1011,7 @@
+ sa-learn: sa-learn.raw
+ 	$(PREPROCESS) $(FIXBYTES) $(FIXVARS) $(FIXBANG) -m$(PERM_RWX) -i$? -o$@
+ 
+-sa-update: sa-update.raw build_rules
++sa-update: sa-update.raw
+ 	$(PREPROCESS) $(FIXBYTES) $(FIXVARS) $(FIXBANG) -m$(PERM_RWX) -isa-update.raw -osa-update
+ 
+ sa-compile: sa-compile.raw
+

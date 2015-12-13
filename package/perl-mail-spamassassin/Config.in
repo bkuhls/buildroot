@@ -1,0 +1,28 @@
+config BR2_PACKAGE_PERL_MAIL_SPAMASSASSIN
+	bool "perl-mail-spamassassin"
+	depends on !BR2_STATIC_LIBS
+	select BR2_PACKAGE_PERL_DIGEST_SHA1
+	select BR2_PACKAGE_PERL_HTML_PARSER
+	select BR2_PACKAGE_PERL_MAIL_DKIM
+	select BR2_PACKAGE_PERL_NET_DNS
+	select BR2_PACKAGE_PERL_NETADDR_IP
+	help
+	  SpamAssassin is an extensible email filter which is used to
+	  identify spam
+
+	  http://spamassassin.apache.com/
+
+comment "perl-mail-spamassassin needs a toolchain w/ dynamic library"
+	depends on BR2_STATIC_LIBS
+
+if BR2_PACKAGE_PERL_MAIL_SPAMASSASSIN
+
+config BR2_PACKAGE_PERL_MAIL_SPAMASSASSIN_CONTACT_ADDRESS
+	string "contact address"
+	default "the administrator of that BR system"
+	help
+	  What email address or URL should be used in the suspected-spam
+	  report text for users who want more information on your filter
+	  installation?
+
+endif
