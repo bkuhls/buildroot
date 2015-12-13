@@ -1,0 +1,56 @@
+Remove host-perl-* dependencies
+
+The module  Mail-SpamAssassin tries to do the following things:
+1) as usual CPAN module, install many .pm files in /usr/lib/perl5/site_perl/
+and few scripts in /usr/bin.
+2) "compile" SpamAssassin rules, that requires to install/run SpamAssassin on the host side.
+As we don't want install host-perl modules, this step is disabled.
+Please, consider the installed script `sa-update` for installing the rules for the first time.
+3) spamc, an executable which embeds libperl
+The cross-compilation case is not supported, a host executable gets built.
+For this reason, this step is disabled.
+(note: the option BUILD_SPAMC=yes/no is handled only on Windows)
+
+Upstream: Not applicable
+
+Signed-off-by: Francois Perrad <francois.perrad@gadz.org>
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+[- added Upstream: tag
+ - rebased for 4.0.1
+ - removed "check optional module versions" portion of the patch due to
+   upstream commit
+   https://github.com/apache/spamassassin/commit/cf16b312343633c70f52d372c6b3635be9cbeb14
+   which only prints a warning during configure instead of exit 0]
+
+--- a/Makefile.PL
++++ b/Makefile.PL
+@@ -134,10 +134,8 @@
+       'spamassassin.raw' => 'spamassassin',
+       'sa-learn.raw'     => 'sa-learn',
+       'sa-update.raw'    => 'sa-update',
+-      'sa-compile.raw'   => 'sa-compile',
+       'sa-awl.raw'       => 'sa-awl',
+       'sa-check_spamd.raw' => 'sa-check_spamd',
+-      'spamc/spamc.c'    => 'spamc/spamc$(EXE_EXT)',
+       'spamd/spamd.raw'  => 'spamd/spamd',
+     },
+ 
+@@ -1071,7 +1055,7 @@
+ 
+ FIXBANG		= -Msharpbang \
+                   -Mconditional \
+-		  -DPERL_BIN="$(PERL_BIN)" \
++		  -DPERL_BIN="/usr/bin/perl" \
+ 		  -DPERL_WARN="$(PERL_WARN)" \
+ 		  -DPERL_TAINT="$(PERL_TAINT)"
+ 
+@@ -1081,7 +1065,7 @@
+ sa-learn: sa-learn.raw
+ 	$(PREPROCESS) $(FIXBYTES) $(FIXVARS) $(FIXBANG) -m$(PERM_RWX) -i$? -o$@
+ 
+-sa-update: sa-update.raw build_rules
++sa-update: sa-update.raw
+ 	$(PREPROCESS) $(FIXBYTES) $(FIXVARS) $(FIXBANG) -m$(PERM_RWX) -isa-update.raw -osa-update
+ 
+ sa-compile: sa-compile.raw
+
