@@ -1,0 +1,6 @@
+# From https://downloads.apache.org/spamassassin/source/Mail-SpamAssassin-4.0.2.tar.bz2.sha512
+sha512  05917f1a897e22569ab9e5130d4f91cb546db2e28fceed7bd904ea211f2684d863cf30960db750e2c99f2ea4f3119b61353714760257a3f57e898f0d11ce6cdb  Mail-SpamAssassin-4.0.2.tar.bz2
+# From https://downloads.apache.org/spamassassin/source/Mail-SpamAssassin-4.0.2.tar.bz2.sha256
+sha256  da8192cf76d8871830d44d7bdc914bd1641105ac813798ddeac5f65ab8f73cee  Mail-SpamAssassin-4.0.2.tar.bz2
+# Locally computed
+sha256  cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30  LICENSE
