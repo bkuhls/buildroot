@@ -352,6 +352,29 @@ menu "Screensavers"
 endmenu
 
 menu "Skins"
+
+config BR2_PACKAGE_KODI_SKIN_ENABLED
+	bool
+
+choice
+	prompt "Default skin"
+
+config BR2_PACKAGE_KODI_SKIN_DEFAULT_ESTUARY
+	bool "kodi-skin-estuary"
+	depends on BR2_PACKAGE_KODI_SKIN_ESTUARY
+
+config BR2_PACKAGE_KODI_SKIN_DEFAULT_CONFLUENCE
+	bool "kodi-skin-confluence"
+	depends on BR2_PACKAGE_KODI_SKIN_CONFLUENCE
+
+endchoice
+
+config BR2_PACKAGE_KODI_SKIN_ESTUARY
+	bool "kodi-skin-estuary"
+	default y
+	help
+	  Default skin Estuary
+
 	source "package/kodi-skin-confluence/Config.in"
 endmenu
 
