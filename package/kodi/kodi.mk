@@ -383,6 +383,64 @@ define KODI_CLEAN_UNUSED_ADDONS
 endef
 KODI_POST_INSTALL_TARGET_HOOKS += KODI_CLEAN_UNUSED_ADDONS
 
+# Skins estuary and estouchy are installed by default and need to be
+# removed if they are disabled in buildroot
+ifeq ($(BR2_PACKAGE_KODI_SKIN_ESTUARY),y)
+define KODI_CLEAN_SKIN_ESTUARY
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary/media -name *.gif -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary/media -name *.jpg -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary/media -name *.png -delete
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_CLEAN_SKIN_ESTUARY
+else
+define KODI_REMOVE_SKIN_ESTUARY
+	rm -Rf $(TARGET_DIR)/usr/share/kodi/addons/skin.estuary
+	$(HOST_DIR)/usr/bin/xml ed -L \
+		-d "/addons/addon[text()='skin.estuary']" \
+		$(KODI_ADDON_MANIFEST)
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_REMOVE_SKIN_ESTUARY
+endif
+
+ifeq ($(BR2_PACKAGE_KODI_SKIN_ESTOUCHY),y)
+define KODI_CLEAN_SKIN_ESTOUCHY
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy/media -name *.gif -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy/media -name *.jpg -delete
+	find $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy/media -name *.png -delete
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_CLEAN_SKIN_ESTOUCHY
+else
+define KODI_REMOVE_SKIN_ESTOUCHY
+	rm -Rf $(TARGET_DIR)/usr/share/kodi/addons/skin.estouchy
+	$(HOST_DIR)/usr/bin/xml ed -L \
+		-d "/addons/addon[text()='skin.estouchy']" \
+		$(KODI_ADDON_MANIFEST)
+endef
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_REMOVE_SKIN_ESTOUCHY
+endif
+
+# The default value 'skin.estuary' is stored in
+# xbmc/system/settings/settings.xml.
+# If skin estuary is disabled this value needs to be changed to avoid
+# https://github.com/xbmc/xbmc/blob/32a6916059a0b14ab5fc65cedb17b2615c039918/xbmc/Application.cpp#L1124
+
+define KODI_SET_DEFAULT_SKIN_ESTOUCHY
+	$(SED) 's/skin.estuary/skin.estouchy/#g' $(TARGET_DIR)/usr/share/kodi/system/settings/settings.xml
+endef
+
+define KODI_SET_DEFAULT_SKIN_CONFLUENCE
+	$(SED) 's/skin.estuary/skin.confluence/#g' $(TARGET_DIR)/usr/share/kodi/system/settings/settings.xml
+	$(HOST_DIR)/usr/bin/xml ed -L -O --subnode "/addons" \
+		-t elem -n "addon" -v "skin.confluence" \
+		$(KODI_ADDON_MANIFEST)
+endef
+
+ifeq ($(BR2_PACKAGE_KODI_SKIN_DEFAULT_ESTOUCHY),y)
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_SET_DEFAULT_SKIN_ESTOUCHY
+else ifeq ($(BR2_PACKAGE_KODI_SKIN_DEFAULT_CONFLUENCE),y)
+KODI_POST_INSTALL_TARGET_HOOKS += KODI_SET_DEFAULT_SKIN_CONFLUENCE
+endif
+
 define KODI_INSTALL_BR_WRAPPER
 	$(INSTALL) -D -m 0755 package/kodi/br-kodi \
 		$(TARGET_DIR)/usr/bin/br-kodi
