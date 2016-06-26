@@ -1,3 +1,17 @@
+# This symbol is outside the eudev if-block, so that we do not have
+# a circular dependency in kconfig. Thus, we need the dummy symbol,
+# below, to inform the user that the daemon has indeed been enabled.
+config BR2_PACKAGE_EUDEV_DAEMON
+	bool
+	select BR2_PACKAGE_HAS_UDEV
+	select BR2_PACKAGE_UDEV_GENTOO_SCRIPTS if BR2_INIT_OPENRC
+	select BR2_PACKAGE_UTIL_LINUX
+	select BR2_PACKAGE_UTIL_LINUX_LIBS
+	select BR2_PACKAGE_UTIL_LINUX_LIBBLKID
+	select BR2_PACKAGE_KMOD
+	# We can select this has we're sure eudev is selected when we are.
+	select BR2_PACKAGE_EUDEV_DAEMON_DUMMY
+
 config BR2_PACKAGE_EUDEV
 	bool "eudev"
 	depends on BR2_USE_MMU # uses fork()
@@ -18,19 +32,14 @@ if BR2_PACKAGE_EUDEV
 config BR2_PACKAGE_PROVIDES_LIBUDEV
 	default "eudev"
 
-config BR2_PACKAGE_EUDEV_DAEMON
+config BR2_PACKAGE_EUDEV_DAEMON_DUMMY
 	bool "udev daemon"
 	depends on BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV
-	select BR2_PACKAGE_HAS_UDEV
-	select BR2_PACKAGE_UDEV_GENTOO_SCRIPTS if BR2_INIT_OPENRC
-	select BR2_PACKAGE_UTIL_LINUX
-	select BR2_PACKAGE_UTIL_LINUX_LIBS
-	select BR2_PACKAGE_UTIL_LINUX_LIBBLKID
-	select BR2_PACKAGE_KMOD
 	help
 	  Install the udev daemon.
 
-if BR2_PACKAGE_EUDEV_DAEMON
+# Use the dummy symbol for proper indetation
+if BR2_PACKAGE_EUDEV_DAEMON_DUMMY
 
 config BR2_PACKAGE_PROVIDES_UDEV
 	default "eudev"
