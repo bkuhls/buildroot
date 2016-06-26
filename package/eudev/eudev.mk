@@ -11,6 +11,7 @@ EUDEV_LICENSE_FILES = COPYING
 EUDEV_INSTALL_STAGING = YES
 
 EUDEV_DEPENDENCIES = host-gperf host-pkgconf
+EUDEV_PROVIDES = libudev
 
 EUDEV_CONF_OPTS = \
 	--disable-manpages \
@@ -31,7 +32,7 @@ ifeq ($(BR2_PACKAGE_EUDEV_DAEMON),y)
 
 # eudev requires only the util-linux libraries at build time
 EUDEV_DEPENDENCIES += util-linux-libs kmod
-EUDEV_PROVIDES = udev
+EUDEV_PROVIDES += udev
 
 EUDEV_CONF_OPTS += \
 	--enable-programs \

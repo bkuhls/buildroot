@@ -4,6 +4,7 @@ config BR2_PACKAGE_EUDEV
 	depends on BR2_USE_WCHAR # needs C99 compiler
 	depends on !BR2_STATIC_LIBS # kmod
 	depends on !BR2_INIT_SYSTEMD
+	select BR2_PACKAGE_HAS_LIBUDEV
 	help
 	  eudev is a fork of systemd-udev with the goal of obtaining
 	  better compatibility with existing software such as OpenRC and
@@ -13,6 +14,9 @@ config BR2_PACKAGE_EUDEV
 	  https://github.com/eudev-project/eudev
 
 if BR2_PACKAGE_EUDEV
+
+config BR2_PACKAGE_PROVIDES_LIBUDEV
+	default "eudev"
 
 config BR2_PACKAGE_EUDEV_DAEMON
 	bool "udev daemon"
