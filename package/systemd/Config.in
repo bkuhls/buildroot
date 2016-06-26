@@ -25,6 +25,7 @@ menuconfig BR2_PACKAGE_SYSTEMD
 	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_15
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_5
 	depends on BR2_HOST_GCC_AT_LEAST_5 # host-systemd
+	select BR2_PACKAGE_HAS_LIBUDEV
 	select BR2_PACKAGE_HAS_UDEV
 	select BR2_PACKAGE_DBUS if !BR2_PACKAGE_DBUS_BROKER # runtime
 	select BR2_PACKAGE_LIBCAP
@@ -105,6 +106,9 @@ menuconfig BR2_PACKAGE_SYSTEMD
 	  https://freedesktop.org/wiki/Software/systemd/
 
 if BR2_PACKAGE_SYSTEMD
+
+config BR2_PACKAGE_PROVIDES_LIBUDEV
+	default "systemd"
 
 config BR2_PACKAGE_PROVIDES_UDEV
 	default "systemd"
