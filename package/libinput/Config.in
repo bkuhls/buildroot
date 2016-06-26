@@ -1,8 +1,11 @@
 config BR2_PACKAGE_LIBINPUT
 	bool "libinput"
-	depends on BR2_PACKAGE_HAS_UDEV
+	depends on BR2_USE_MMU # libudev <- eudev/systemd
+	depends on BR2_USE_WCHAR # libudev <- eudev/systemd
+	depends on !BR2_STATIC_LIBS # libudev <- eudev/systemd
 	select BR2_PACKAGE_LIBEVDEV
 	select BR2_PACKAGE_MTDEV
+	select BR2_PACKAGE_LIBUDEV
 	help
 	  libinput is a library to handle input devices in Wayland
 	  compositors and to provide a generic X.Org input driver.
@@ -35,5 +38,6 @@ config BR2_PACKAGE_LIBINPUT_PYTHON_TOOLS
 
 endif
 
-comment "libinput needs udev /dev management"
-	depends on !BR2_PACKAGE_HAS_UDEV
+comment "libinput needs a toolchain w/ wchar, dynamic library"
+	depends on BR2_USE_MMU
+	depends on !BR2_USE_WCHAR || BR2_STATIC_LIBS
