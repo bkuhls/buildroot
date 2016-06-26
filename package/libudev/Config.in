@@ -1,3 +1,10 @@
+config BR2_PACKAGE_LIBUDEV
+	bool
+	depends on BR2_USE_MMU # eudev / systemd
+	depends on BR2_USE_WCHAR # eudev / systemd
+	depends on !BR2_STATIC_LIBS # eudev / systemd
+	select BR2_PACKAGE_EUDEV if !BR2_PACKAGE_SYSTEMD
+
 config BR2_PACKAGE_HAS_LIBUDEV
 	bool
 
