@@ -1,0 +1,24 @@
+Fix support for armv5
+
+Fixes build error with BR2_GCC_TARGET_CPU="arm926ej-s" because
+spidermonkey does not recognize __ARM_ARCH_5TEJ__:
+
+./nanojit/njconfig.cpp:103:18:
+ error: invalid conversion from 'const char*' to 'uint8_t {aka unsigned char}' [-fpermissive]
+         arm_arch = NJ_COMPILER_ARM_ARCH;
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+diff -uNr js-1.8.5.org/js/src/nanojit/njcpudetect.h js-1.8.5/js/src/nanojit/njcpudetect.h
+--- js-1.8.5.org/js/src/nanojit/njcpudetect.h	2011-03-31 21:08:36.000000000 +0200
++++ js-1.8.5/js/src/nanojit/njcpudetect.h	2017-08-05 16:01:35.444779038 +0200
+@@ -87,7 +87,8 @@
+ #elif   defined(__ARM_ARCH_5__) || \
+         defined(__ARM_ARCH_5T__) || \
+         defined(__ARM_ARCH_5E__) || \
+-        defined(__ARM_ARCH_5TE__)
++        defined(__ARM_ARCH_5TE__) || \
++        defined(__ARM_ARCH_5TEJ__)
+ 
+     #define NJ_COMPILER_ARM_ARCH 5
+ 

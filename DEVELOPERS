@@ -522,6 +522,7 @@ F:	package/rtmpdump/
 F:	package/samba4/
 F:	package/sofia-sip/
 F:	package/spandsp/
+F:	package/spidermonkey185/
 F:	package/sqlite/
 F:	package/stellarium/
 F:	package/taglib/
