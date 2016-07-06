@@ -1,0 +1,56 @@
+Source:
+https://src.fedoraproject.org/rpms/js/blob/f26/f/ppc64le.patch
+[Bernd: patched js/src/configure instead of js/src/configure.in]
+
+Patch position #7:
+https://src.fedoraproject.org/rpms/js/blob/master/f/js.spec#_21
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+--- js-1.8.5.org/js/src/assembler/wtf/Platform.h
++++ js-1.8.5/js/src/assembler/wtf/Platform.h
+@@ -129,16 +129,22 @@
+    || defined(__POWERPC__) \
+    || defined(_M_PPC)      \
+    || defined(__PPC)
++#if !defined(__ppc64__) && !defined(__PPC64__)
+ #define WTF_CPU_PPC 1
++#endif
++#if !defined(__LITTLE_ENDIAN__)
+ #define WTF_CPU_BIG_ENDIAN 1
+ #endif
++#endif
+ 
+ /* CPU(PPC64) - PowerPC 64-bit */
+ #if   defined(__ppc64__) \
+    || defined(__PPC64__)
+ #define WTF_CPU_PPC64 1
++#if !defined(__LITTLE_ENDIAN__)
+ #define WTF_CPU_BIG_ENDIAN 1
+ #endif
++#endif
+ 
+ /* CPU(SH4) - SuperH SH-4 */
+ #if defined(__SH4__)
+--- js-1.8.5.org/js/src/configure
++++ js-1.8.5/js/src/configure
+@@ -5769,7 +5769,7 @@
+     CPU_ARCH=x86
+     ;;
+ 
+-powerpc64 | ppc64)
++powerpc64 | ppc64 | powerpc64le | ppc64le)
+     CPU_ARCH=ppc64
+     ;;
+ 
+--- js-1.8.5.org/js/src/Makefile.in
++++ js-1.8.5/js/src/Makefile.in
+@@ -382,7 +382,7 @@
+ # END enclude sources for V8 dtoa
+ #############################################
+ 
+-ifeq (,$(filter-out aarch64 powerpc powerpc64 sparc sparc64 s390 s390x,$(TARGET_CPU)))
++ifeq (,$(filter-out aarch64 powerpc powerpc64 powerpc64le sparc sparc64 s390 s390x,$(TARGET_CPU)))
+ 
+ VPATH +=	$(srcdir)/assembler \
+ 		$(srcdir)/assembler/wtf \
