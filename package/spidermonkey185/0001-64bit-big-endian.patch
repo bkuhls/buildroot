@@ -1,0 +1,21 @@
+https://bugzilla.mozilla.org/show_bug.cgi?id=627664
+
+Source:
+https://src.fedoraproject.org/rpms/js/blob/f26/f/js-1.8.5-64bit-big-endian.patch
+
+Patch position #1:
+https://src.fedoraproject.org/rpms/js/blob/master/f/js.spec#_12
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+diff -up xulrunner-2.0/mozilla-central/js/src/jsval.h.64bit-big-endian xulrunner-2.0/mozilla-central/js/src/jsval.h
+--- js-1.8.5/js/src/jsval.h.64bit-big-endian	2011-01-20 15:59:49.000000000 +0100
++++ js-1.8.5/js/src/jsval.h	2011-01-20 16:00:21.000000000 +0100
+@@ -347,6 +347,7 @@ typedef union jsval_layout
+             int32          i32;
+             uint32         u32;
+             JSWhyMagic     why;
++            jsuword        word;
+         } payload;
+     } s;
+     double asDouble;
