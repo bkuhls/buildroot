@@ -1,0 +1,61 @@
+From 0430a7fb18b45eb3144f9145e5e7531e59d83074 Mon Sep 17 00:00:00 2001
+From: Alexander Shorin <kxepal@apache.org>
+Date: Thu, 1 Oct 2015 17:12:01 +0300
+Subject: [PATCH] Fix "initialization from incompatible pointer type" warning
+ for icu drv
+
+It was caused by using ErlDrvSSizeT type instead of ErlDrvSizeT. It
+was not an issue prior to R15 when ErlDrvSSizeT and ErlDrvSizeT where
+basically int's.
+
+Since we raised minimal Erlang release requirement up to R16B03-1,
+there is no reason to maintain compatibility with pre-R15 for driver
+so local COUCH_* types are replaced with ErlDrv* ones.
+
+Upstream: https://github.com/apache/couchdb-couch/commit/0430a7fb18b45eb3144f9145e5e7531e59d83074
+---
+ priv/icu_driver/couch_icu_driver.c | 15 +++++----------
+ 1 file changed, 5 insertions(+), 10 deletions(-)
+
+diff --git a/priv/icu_driver/couch_icu_driver.c b/priv/icu_driver/couch_icu_driver.c
+index a59e8cb9..4d9bb982 100644
+--- a/src/couchdb/priv/icu_driver/couch_icu_driver.c
++++ b/src/couchdb/priv/icu_driver/couch_icu_driver.c
+@@ -30,11 +30,6 @@ specific language governing permissions and limitations under the License.
+ #include <string.h> /* for memcpy */
+ #endif
+ 
+-#if ERL_DRV_EXTENDED_MAJOR_VERSION < 2
+-typedef int COUCH_SSIZET;
+-#else
+-typedef ErlDrvSSizeT COUCH_SSIZET;
+-#endif
+ 
+ typedef struct {
+     ErlDrvPort port;
+@@ -85,9 +80,9 @@ static ErlDrvData couch_drv_start(ErlDrvPort port, char *buff)
+     return (ErlDrvData)pData;
+ }
+ 
+-COUCH_SSIZET
++ErlDrvSSizeT
+ return_control_result(void* pLocalResult, int localLen,
+-            char **ppRetBuf, COUCH_SSIZET returnLen)
++            char **ppRetBuf, ErlDrvSizeT returnLen)
+ {
+     if (*ppRetBuf == NULL || localLen > returnLen) {
+         *ppRetBuf = (char*)driver_alloc_binary(localLen);
+@@ -99,10 +94,10 @@ return_control_result(void* pLocalResult, int localLen,
+     return localLen;
+ }
+ 
+-static COUCH_SSIZET
++static ErlDrvSSizeT
+ couch_drv_control(ErlDrvData drv_data, unsigned int command,
+-        char *pBuf, COUCH_SSIZET bufLen,
+-        char **rbuf, COUCH_SSIZET rlen)
++        char *pBuf, ErlDrvSizeT bufLen,
++        char **rbuf, ErlDrvSizeT rlen)
+ {
+ 
+     couch_drv_data* pData = (couch_drv_data*)drv_data;

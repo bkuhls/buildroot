@@ -1,0 +1,33 @@
+comment "CouchDB needs a toolchain with C++, wchar, NPTL, dynamic libs, gcc >= 4.9, host gcc >= 4.9"
+	depends on !BR2_BINFMT_FLAT
+	depends on BR2_USE_MMU
+	depends on !BR2_PACKAGE_ERLANG_ARCH_SUPPORTS
+	depends on !BR2_PACKAGE_LIBNSPR_ARCH_SUPPORT
+	depends on !BR2_TOOLCHAIN_HAS_THREADS_NPTL || \
+		BR2_STATIC_LIBS || !BR2_INSTALL_LIBSTDCPP || \
+		!BR2_USE_WCHAR || \
+		!BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 || \
+		!BR2_HOST_GCC_AT_LEAST_4_9
+
+config BR2_PACKAGE_COUCHDB
+	bool "couchdb"
+	depends on !BR2_BINFMT_FLAT # icu
+	depends on BR2_HOST_GCC_AT_LEAST_4_9 # icu
+	depends on BR2_INSTALL_LIBSTDCPP # icu, spidermonkey185
+	depends on BR2_PACKAGE_ERLANG_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_LIBNSPR_ARCH_SUPPORT # spidermonkey185
+	depends on !BR2_STATIC_LIBS # erlang
+	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL # spidermonkey185
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # icu
+	depends on BR2_USE_MMU # erlang, spidermonkey185
+	depends on BR2_USE_WCHAR # icu
+	select BR2_PACKAGE_ERLANG
+	select BR2_PACKAGE_ICU
+	select BR2_PACKAGE_LIBCURL
+	select BR2_PACKAGE_LIBXCRYPT if BR2_TOOLCHAIN_USES_GLIBC
+	select BR2_PACKAGE_OPENSSL
+	select BR2_PACKAGE_SPIDERMONKEY185
+	help
+	  Apache CouchDB database
+
+	  https://couchdb.apache.org/

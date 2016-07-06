@@ -1,0 +1,51 @@
+From 39b34b35ac4741f65c0a4707b480301154ab2de5 Mon Sep 17 00:00:00 2001
+From: Nicolas Cavallari <nicolas.cavallari@green-communications.fr>
+Date: Thu, 19 May 2016 16:52:53 +0200
+Subject: configure.ac: Remove unsafe paths
+
+Remove the unconditionnally added paths to the host.
+
+Upstream-Status: not-applicable: later versions do not use autotools
+anymore, but rebar.
+
+Signed-Off-By: Nicolas Cavallari <nicolas.cavallari@green-communications.fr>
+
+---
+ configure | 11 -----------
+ 1 file changed, 11 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index bf9ffc4..7b95554 100644
+--- a/configure
++++ b/configure
+@@ -18336,28 +18336,6 @@
+ 
+ fi
+ 
+-
+-
+-
+-
+-case $(uname -s) in #(
+-  CYGWIN*) :
+-      ;; #(
+-  *) :
+-
+-    CPPFLAGS="$CPPFLAGS -I/opt/local/include"
+-    CPPFLAGS="$CPPFLAGS -I/opt/local/include/js"
+-    CPPFLAGS="$CPPFLAGS -I/usr/local/include"
+-    CPPFLAGS="$CPPFLAGS -I/usr/local/include/js"
+-    CPPFLAGS="$CPPFLAGS -I/usr/include"
+-    CPPFLAGS="$CPPFLAGS -I/usr/include/js"
+-    LDFLAGS="$LDFLAGS -L/opt/local/lib"
+-    LDFLAGS="$LDFLAGS -L/usr/local/lib"
+- ;; #(
+-  *) :
+-     ;;
+-esac
+-
+ CPPFLAGS="$CPPFLAGS $FLAGS"
+ LDFLAGS="$LDFLAGS $FLAGS"
+ 
+-- 
+2.8.1

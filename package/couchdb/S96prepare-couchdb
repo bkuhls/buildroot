@@ -1,0 +1,14 @@
+#!/bin/sh
+
+REQUIRED_DIRS=/var/log/couchdb
+
+PREPARE_COUCHDB_DEFAULT=/etc/default/prepare-couchdb
+
+if [ -r "$PREPARE_COUCHDB_DEFAULT" ]; then
+	. "$PREPARE_COUCHDB_DEFAULT"
+fi
+
+case "$1" in
+	start)
+		install -d -o couchdb -g couchdb $REQUIRED_DIRS;;
+esac
