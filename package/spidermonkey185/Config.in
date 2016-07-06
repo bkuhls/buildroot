@@ -1,0 +1,16 @@
+config BR2_PACKAGE_SPIDERMONKEY185
+	bool "spidermonkey (1.8.5)"
+	depends on BR2_USE_MMU # fork in executable tools.
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on !BR2_STATIC_LIBS
+	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL # needs pthread_getattr_np()
+	help
+	  SpiderMonkey is Mozilla's JavaScript engine written in C/C++. It is
+	  used in various Mozilla products, including Firefox.
+
+	  This is the old 1.8.5 branch, used in Firefox 4.
+
+comment "Spider monkey (1.8.5) need a toolchain with C++, dynamic library, NPTL"
+	depends on BR2_USE_MMU
+	depends on !BR2_INSTALL_LIBSTDCPP || BR2_STATIC_LIBS || \
+		!BR2_TOOLCHAIN_HAS_THREADS_NPTL
