@@ -1,0 +1,19 @@
+From: Nicolas Cavallari <nicolas.cavallari@green-communications.fr>
+
+Remove the dependency on nspr.
+
+This dependency was removed when spidermonkey was extracted from the
+mozilla code base.  This is probably a left-over, since it is not used.
+
+Signed-off-by: Nicolas Cavallari <nicolas.cavallari@green-communications.fr>
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+--- spidermonkey185-1.0.0/js/src/mozjs185.pc.in	2016-05-23 13:41:28.430466213 +0200
++++ spidermonkey185-1.0.0/js/src/mozjs185.pc.in	2016-05-23 13:42:00.727558977 +0200
+@@ -5,6 +5,5 @@
+ Name: SpiderMonkey 1.8.5
+ Description: The Mozilla library for JavaScript 1.8.5
+ Version: %MOZILLA_VERSION%
+-Requires: nspr >= 4.7
+ Libs: -L${libdir} -lmozjs185
+ Cflags: -I${includedir}/js

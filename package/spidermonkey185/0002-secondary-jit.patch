@@ -1,0 +1,22 @@
+https://bugzilla.mozilla.org/show_bug.cgi?id=627668
+
+Source:
+https://src.fedoraproject.org/rpms/js/blob/f26/f/js-1.8.5-secondary-jit.patch
+
+Patch position #2:
+https://src.fedoraproject.org/rpms/js/blob/master/f/js.spec#_13
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+diff -up xulrunner-2.0/mozilla-central/js/src/Makefile.in.big-endian-jit xulrunner-2.0/mozilla-central/js/src/Makefile.in
+--- js-1.8.5/js/src/Makefile.in.big-endian-jit	2010-11-04 21:05:48.000000000 +0100
++++ js-1.8.5/js/src/Makefile.in	2010-11-15 14:17:39.000000000 +0100
+@@ -371,7 +371,7 @@ CPPSRCS += 	checks.cc \
+ # END enclude sources for V8 dtoa
+ #############################################
+ 
+-ifeq (,$(filter-out powerpc sparc,$(TARGET_CPU)))
++ifeq (,$(filter-out powerpc powerpc64 sparc sparc64 s390 s390x,$(TARGET_CPU)))
+ 
+ VPATH +=	$(srcdir)/assembler \
+ 		$(srcdir)/assembler/wtf \
