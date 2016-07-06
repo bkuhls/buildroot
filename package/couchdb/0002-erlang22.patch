@@ -1,0 +1,36 @@
+Allow build with erlang 21/22
+
+--- couchdb-1.7.2/configure.orig	2018-06-23 13:30:52.000000000 +0200
++++ couchdb-1.7.2/configure	2022-12-21 19:41:08.643040688 +0100
+@@ -19418,11 +19396,11 @@
+ patch_version=`echo $version | ${AWK} "{print \\$3}"`
+ echo -n "detected Erlang version: $major_version.$minor_version.$patch_version..."
+ 
+-if test $major_version -lt 5 -o $major_version -gt 9; then
++if test $major_version -lt 5 -o $major_version -gt 11; then
+     as_fn_error $? "$erlang_version_error major_version does not match" "$LINENO" 5
+ fi
+ 
+-if test $major_version -eq 5 -a $minor_version -lt 9; then
++if test $major_version -eq 5 -a $minor_version -lt 11; then
+     as_fn_error $? "$erlang_version_error minor_version does not match" "$LINENO" 5
+ fi
+ 
+@@ -19437,7 +19415,7 @@
+ 
+ 
+ 
+- if can_use_nifs=$(echo $otp_release | grep -E "^(R14B|R15|R16|17|18|19|20)"); then
++ if can_use_nifs=$(echo $otp_release | grep -E "^(R14B|R15|R16|17|18|19|20|21|22)"); then
+   USE_OTP_NIFS_TRUE=
+   USE_OTP_NIFS_FALSE='#'
+ else
+@@ -19445,7 +19423,7 @@
+   USE_OTP_NIFS_FALSE=
+ fi
+ 
+- if can_use_ejson=$(echo $otp_release | grep -E "^(R14B03|R15|R16|17|18|19|20)"); then
++ if can_use_ejson=$(echo $otp_release | grep -E "^(R14B03|R15|R16|17|18|19|20|21|22)"); then
+   USE_EJSON_COMPARE_NIF_TRUE=
+   USE_EJSON_COMPARE_NIF_FALSE='#'
+ else
