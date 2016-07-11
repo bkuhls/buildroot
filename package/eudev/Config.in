@@ -4,10 +4,7 @@ config BR2_PACKAGE_EUDEV
 	depends on BR2_USE_MMU # uses fork()
 	depends on BR2_USE_WCHAR # needs C99 compiler
 	depends on !BR2_STATIC_LIBS # kmod
-	select BR2_PACKAGE_HAS_UDEV
-	select BR2_PACKAGE_UTIL_LINUX
-	select BR2_PACKAGE_UTIL_LINUX_LIBBLKID
-	select BR2_PACKAGE_KMOD
+	select BR2_PACKAGE_EUDEV_DAEMON
 	help
 	  eudev is a fork of systemd-udev with the goal of obtaining
 	  better compatibility with existing software such as OpenRC and
@@ -17,6 +14,18 @@ config BR2_PACKAGE_EUDEV
 	  https://wiki.gentoo.org/wiki/Project:Eudev
 
 if BR2_PACKAGE_EUDEV
+
+config BR2_PACKAGE_EUDEV_DAEMON
+	bool "udev daemon"
+	depends on BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV
+	select BR2_PACKAGE_HAS_UDEV
+	select BR2_PACKAGE_UTIL_LINUX
+	select BR2_PACKAGE_UTIL_LINUX_LIBBLKID
+	select BR2_PACKAGE_KMOD
+	help
+	  Install the udev daemon.
+
+if BR2_PACKAGE_EUDEV_DAEMON
 
 config BR2_PACKAGE_PROVIDES_UDEV
 	default "eudev"
@@ -32,7 +41,9 @@ config BR2_PACKAGE_EUDEV_ENABLE_HWDB
 	help
 	  Enables hardware database installation to /etc/udev/hwdb.d
 
-endif
+endif # BR2_PACKAGE_EUDEV_DAEMON
+
+endif # BR2_PACKAGE_EUDEV
 
 comment "eudev needs eudev /dev management"
 	depends on BR2_USE_MMU

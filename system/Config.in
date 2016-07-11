@@ -170,6 +170,7 @@ config BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV
 	depends on !BR2_STATIC_LIBS
 	depends on BR2_USE_MMU # eudev
 	select BR2_PACKAGE_EUDEV
+	select BR2_PACKAGE_EUDEV_DAEMON
 
 comment "eudev needs a toolchain w/ wchar, dynamic library"
 	depends on BR2_USE_MMU
