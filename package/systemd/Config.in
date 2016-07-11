@@ -13,6 +13,7 @@ menuconfig BR2_PACKAGE_SYSTEMD
 	depends on !BR2_STATIC_LIBS # kmod
 	depends on BR2_TOOLCHAIN_HAS_THREADS # dbus
 	depends on BR2_USE_MMU # dbus
+	select BR2_PACKAGE_HAS_LIBUDEV
 	select BR2_PACKAGE_HAS_UDEV
 	select BR2_PACKAGE_DBUS # runtime dependency only
 	select BR2_PACKAGE_LIBCAP
@@ -71,6 +72,9 @@ menuconfig BR2_PACKAGE_SYSTEMD
 	  http://freedesktop.org/wiki/Software/systemd
 
 if BR2_PACKAGE_SYSTEMD
+
+config BR2_PACKAGE_PROVIDES_LIBUDEV
+	default "systemd"
 
 config BR2_PACKAGE_PROVIDES_UDEV
 	default "systemd"
