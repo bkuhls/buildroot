@@ -10,6 +10,8 @@ EUDEV_LICENSE = GPL-2.0+ (programs), LGPL-2.1+ (libraries)
 EUDEV_LICENSE_FILES = COPYING
 EUDEV_INSTALL_STAGING = YES
 
+EUDEV_PROVIDES = libudev
+
 ifeq ($(BR2_PACKAGE_EUDEV_DAEMON),y)
 
 # mq_getattr is in librt
@@ -24,7 +26,7 @@ EUDEV_CONF_OPTS = \
 	--enable-blkid
 
 EUDEV_DEPENDENCIES = host-gperf host-pkgconf util-linux kmod
-EUDEV_PROVIDES = udev
+EUDEV_PROVIDES += udev
 
 ifeq ($(BR2_ROOTFS_MERGED_USR),)
 EUDEV_CONF_OPTS += --with-rootlibdir=/lib --enable-split-usr
