@@ -10,6 +10,8 @@ EUDEV_LICENSE = GPL-2.0+ (programs), LGPL-2.1+ (libraries)
 EUDEV_LICENSE_FILES = COPYING
 EUDEV_INSTALL_STAGING = YES
 
+ifeq ($(BR2_PACKAGE_EUDEV_DAEMON),y)
+
 # mq_getattr is in librt
 EUDEV_CONF_ENV += LIBS=-lrt
 
@@ -55,5 +57,45 @@ endef
 define EUDEV_USERS
 	- - input -1 * - - - Input device group
 endef
+
+else # BR2_PACKAGE_EUDEV_DAEMON
+
+EUDEV_DEPENDENCIES = host-gperf host-pkgconf
+
+EUDEV_CONF_OPTS = \
+	--disable-manpages \
+	--disable-introspection \
+	--disable-blkid \
+	--disable-selinux \
+	--disable-kmod \
+	--disable-hwdb \
+	--disable-rule-generator
+
+# When not installing the daemon, we have to override the build and
+# install commands, to just install the library.
+
+define EUDEV_BUILD_CMDS
+	$(TARGET_MAKE_ENV) $(MAKE) $(TARGET_CONFIGURE_OPTS) \
+		-C $(@D)/src/shared
+	$(TARGET_MAKE_ENV) $(MAKE) $(TARGET_CONFIGURE_OPTS) \
+		-C $(@D)/src/libudev
+endef
+
+# Symlink udev.pc to libudev.pc for those packages that conflate the two
+# and 'Requires: udev' when they should just 'Requires: libudev'. Do the
+# symlink, to avoid patching each and all of those packages.
+# Note: nothing to install from src/shared, only from src/libudev
+define EUDEV_INSTALL_STAGING_CMDS
+	$(TARGET_MAKE_ENV) $(MAKE) $(TARGET_CONFIGURE_OPTS) \
+		-C $(@D)/src/libudev DESTDIR=$(STAGING_DIR) install
+	ln -sf libudev.pc $(STAGING_DIR)/usr/lib/pkgconfig/udev.pc
+endef
+
+define EUDEV_INSTALL_TARGET_CMDS
+	$(TARGET_MAKE_ENV) $(MAKE) $(TARGET_CONFIGURE_OPTS) \
+		-C $(@D)/src/libudev DESTDIR=$(TARGET_DIR) install
+endef
+
+endif # BR2_PACKAGE_EUDEV_DAEMON
 
 $(eval $(autotools-package))

@@ -1,31 +1,47 @@
+# This symbol is outside the eudev if-block, so that we do not have
+# a circular dependency in kconfig. Thus, we need the dummy symbol,
+# below, to inform the user that the daemon has indeed been enabled.
+config BR2_PACKAGE_EUDEV_DAEMON
+	bool
+	select BR2_PACKAGE_HAS_UDEV
+	select BR2_PACKAGE_UTIL_LINUX
+	select BR2_PACKAGE_UTIL_LINUX_LIBBLKID
+	select BR2_PACKAGE_KMOD
+	# We can select this has we're sure eudev is selected when we are.
+	select BR2_PACKAGE_EUDEV_DAEMON_DUMMY
+
 config BR2_PACKAGE_EUDEV
 	bool "eudev"
-	depends on BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV
-	depends on BR2_USE_MMU # uses fork()
+	depends on !BR2_INIT_SYSTEMD
+	depends on BR2_USE_MMU # uses fork() (for daemon) and dlfcn.h (for libudev)
 	depends on BR2_USE_WCHAR # needs C99 compiler
-	depends on !BR2_STATIC_LIBS # kmod
-	select BR2_PACKAGE_EUDEV_DAEMON
+	depends on !BR2_STATIC_LIBS # dlfcn.h
 	help
 	  eudev is a fork of systemd-udev with the goal of obtaining
 	  better compatibility with existing software such as OpenRC and
 	  Upstart, older kernels, various toolchains and anything else
 	  required by users and various distributions.
 
+	  This option only installs the libudev library. If you want /dev
+	  to be managed with the udev daemon, see "/dev management" in the
+	  top-level menu "System configuration".
+
 	  https://wiki.gentoo.org/wiki/Project:Eudev
 
 if BR2_PACKAGE_EUDEV
 
-config BR2_PACKAGE_EUDEV_DAEMON
+comment "udev daemon needs eudev /dev management"
+	depends on !BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV
+
+# See comment at top of file.
+config BR2_PACKAGE_EUDEV_DAEMON_DUMMY
 	bool "udev daemon"
 	depends on BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV
-	select BR2_PACKAGE_HAS_UDEV
-	select BR2_PACKAGE_UTIL_LINUX
-	select BR2_PACKAGE_UTIL_LINUX_LIBBLKID
-	select BR2_PACKAGE_KMOD
 	help
 	  Install the udev daemon.
 
-if BR2_PACKAGE_EUDEV_DAEMON
+# Use the dummy symbol for proper indentation
+if BR2_PACKAGE_EUDEV_DAEMON_DUMMY
 
 config BR2_PACKAGE_PROVIDES_UDEV
 	default "eudev"
@@ -45,10 +61,12 @@ endif # BR2_PACKAGE_EUDEV_DAEMON
 
 endif # BR2_PACKAGE_EUDEV
 
-comment "eudev needs eudev /dev management"
-	depends on BR2_USE_MMU
-	depends on !BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV
-
 comment "eudev needs a toolchain w/ wchar, dynamic library"
 	depends on BR2_USE_MMU
+	depends on !BR2_INIT_SYSTEMD
 	depends on !BR2_USE_WCHAR || BR2_STATIC_LIBS
+
+comment "eudev incompatible with systemd init"
+	depends on BR2_USE_MMU
+	depends on BR2_INIT_SYSTEMD
+	depends on BR2_USE_WCHAR && !BR2_STATIC_LIBS
