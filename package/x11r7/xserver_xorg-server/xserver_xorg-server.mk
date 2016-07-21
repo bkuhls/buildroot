@@ -170,6 +170,8 @@ XSERVER_XORG_SERVER_CONF_OPTS += --enable-config-udev-kms
 else
 XSERVER_XORG_SERVER_CONF_OPTS += --disable-config-udev-kms
 endif
+else
+XSERVER_XORG_SERVER_CONF_OPTS += --disable-config-udev
 endif
 
 ifeq ($(BR2_PACKAGE_DBUS),y)
