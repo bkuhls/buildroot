@@ -1,0 +1,611 @@
+Fix compilation with vdr 2.3.1
+
+Downloaded from upstream forum:
+http://www.vdr-portal.de/board1-news/board2-vdr-news/p1268454-announce-vdr-developer-version-2-3-1/#post1268454
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+--- ./caDescriptor.c	2015-01-02 20:35:02.000000000 +0100
++++ ./caDescriptor.c	2016-03-16 20:27:15.000000000 +0100
+@@ -55,8 +55,13 @@
+ 
+ bool cCaDescriptors::operator== (const cCaDescriptors &arg) const
+ {
++#if APIVERSNUM > 20300
++  const cCaDescriptor *ca1 = caDescriptors.First();
++  const cCaDescriptor *ca2 = arg.caDescriptors.First();
++#else
+   cCaDescriptor *ca1 = caDescriptors.First();
+   cCaDescriptor *ca2 = arg.caDescriptors.First();
++#endif
+   while (ca1 && ca2) {
+         if (!(*ca1 == *ca2))
+            return false;
+--- ./dvb_wrapper.c	2015-01-12 19:58:10.000000000 +0100
++++ ./dvb_wrapper.c	2016-03-16 20:29:02.000000000 +0100
+@@ -620,7 +620,12 @@
+ }
+ 
+ bool ActiveTimers(scantype_t type) {
++#if APIVERSNUM > 20300
++  LOCK_TIMERS_READ;
++  for (const cTimer * ti = Timers->First(); ti; ti = Timers->Next(ti))
++#else
+   for (cTimer * ti = Timers.First(); ti; ti = Timers.Next(ti))
++#endif
+       if (ti->Recording() && IsScantype(type, ti->Channel()))
+          return true;
+ 
+@@ -630,7 +635,12 @@
+ bool PendingTimers(scantype_t type, int Margin) {
+   time_t now = time(NULL);
+ 
++#if APIVERSNUM > 20300
++  LOCK_TIMERS_READ;
++  for (const cTimer * ti = Timers->First(); ti; ti = Timers->Next(ti)) {
++#else
+   for (cTimer * ti = Timers.First(); ti; ti = Timers.Next(ti)) {
++#endif
+       ti->Matches();
+       if (ti->HasFlags(tfActive) && (ti->StartTime() <= now + Margin) &&
+            IsScantype(type, ti->Channel()))
+--- ./menusetup.c	2015-01-11 14:53:59.000000000 +0100
++++ ./menusetup.c	2016-03-16 20:35:49.000000000 +0100
+@@ -99,6 +99,8 @@
+     strcpy(CountryNames[i], country_list[i].full_name);
+     }
+ 
++   SetMenuCategory(mcPluginSetup);
++
+   SetSection(tr("Setup"));
+   AddCategory(tr("General"));
+   Add(new cMenuEditStraItem(tr("Source Type"), (int *) &wSetup.DVB_Type,  6, DVB_Types));
+@@ -209,7 +211,12 @@
+      return false;
+ 
+   timestamp = time(0);
++#if APIVERSNUM > 20300
++  LOCK_CHANNELS_READ;
++  channelcount = Channels->Count();
++#else
+   channelcount = Channels.Count();
++#endif
+   Scanner = new cScanner(ScannerDesc, (scantype_t) DVB_Type);
+   return true;
+ }
+@@ -307,7 +314,12 @@
+   DELETENULL(buf);
+   Add(ChanNew);
+ 
++#if APIVERSNUM > 20300
++  LOCK_CHANNELS_READ;
++  if (0 > asprintf(&buf, "all Channels: %d", Channels->Count()))
++#else
+   if (0 > asprintf(&buf, "all Channels: %d", Channels.Count()))
++#endif
+     dlog(0, "%s (%d): could not allocate memory", __FUNCTION__, __LINE__);
+   ChanAll = new cOsdItem(buf);
+   DELETENULL(buf);
+@@ -424,12 +436,21 @@
+ 
+ void cMenuScanning::SetChan(int count) {
+   char * buf;
++#if APIVERSNUM > 20300
++  LOCK_CHANNELS_READ;
++  if (0 > asprintf(&buf, "new Channels: %d", (Channels->Count() - channelcount)>0?Channels->Count() - channelcount:0))
++#else
+   if (0 > asprintf(&buf, "new Channels: %d", (Channels.Count() - channelcount)>0?Channels.Count() - channelcount:0))
++#endif
+     dlog(0, "%s (%d): could not allocate memory", __FUNCTION__, __LINE__);
+   ChanNew->SetText(buf, true);
+   DELETENULL(buf);
+   ChanNew->Set();
++#if APIVERSNUM > 20300
++  if (0 > asprintf(&buf, "all Channels: %d", Channels->Count()))
++#else
+   if (0 > asprintf(&buf, "all Channels: %d", Channels.Count()))
++#endif
+     dlog(0, "%s (%d): could not allocate memory", __FUNCTION__, __LINE__);
+   ChanAll->SetText(buf, true);
+   DELETENULL(buf);
+--- ./scanfilter.c	2015-01-12 20:52:50.000000000 +0100
++++ ./scanfilter.c	2016-03-16 22:01:51.000000000 +0100
+@@ -363,7 +363,12 @@
+ 
+            for (int n = 0; n < NumFrequencies; n++) {
+              cChannel * transponder = new cChannel;
++#if APIVERSNUM > 20300
++             LOCK_CHANNELS_WRITE;  // or READ ?
++             transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+              transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+              if (transponder->SetTransponderData(Source, Frequencies[n], SymbolRate,
+                               *ParamsToString('S', Polarization, INVERSION_AUTO, 0, CodeRate, 0, ModulationType,
+                               System, 0, 0, 0, RollOff), true)) {
+@@ -390,7 +395,12 @@
+                      }
+                    if ((ts.getOriginalNetworkId() != update_transponder->Nid()) ||
+                        (ts.getTransportStreamId() != update_transponder->Tid())) {
++#if APIVERSNUM > 20300
++                     LOCK_CHANNELS_WRITE;  // or READ ?
++                     update_transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+                      update_transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+                      dlog(4, "   Upd: %s -> NID = %d, TID = %d", *PrintTransponder(update_transponder), update_transponder->Nid(), update_transponder->Tid());
+                      }
+                    }
+@@ -425,7 +435,12 @@
+            int SymbolRate = BCD2INT(sd->getSymbolRate()) / 10;
+            for (int n = 0; n < NumFrequencies; n++) {
+              cChannel * transponder = new cChannel;
++#if APIVERSNUM > 20300
++             LOCK_CHANNELS_WRITE;  // or READ ?
++             transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+              transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+              if (transponder->SetTransponderData(Source, Frequencies[n], SymbolRate,
+                               *ParamsToString('C', 'v', INVERSION_AUTO, 8000, CodeRate, 0, Modulation, 0, 0, 0, 0, 0), true)) {
+                if (!is_known_initial_transponder(transponder, true)) {
+@@ -445,7 +460,12 @@
+                      }
+                    if ((ts.getOriginalNetworkId() != update_transponder->Nid()) ||
+                        (ts.getTransportStreamId() != update_transponder->Tid())) {
++#if APIVERSNUM > 20300
++                     LOCK_CHANNELS_WRITE;  // or READ ?
++                     update_transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+                      update_transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+                      dlog(4, "   Upd: %s -> NID = %d, TID = %d", *PrintTransponder(update_transponder), update_transponder->Nid(), update_transponder->Tid());
+                      }
+                    }
+@@ -475,7 +495,12 @@
+ 
+            for (int n = 0; n < NumFrequencies; n++) {
+              cChannel * transponder = new cChannel;
++#if APIVERSNUM > 20300
++             LOCK_CHANNELS_WRITE;  // or READ ?
++             transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+              transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+              if (transponder->SetTransponderData(Source, Frequencies[n], 27500,
+                               *ParamsToString('T', 'v', INVERSION_AUTO, Bandwidth, CodeRateHP, CodeRateLP, Constellation, 0,
+                               TransmissionMode, GuardInterval, Hierarchy, 0), true)) {
+@@ -497,7 +522,12 @@
+                      }
+                    if ((ts.getOriginalNetworkId() != update_transponder->Nid()) ||
+                        (ts.getTransportStreamId() != update_transponder->Tid())) {
++#if APIVERSNUM > 20300
++                     LOCK_CHANNELS_WRITE;	// or READ ?
++                     update_transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+                      update_transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+                      dlog(4, "   Upd: %s -> NID = %d, TID = %d", *PrintTransponder(update_transponder), update_transponder->Nid(), update_transponder->Tid());
+                      }
+                    }
+@@ -530,7 +560,12 @@
+                         memcpy(&buf, d-2, d->getLength()+2);
+                         }
+                     cChannel * transponder = new cChannel;
++#if APIVERSNUM > 20300
++                    LOCK_CHANNELS_WRITE;   // or READ ?
++                    transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+                     transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+                     if (transponder->SetTransponderData(Source, Frequencies[0], 27500,
+                               *ParamsToString('T', 'v', INVERSION_AUTO, Bandwidth, CodeRateHP, CodeRateLP, Constellation, System,
+                               TransmissionMode, GuardInterval, Hierarchy, 0), true)) {
+@@ -559,7 +594,12 @@
+                             }
+                          if ((ts.getOriginalNetworkId() != update_transponder->Nid()) ||
+                              (ts.getTransportStreamId() != update_transponder->Tid())) {
++#if APIVERSNUM > 20300
++                            LOCK_CHANNELS_WRITE;   // or READ ?
++                            update_transponder->SetId(const_cast<cChannels*>(Channels), ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#else
+                             update_transponder->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
++#endif
+                             dlog(4, "   Upd: %s -> NID = %d, TID = %d", *PrintTransponder(update_transponder), update_transponder->Nid(), update_transponder->Tid());
+                             }
+                          }
+@@ -598,7 +638,12 @@
+                cChannel * ch = NewChannels.GetByServiceID(Source(), Transponder(), Service.getServiceId());
+                if (ch && !(ch->Rid() & INVALID_CHANNEL)) {
+                  dlog(0, "   NIT: invalid (service_type=0x%.2x): %s", Service.getServiceType(), *PrintChannel(ch));
++#if APIVERSNUM > 20300
++                 LOCK_CHANNELS_WRITE;  // or READ ?
++                 ch->SetId(const_cast<cChannels*>(Channels), ch->Nid(), ch->Tid(), ch->Sid(), INVALID_CHANNEL);
++#else
+                  ch->SetId(ch->Nid(), ch->Tid(), ch->Sid(), INVALID_CHANNEL);
++#endif
+                  }
+                }
+              }
+@@ -682,18 +727,39 @@
+      cChannel * scanned = ScannedTransponders.GetByParams(Channel());
+      if (scanned != NULL) {
+         ch = new cChannel(* scanned);
++#if APIVERSNUM > 20300
++        LOCK_CHANNELS_WRITE;   // or READ ?
++        ch->SetId(const_cast<cChannels*>(Channels), scanned->Nid(), tsPAT.getTransportStreamId(), assoc.getServiceId());
++#else
+         ch->SetId(scanned->Nid(), tsPAT.getTransportStreamId(), assoc.getServiceId());
++#endif
+         }
+      else {
+         ch = new cChannel();
+         ch->CopyTransponderData(Channel());
++#if APIVERSNUM > 20300
++        LOCK_CHANNELS_WRITE;   // or READ ?
++        ch->SetId(const_cast<cChannels*>(Channels), 0, tsPAT.getTransportStreamId(), assoc.getServiceId());
++#else
+         ch->SetId(0, tsPAT.getTransportStreamId(), assoc.getServiceId());
++#endif
+         }
+      ch->SetName("???", "", "");
+      if (!GetByTransponder(ch)) {
++#if APIVERSNUM > 20300
++           cStateKey StateKey;
++           if (const cChannels *cChannels = cChannels::GetChannelsRead(StateKey)) {
++           NewChannels.Lock(StateKey, true, 100);
++#else
+         NewChannels.Lock(true, 100);
++#endif
+         NewChannels.Add(ch);
++#if APIVERSNUM > 20300
++           //NewChannels.Unlock();
++        }
++#else
+         NewChannels.Unlock();
++#endif
+         dlog(4, "      Add: %s", *PrintChannel(ch));
+         for (int i = 0; i < MAX_PMTS; i++) {
+            if (!cPmtScanners[i]) {
+@@ -953,7 +1019,12 @@
+      }
+   else {
+      dlog(4, "   PMT: PmtPid=%.5d Sid=%d is invalid (no audio/video)", Pid, pmt.getServiceId());
++#if APIVERSNUM > 20300
++     LOCK_CHANNELS_WRITE;  // or READ ?
++     Channel->SetId(const_cast<cChannels*>(Channels), Channel->Nid(), Channel->Tid(), Channel->Sid(), INVALID_CHANNEL);
++#else
+      Channel->SetId(Channel->Nid(), Channel->Tid(), Channel->Sid(), INVALID_CHANNEL);
++#endif
+      }
+   active = false;
+   return;
+@@ -1044,14 +1115,24 @@
+         NewTransponders.Add(transponder);
+         nextTransponders = NewTransponders.Count() - ScannedTransponders.Count();
+         }
++#if APIVERSNUM > 20300
++      LOCK_CHANNELS_WRITE; // or READ ?
++      channel->SetId(const_cast<cChannels*>(Channels), sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId());
++#else
+       channel->SetId(sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId());
++#endif
+       channel->SetName("???", "", "");
+       dlog(4, "   SDT: Add: %s", *PrintChannel(channel));
+       NewChannels.Add(channel);
+       continue;
+       }
+     else {
++#if APIVERSNUM > 20300
++      LOCK_CHANNELS_WRITE; // or READ ?
++      channel->SetId(const_cast<cChannels*>(Channels), sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId());
++#else
+       channel->SetId(sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId());
++#endif
+       }
+     SI::Descriptor * d;
+     for (SI::Loop::Iterator it2; (d = SiSdtService.serviceDescriptors.getNext(it2));) {
+@@ -1152,7 +1233,12 @@
+ int AddChannels() {
+   int count = 0;
+ 
++#if APIVERSNUM > 20300
++   //LOCK_CHANNELS_READ;
++  //Channels->IncBeingEdited();
++#else
+   Channels.IncBeingEdited();
++#endif
+ 
+   for (cChannel * Channel = NewChannels.First(); Channel; Channel = NewChannels.Next(Channel)) {
+     if (! Channel->Vpid() && ! Channel->Apid(0) && ! Channel->Dpid(0) && 
+@@ -1161,8 +1247,14 @@
+       dlog(4,"      skipped service %s", *PrintChannel(Channel));
+       continue;
+       }
++#if APIVERSNUM > 20300
++    LOCK_CHANNELS_READ;
++    if (! Channels->HasUniqueChannelID(Channel)) {
++      const cChannel * ExistingChannel = Channels->GetByChannelID(Channel->GetChannelID(), false, false);
++#else
+     if (! Channels.HasUniqueChannelID(Channel)) {
+       cChannel * ExistingChannel = Channels.GetByChannelID(Channel->GetChannelID(), false, false);
++#endif
+       if (ExistingChannel) {
+          int i;
+          char ALangs[MAXAPIDS][MAXLANGCODE2] = { "" };
+@@ -1194,14 +1286,27 @@
+             Dtypes[i] = Channel->Dtype(i);
+             }
+          #endif
++#if APIVERSNUM > 20300
++         if (Channel->Vpid() || Channel->Apid(0) || Channel->Dpid(0)) {
++            //LOCK_CHANNELS_READ;
++            SetPids(const_cast<cChannel*>(ExistingChannel), Channel->Vpid(), Channel->Ppid(),
++#else
+          if (Channel->Vpid() || Channel->Apid(0) || Channel->Dpid(0))
+             SetPids(ExistingChannel, Channel->Vpid(), Channel->Ppid(),
++#endif
+                     Channel->Vtype(),
+                     (int *) Channel->Apids(), Atypes, ALangs, (int *) Channel->Dpids(), Dtypes, DLangs,
+                     (int *) Channel->Spids(), SLangs,
+                     Channel->Tpid());
++#if APIVERSNUM > 20300
++         }
++         if (strcmp("???", Channel->Name())) {
++            const_cast<cChannel*>(ExistingChannel)->SetName(Channel->Name(), Channel->ShortName(), Channel->Provider());
++         }
++#else
+          if (strcmp("???", Channel->Name()))
+             ExistingChannel->SetName(Channel->Name(), Channel->ShortName(), Channel->Provider());
++#endif
+          dlog(4,"      updated (existing): %s", *PrintChannel(ExistingChannel));
+          }
+       else
+@@ -1229,12 +1334,24 @@
+       continue;
+       }
+     cChannel * aChannel = new cChannel(* Channel);
++#if APIVERSNUM > 20300
++    //LOCK_CHANNELS_WRITE
++    const_cast<cChannels*>(Channels)->Add(aChannel);
++#else
+     Channels.Add(aChannel);
++#endif
+     count++;
+     }
+   NewChannels.Load(NULL, false, false);
++#if APIVERSNUM > 20300
++  LOCK_CHANNELS_WRITE
++  //Channels->DecBeingEdited();
++  Channels->ReNumber();
++  Channels->SetModifiedByUser();
++#else
+   Channels.DecBeingEdited();
+   Channels.ReNumber();
+   Channels.SetModified(true);
++#endif
+   return (count);
+ }
+--- ./scanfilter.h	2015-01-11 11:34:10.000000000 +0100
++++ ./scanfilter.h	2016-03-16 21:05:45.000000000 +0100
+@@ -100,7 +100,11 @@
+ class cNit {
+ public:
+   u_short networkId;
++#if APIVERSNUM > 20300
++  char name[_MAXNETWORKNAME];
++#else
+   char name[MAXNETWORKNAME];
++#endif
+   bool hasTransponder;
+ };
+ 
+--- ./scanner.c	2015-01-12 21:06:10.000000000 +0100
++++ ./scanner.c	2016-03-16 21:17:41.000000000 +0100
+@@ -628,7 +628,11 @@
+          else
+            continue;
+          cCondWait::SleepMs(2000);
++#if APIVERSNUM > 20300
++         vbiSupport = vcap.capabilities & (V4L2_CAP_VBI_CAPTURE | V4L2_CAP_SLICED_VBI_CAPTURE);
++#else
+          vbiSupport = vcap.capabilities & (V4L2_CAP_VBI_CAPTURE || V4L2_CAP_SLICED_VBI_CAPTURE);
++#endif
+          if (vbiSupport)
+            dlog(3, "device can capture vbi");
+          }
+@@ -738,7 +742,11 @@
+                break;
+              case SCAN_SATELLITE:
+                aChannel->SetTransponderData(cSource::FromString(sat_list[this_channellist].source_id),
++#if APIVERSNUM > 20300
++                                          sat_list[this_channellist].items[channel].intermediate_frequency,
++#else
+                                           sat_list[this_channellist].items[0].intermediate_frequency,
++#endif
+                                           sat_list[this_channellist].items[channel].symbol_rate,
+                                           *ParamsToString('S',
+                                           GetVDRPolarizationFromDVB(sat_list[this_channellist].items[0].polarization),
+@@ -829,7 +837,12 @@
+                aChannel->Parse(*ch);
+                if (IsTvChannel(f)) {
+                  dlog(3, "%s", *PrintTransponder(aChannel));
++#if APIVERSNUM > 20300
++                 LOCK_CHANNELS_READ;
++                 if (is_known_initial_transponder(aChannel, false, const_cast<cChannels*>(Channels))) {
++#else
+                  if (is_known_initial_transponder(aChannel, false, &Channels)) {
++#endif
+                    dlog(4, "%.3fMHz: skipped (already known channel)", aChannel->Frequency()/1e6);
+                    thisChannel++;
+                    continue;
+@@ -915,11 +928,20 @@
+                         }
+                      }
+                  dlog(4, "%s", *PrintChannel(newChannel));
++#if APIVERSNUM > 20300
++                 LOCK_CHANNELS_WRITE
++                 //Channels->IncBeingEdited();
++                 Channels->Add(newChannel);
++                 //Channels->DecBeingEdited();
++                 Channels->ReNumber();
++                 Channels->SetModifiedByUser();
++#else
+                  Channels.IncBeingEdited();
+                  Channels.Add(newChannel);
+                  Channels.DecBeingEdited();
+                  Channels.ReNumber();
+                  Channels.SetModified(true);
++#endif
+ 
+                  if (MenuScanning)
+                     MenuScanning->SetChan(1);
+@@ -988,7 +1010,12 @@
+ 
+                  if (maxcount) {
+                    int i;
++#if APIVERSNUM > 20300
++                   LOCK_CHANNELS_WRITE
++                   //Channels.IncBeingEdited();
++#else
+                    Channels.IncBeingEdited();
++#endif
+                    for (i = 0; i < maxcount; i++) {
+                      cString ch, name;
+                      // 30% strength; arbitrary choosen.
+@@ -1014,16 +1041,29 @@
+ 
+                      aChannel->Parse(*ch);
+ 
++#if APIVERSNUM > 20300
++                     if (is_known_initial_transponder(aChannel, false, Channels)) {
++#else
+                      if (is_known_initial_transponder(aChannel, false, &Channels)) {
++#endif
+                        dlog(4, "fm radio: %s (already known)", *PrintTransponder(aChannel));
+                        }
+                      else {
+-                       Channels.Add(aChannel);
++#if APIVERSNUM > 20300
++                       Channels->Add(aChannel);
++#else
++            	       Channels.Add(aChannel);
++#endif
+                        dlog(4, "fm radio: %s (new)", *PrintTransponder(aChannel));
+                        }
+                      }
++#if APIVERSNUM > 20300
++                   //Channels->DecBeingEdited();
++                   Channels->SetModifiedByUser();
++#else
+                    Channels.DecBeingEdited();
+                    Channels.SetModified(true);
++#endif
+                    }
+ 
+                  free(bsplines);
+@@ -1070,17 +1110,30 @@
+                      dlog(0, "%s %d: cannot parse channel:  %s ", __FUNCTION__, __LINE__, *ch);
+                      break;
+                      }
++#if APIVERSNUM > 20300
++                  LOCK_CHANNELS_READ;
++                  if (is_known_initial_transponder(aChannel, true, const_cast<cChannels*>(Channels))) {
++#else
+                   if (is_known_initial_transponder(aChannel, true, &Channels)) {
++#endif
+                      dlog(4, "%s %s skipped (already known channel)", *c, *p);
+                      continue;
+                      }
+                   if (aDevice->ProvidesChannel(aChannel)) {
+                      cChannel * newChannel = new cChannel(*aChannel);
+                      dlog(4, "%s", *PrintChannel(newChannel));
++#if APIVERSNUM > 20300
++                     LOCK_CHANNELS_WRITE
++                     //Channels->IncBeingEdited();
++                     Channels->Add(newChannel);
++                     //Channels->DecBeingEdited();
++                     Channels->SetModifiedByUser();
++#else
+                      Channels.IncBeingEdited();
+                      Channels.Add(newChannel);
+                      Channels.DecBeingEdited();
+                      Channels.SetModified(true);
++#endif
+                      if (MenuScanning)
+                         MenuScanning->SetChan(1);
+                      }
+@@ -1092,7 +1145,12 @@
+ stop:
+   if (MenuScanning) MenuScanning->SetStatus((status = 0));
+   if (dev) dev->DetachAllReceivers();
++#if APIVERSNUM > 20300
++  LOCK_CHANNELS_WRITE
++  Channels->ReNumber();
++#else
+   Channels.ReNumber();
++#endif
+   SetShouldstop(true);
+   dlog(3, "leaving scanner");
+   Cancel(0);
+--- ./statemachine.c	2015-01-12 20:51:11.000000000 +0100
++++ ./statemachine.c	2016-03-16 21:19:45.000000000 +0100
+@@ -30,7 +30,11 @@
+     if (On) {Start();  }
+     else    {Cancel(0);}
+     };
++#if APIVERSNUM > 20300
++  virtual void Receive(const uchar * Data, int Length) {};
++#else
+   virtual void Receive(uchar * Data, int Length) {};
++#endif
+   virtual void Action(void) {
+     while (Running()) cCondWait::SleepMs(5);
+     }; /*TODO: check here periodically for lock and wether we got any data!*/
+--- ./ttext.c	2015-01-02 20:35:02.000000000 +0100
++++ ./ttext.c	2016-03-16 21:20:25.000000000 +0100
+@@ -100,8 +100,13 @@
+  * cSwReceiver
+  *---------------------------------------------------------------------------*/
+ 
++#if APIVERSNUM > 20300
++void cSwReceiver::Receive(const uchar * Data, int Length) {
++  const uchar * p;
++#else
+ void cSwReceiver::Receive(uchar * Data, int Length) {
+   uchar * p;
++#endif
+   int count = 184;
+   
+   if (stopped || !Running()) return;
+--- ./ttext.h	2015-01-02 20:35:02.000000000 +0100
++++ ./ttext.h	2016-03-16 21:21:22.000000000 +0100
+@@ -29,7 +29,11 @@
+   uint16_t cni_cr_idx;
+   char fuzzy_network[48];
+ protected:
++#if APIVERSNUM > 20300
++  virtual void Receive(const uchar * Data, const int Length);
++#else
+   virtual void Receive(uchar * Data, int Length);
++#endif
+   virtual void Action();
+   virtual void Stop() { stopped = true; };
+   void Decode(uchar * data, int count);
+--- ./wirbelscan.c	2015-01-11 09:27:17.000000000 +0100
++++ ./wirbelscan.c	2016-03-16 21:22:10.000000000 +0100
+@@ -214,8 +214,14 @@
+      strcpy(s->transponder, *lTransponder? *lTransponder:"none");
+      s->progress = s->status == StatusScanning?lProgress:0;
+      s->strength = s->status == StatusScanning?lStrength:0;
++#if APIVERSNUM > 20300
++     LOCK_CHANNELS_READ;
++     s->numChannels = Channels->Count();
++     s->newChannels = ((Channels->Count() - channelcount) > 0) && channelcount?Channels->Count() - channelcount:0;
++#else
+      s->numChannels = Channels.Count();
+      s->newChannels = ((Channels.Count() - channelcount) > 0) && channelcount?Channels.Count() - channelcount:0;
++#endif
+      s->nextTransponders = nextTransponders;
+      return true;
+      }

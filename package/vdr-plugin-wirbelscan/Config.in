@@ -1,0 +1,14 @@
+config BR2_PACKAGE_VDR_PLUGIN_WIRBELSCAN
+	bool "vdr-plugin-wirbelscan"
+	depends on BR2_PACKAGE_VDR
+	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_7 # w_scan
+	select BR2_PACKAGE_W_SCAN
+	help
+	  This plugin performs a channel scan for digital terrestrial
+	  and digital cable TV and analog ivtv cards, satellite is also
+	  supported.
+
+	  http://wirbel.htpc-forum.de/wirbelscan/index2.html
+
+comment "vdr-plugin-wirbelscan needs a toolchain w/ headers >= 3.7"
+	depends on !BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_7
