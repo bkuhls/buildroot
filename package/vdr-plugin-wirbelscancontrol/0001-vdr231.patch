@@ -1,0 +1,64 @@
+Fix compilation with vdr 2.3.1
+
+Inspired by upstream forum:
+http://www.vdr-portal.de/board1-news/board2-vdr-news/p1268454-announce-vdr-developer-version-2-3-1/#post1268454
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+diff -uNr wirbelscancontrol-0.0.2.org/scanmenu.c wirbelscancontrol-0.0.2/scanmenu.c
+--- wirbelscancontrol-0.0.2.org/scanmenu.c	2011-03-25 17:19:23.000000000 +0100
++++ wirbelscancontrol-0.0.2/scanmenu.c	2016-08-06 20:02:13.000000000 +0200
+@@ -255,6 +255,7 @@
+ {
+    eOSState state = cOsdMenu::ProcessKey(Key);
+    int direction = 0;
++   LOCK_CHANNELS_READ;
+    switch (Key) {
+       case kLeft:    direction = -1;
+                      break;
+@@ -268,7 +269,11 @@
+                         case SETSCAN:
+                           osdstatus = SCANNING;
+                           start = time(NULL);
++#if APIVERSNUM > 20300
++                          channelcount0 = Channels->Count();
++#else
+                           channelcount0 = Channels.Count();
++#endif
+                           SetHelp(tr("Stop"), NULL, NULL, NULL);
+                           TransferSetup();
+                           PutCommand(CmdStartScan);
+@@ -655,7 +660,17 @@
+   sbuf = cString::sprintf("%s (%d%% transponders from scan list + %u queued)", buf, status.progress, status.nextTransponders);
+   ProgressBar->SetText(*sbuf);
+ 
++  LOCK_CHANNELS_READ;
+   if (TV1 && TV2 && TV3 && TV4 && TV5)
++#if APIVERSNUM > 20300
++     switch (Channels->Count() - channelcount0) {
++         default:;
++         case 5: TV5->SetText(Channels->GetByNumber(Channels->Count()-4)->Name());
++         case 4: TV4->SetText(Channels->GetByNumber(Channels->Count()-3)->Name());
++         case 3: TV3->SetText(Channels->GetByNumber(Channels->Count()-2)->Name());
++         case 2: TV2->SetText(Channels->GetByNumber(Channels->Count()-1)->Name());
++         case 1: TV1->SetText(Channels->GetByNumber(Channels->Count()-0)->Name());
++#else
+      switch (Channels.Count() - channelcount0) {
+          default:;
+          case 5: TV5->SetText(Channels.GetByNumber(Channels.Count()-4)->Name());
+@@ -663,10 +678,15 @@
+          case 3: TV3->SetText(Channels.GetByNumber(Channels.Count()-2)->Name());
+          case 2: TV2->SetText(Channels.GetByNumber(Channels.Count()-1)->Name());
+          case 1: TV1->SetText(Channels.GetByNumber(Channels.Count()-0)->Name());
++#endif
+          case 0:; 
+          }
+ 
++#if APIVERSNUM > 20300
++  sbuf = cString::sprintf("%s%d", tr("New channels: "), Channels->Count() - channelcount0);
++#else
+   sbuf = cString::sprintf("%s%d", tr("New channels: "), Channels.Count() - channelcount0);
++#endif
+   if (CH) CH->SetText(*sbuf);
+ 
+   Display();

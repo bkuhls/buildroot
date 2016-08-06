@@ -1,0 +1,9 @@
+config BR2_PACKAGE_VDR_PLUGIN_WIRBELSCANCONTROL
+	bool "vdr-plugin-wirbelscancontrol"
+	depends on BR2_PACKAGE_VDR_PLUGIN_WIRBELSCAN
+	help
+	  This plugin extends the wirbelscan plugin with a main menu
+	  entry. It may serve also as an example how to control the
+	  wirbelscan plugin via it's service interface.
+
+	  http://wirbel.htpc-forum.de/wirbelscancontrol/index2.html

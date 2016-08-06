@@ -1771,6 +1771,7 @@ endif
 	source "package/vdr/Config.in"
 	source "package/vdr-plugin-vnsiserver/Config.in"
 	source "package/vdr-plugin-wirbelscan/Config.in"
+	source "package/vdr-plugin-wirbelscancontrol/Config.in"
 	source "package/vnstat/Config.in"
 	source "package/vpnc/Config.in"
 	source "package/vsftpd/Config.in"
