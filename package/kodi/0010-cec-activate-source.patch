@@ -1,0 +1,26 @@
+make kodi active source as soon as the TV will become active source
+a little "brute force" (and probably wrong way) but what else to
+expect from someone who knows not much about kodi and cec :)
+
+Downloaded from http://pastebin.com/raw/CQAmZsub
+Discussed on the libreelec board:
+https://forum.libreelec.tv/thread-2387-post-19195.html#pid19195
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+--- a/xbmc/peripherals/devices/PeripheralCecAdapter.cpp	2016-10-28 19:27:46.000000000 +0200
++++ b/xbmc/peripherals/devices/PeripheralCecAdapter.cpp	2016-11-11 17:40:55.438990640 +0100
+@@ -624,6 +624,13 @@ int CPeripheralCecAdapter::CecCommand(vo
+   {
+     switch (command.opcode)
+     {
++    case CEC_OPCODE_ACTIVE_SOURCE:
++      if (command->initiator == CECDEVICE_TV) {
++        CLog::Log(LOGDEBUG, "%s: got 'Active Source' command from TV, let's call CECActivateSource", __FUNCTION__);
++        usleep(25000);
++        g_application.ExecuteXBMCAction("CECActivateSource");
++      }
++     break;
+     case CEC_OPCODE_STANDBY:
+       /* a device was put in standby mode */
+       if (command->initiator == CECDEVICE_TV &&
