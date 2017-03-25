@@ -49,4 +49,11 @@ define ODROID_MALI_INSTALL_TARGET_CMDS
 	$(call ODROID_MALI_INSTALL_LIBS,$(TARGET_DIR))
 endef
 
+ifneq ($(BR2_PACKAGE_XLIB_LIBX11),y)
+define ODROID_MALI_FIX_EGL_PC
+	$(SED) "s/: -I/: -DMESA_EGL_NO_X11_HEADERS -I/" $(STAGING_DIR)/usr/lib/pkgconfig/egl.pc
+endef
+ODROID_MALI_POST_INSTALL_TARGET_HOOKS += ODROID_MALI_FIX_EGL_PC
+endif
+
 $(eval $(generic-package))
