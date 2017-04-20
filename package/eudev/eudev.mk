@@ -10,20 +10,32 @@ EUDEV_LICENSE = GPL-2.0+ (programs), LGPL-2.1+ (libraries)
 EUDEV_LICENSE_FILES = COPYING
 EUDEV_INSTALL_STAGING = YES
 
+EUDEV_DEPENDENCIES = host-gperf host-pkgconf
+
 EUDEV_CONF_OPTS = \
 	--disable-manpages \
-	--sbindir=/sbin \
-	--libexecdir=/lib \
-	--enable-kmod \
-	--enable-blkid
-
-# eudev requires only the util-linux libraries at build time
-EUDEV_DEPENDENCIES = host-gperf host-pkgconf util-linux-libs
-EUDEV_PROVIDES = udev
+	--libexecdir=/lib
 
 ifeq ($(BR2_ROOTFS_MERGED_USR),)
 EUDEV_CONF_OPTS += --with-rootlibdir=/lib --enable-split-usr
 endif
+
+ifeq ($(BR2_PACKAGE_EUDEV_ENABLE_HWDB),y)
+EUDEV_CONF_OPTS += --enable-hwdb
+else
+EUDEV_CONF_OPTS += --disable-hwdb
+endif
+
+ifeq ($(BR2_PACKAGE_EUDEV_DAEMON),y)
+
+# eudev requires only the util-linux libraries at build time
+EUDEV_DEPENDENCIES += util-linux-libs
+EUDEV_PROVIDES = udev
+
+EUDEV_CONF_OPTS += \
+	--enable-programs \
+	--sbindir=/sbin \
+	--enable-blkid
 
 ifeq ($(BR2_PACKAGE_EUDEV_MODULE_LOADING),y)
 EUDEV_CONF_OPTS += --enable-kmod
@@ -36,12 +48,6 @@ ifeq ($(BR2_PACKAGE_EUDEV_RULES_GEN),y)
 EUDEV_CONF_OPTS += --enable-rule-generator
 else
 EUDEV_CONF_OPTS += --disable-rule-generator
-endif
-
-ifeq ($(BR2_PACKAGE_EUDEV_ENABLE_HWDB),y)
-EUDEV_CONF_OPTS += --enable-hwdb
-else
-EUDEV_CONF_OPTS += --disable-hwdb
 endif
 
 ifeq ($(BR2_PACKAGE_LIBSELINUX),y)
@@ -60,6 +66,17 @@ endef
 define EUDEV_INSTALL_INIT_OPENRC
 	@:
 endef
+
+else # !BR2_PACKAGE_EUDEV_DAEMON
+
+EUDEV_CONF_OPTS += \
+	--disable-programs \
+	--disable-blkid \
+	--disable-selinux \
+	--disable-kmod \
+	--disable-rule-generator
+
+endif
 
 HOST_EUDEV_DEPENDENCIES = host-gperf host-pkgconf
 
