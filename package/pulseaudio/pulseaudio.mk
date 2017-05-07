@@ -93,7 +93,7 @@ endif
 
 ifeq ($(BR2_PACKAGE_HAS_UDEV),y)
 PULSEAUDIO_CONF_OPTS += --enable-udev
-PULSEAUDIO_DEPENDENCIES += udev
+PULSEAUDIO_DEPENDENCIES += libudev
 else
 PULSEAUDIO_CONF_OPTS += --disable-udev
 endif
