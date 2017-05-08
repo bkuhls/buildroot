@@ -93,9 +93,9 @@ BLUEZ5_UTILS_CONF_OPTS += --disable-test
 endif
 
 # use udev if available
-ifeq ($(BR2_PACKAGE_HAS_UDEV),y)
-BLUEZ5_UTILS_CONF_OPTS += --enable-udev
-BLUEZ5_UTILS_DEPENDENCIES += udev
+ifeq ($(BR2_PACKAGE_HAS_LIBUDEV),y)
+BLUEZ5_UTILS_CONF_OPTS += --enable-udev --with-udevdir=/var/run
+BLUEZ5_UTILS_DEPENDENCIES += libudev
 else
 BLUEZ5_UTILS_CONF_OPTS += --disable-udev
 endif
