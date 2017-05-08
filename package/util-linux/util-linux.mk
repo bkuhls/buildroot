@@ -202,6 +202,20 @@ else
 UTIL_LINUX_CONF_OPTS += --without-audit
 endif
 
+# eudev daemon depends on blkid from util-linux
+# to avoid a circular dependency add optional libudev support only when
+# the eudev daemon is not enabled
+ifeq ($(BR2_PACKAGE_HAS_LIBUDEV),y)
+ifeq ($(BR2_PACKAGE_EUDEV_DAEMON),)
+UTIL_LINUX_CONF_OPTS += --with-udev
+UTIL_LINUX_DEPENDENCIES += libudev
+else
+UTIL_LINUX_CONF_OPTS += --without-udev
+endif
+else
+UTIL_LINUX_CONF_OPTS += --without-udev
+endif
+
 # Install PAM configuration files
 ifeq ($(BR2_PACKAGE_UTIL_LINUX_SU)$(BR2_PACKAGE_LINUX_PAM),yy)
 define UTIL_LINUX_INSTALL_PAMFILES
