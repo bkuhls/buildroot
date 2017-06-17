@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_ISO_639
+	bool "python-iso-639"
+	help
+	  Python library for ISO 639 standard.
+
+	  https://github.com/noumar/iso639
