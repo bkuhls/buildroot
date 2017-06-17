@@ -1,0 +1,6 @@
+config BR2_PACKAGE_PYTHON_ISO3166
+	bool "python-iso3166"
+	help
+	  Self-contained ISO 3166-1 country definitions.
+
+	  http://github.com/deactivated/python-iso3166
