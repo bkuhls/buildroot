@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_BACKPORTS_SHUTIL_WHICH
+	bool "python-backports-shutil-which"
+	depends on BR2_PACKAGE_PYTHON
+	help
+	  Backport of shutil.which from Python 3.3
+
+	  https://pypi.python.org/pypi/backports.shutil_which
