@@ -1,0 +1,15 @@
+config BR2_PACKAGE_PYTHON_STREAMLINK
+	bool "python-streamlink"
+	select BR2_PACKAGE_PYTHON_FUTURES # runtime
+	select BR2_PACKAGE_PYTHON_SINGLEDISPATCH # runtime
+	select BR2_PACKAGE_PYTHON_REQUESTS # runtime
+	select BR2_PACKAGE_PYTHON_PYCRYPTODOME # runtime
+	select BR2_PACKAGE_PYTHON_BACKPORTS_SHUTIL_WHICH # runtime
+	select BR2_PACKAGE_PYTHON_BACKPORTS_SHUTIL_GET_TERMINAL_SIZE # runtime
+	select BR2_PACKAGE_PYTHON_ISO_639 # runtime
+	select BR2_PACKAGE_PYTHON_ISO3166 # runtime
+	help
+	  Streamlink is command-line utility that extracts streams from
+	  various services and pipes them into a video player of choice.
+
+	  https://github.com/streamlink/streamlink
