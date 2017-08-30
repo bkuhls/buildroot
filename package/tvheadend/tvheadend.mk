@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TVHEADEND_VERSION = 54e63e3f9af8fdc0d23f61f3cda7fa7b246c1732
+TVHEADEND_VERSION = c93283c933ccb85f8aa7271be4d71bf3aa1e41b6
 TVHEADEND_SITE = $(call github,tvheadend,tvheadend,$(TVHEADEND_VERSION))
 TVHEADEND_LICENSE = GPL-3.0+
 TVHEADEND_LICENSE_FILES = LICENSE.md
@@ -29,8 +29,13 @@ endif
 ifeq ($(BR2_PACKAGE_FFMPEG),y)
 TVHEADEND_DEPENDENCIES += ffmpeg
 TVHEADEND_CONF_OPTS += --enable-libav
+ifeq ($(BR2_PACKAGE_LIBVA)$(BR2_PACKAGE_XORG7),yy)
+TVHEADEND_CONF_OPTS += --enable-vaapi
 else
-TVHEADEND_CONF_OPTS += --disable-libav
+TVHEADEND_CONF_OPTS += --disable-vaapi
+endif
+else
+TVHEADEND_CONF_OPTS += --disable-libav --disable-vaapi
 endif
 
 ifeq ($(BR2_PACKAGE_LIBDVBCSA),y)
@@ -57,11 +62,32 @@ TVHEADEND_DEPENDENCIES += liburiparser
 TVHEADEND_CFLAGS += $(if $(BR2_USE_WCHAR),,-DURI_NO_UNICODE)
 endif
 
+ifeq ($(BR2_PACKAGE_LIBVPX),y)
+TVHEADEND_CONF_OPTS += --enable-libvpx
+TVHEADEND_DEPENDENCIES += libvpx
+else
+TVHEADEND_CONF_OPTS += --disable-libvpx
+endif
+
 ifeq ($(BR2_PACKAGE_PCRE),y)
 TVHEADEND_DEPENDENCIES += pcre
 TVHEADEND_CONF_OPTS += --enable-pcre
 else
 TVHEADEND_CONF_OPTS += --disable-pcre
+endif
+
+ifeq ($(BR2_PACKAGE_X264),y)
+TVHEADEND_CONF_OPTS += --enable-libx264
+TVHEADEND_DEPENDENCIES += x264
+else
+TVHEADEND_CONF_OPTS += --disable-libx264
+endif
+
+ifeq ($(BR2_PACKAGE_X265),y)
+TVHEADEND_CONF_OPTS += --enable-libx265
+TVHEADEND_DEPENDENCIES += x265
+else
+TVHEADEND_CONF_OPTS += --disable-libx265
 endif
 
 TVHEADEND_DEPENDENCIES += dtv-scan-tables
