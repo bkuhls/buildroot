@@ -3,10 +3,12 @@ Description = Kodi Entertainment Center
 After = network.target
 
 [Service]
+User = root
+Group = root
 Type = simple
+PIDFile = /var/run/kodi.pid
 ExecStart = /usr/lib/kodi/kodi.bin --standalone -fs -n
 Restart = on-failure
 
 [Install]
 WantedBy = multi-user.target
-
