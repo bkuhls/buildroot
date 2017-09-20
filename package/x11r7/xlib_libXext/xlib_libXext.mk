@@ -14,5 +14,10 @@ XLIB_LIBXEXT_CPE_ID_PRODUCT = libxext
 XLIB_LIBXEXT_INSTALL_STAGING = YES
 XLIB_LIBXEXT_DEPENDENCIES = xlib_libX11 xorgproto
 XLIB_LIBXEXT_CONF_OPTS = --disable-malloc0returnsnull
+HOST_XLIB_LIBXEXT_DEPENDENCIES = \
+	host-xlib_libX11 \
+	host-xproto_xextproto \
+	host-xproto_xproto
 
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))
