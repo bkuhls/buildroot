@@ -12,5 +12,7 @@ XLIB_LIBSM_LICENSE_FILES = COPYING
 XLIB_LIBSM_INSTALL_STAGING = YES
 XLIB_LIBSM_DEPENDENCIES = xlib_libICE xlib_xtrans xorgproto
 XLIB_LIBSM_CONF_OPTS = --without-libuuid
+HOST_XLIB_LIBSM_CONF_OPTS = --without-libuuid
 
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))
