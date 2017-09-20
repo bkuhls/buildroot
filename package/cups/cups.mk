@@ -17,6 +17,7 @@ define CUPS_RUN_AUTOCONF
 	cd $(@D); $(AUTOCONF) -f
 endef
 CUPS_PRE_CONFIGURE_HOOKS += CUPS_RUN_AUTOCONF
+HOST_CUPS_PRE_CONFIGURE_HOOKS += CUPS_RUN_AUTOCONF
 
 CUPS_CONF_OPTS = \
 	--with-docdir=/usr/share/cups/doc-root \
@@ -32,6 +33,18 @@ CUPS_DEPENDENCIES = \
 	host-autoconf \
 	host-pkgconf \
 	$(if $(BR2_PACKAGE_ZLIB),zlib)
+HOST_CUPS_DEPENDENCIES = \
+	host-autoconf \
+	host-pkgconf \
+	host-zlib
+HOST_CUPS_CONF_OPTS = \
+	--without-perl \
+	--without-java \
+	--without-php \
+	--disable-gssapi
+# needed for host-zlib
+HOST_CUPS_CONF_ENV = \
+	DSOFLAGS="$(HOST_LDFLAGS) -L$(HOST_DIR)/lib"
 
 ifeq ($(BR2_PACKAGE_SYSTEMD),y)
 CUPS_CONF_OPTS += --with-systemd=/usr/lib/systemd/system \
@@ -98,3 +111,4 @@ define CUPS_USERS
 endef
 
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))
