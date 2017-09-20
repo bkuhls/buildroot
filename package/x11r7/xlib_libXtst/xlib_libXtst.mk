@@ -20,3 +20,4 @@ XLIB_LIBXTST_DEPENDENCIES = \
 	xorgproto
 
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))
