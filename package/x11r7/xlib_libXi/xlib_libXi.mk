@@ -22,3 +22,4 @@ XLIB_LIBXI_DEPENDENCIES = \
 XLIB_LIBXI_CONF_OPTS = --disable-malloc0returnsnull
 
 $(eval $(autotools-package))
+$(eval $(host-autotools-package))
