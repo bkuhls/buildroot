@@ -1,0 +1,11 @@
+config BR2_PACKAGE_HOST_OPENJDK_BOOTSTRAP
+	bool "host openjdk bootstrap"
+	depends on BR2_HOSTARCH = "x86_64" || BR2_HOSTARCH = "x86"
+	help
+	  OpenJDK (Open Java Development Kit) is a free and open source
+	  implementation of the Java Platform, Standard Edition
+	  This package provides a binary installation of the JDK created
+	  by the BLFS editors.
+
+	  http://openjdk.java.net
+	  http://www.linuxfromscratch.org/blfs/view/svn/general/java.html
