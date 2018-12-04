@@ -1,0 +1,31 @@
+config BR2_PACKAGE_IGT_GPU_TOOLS
+	bool "igt-gpu-tools"
+	depends on BR2_USE_MMU # libglib2, procps-ng
+	depends on !BR2_STATIC_LIBS # elfutils, kmod
+	depends on BR2_TOOLCHAIN_HAS_THREADS # elfutils, libdrm, libglib2
+	depends on BR2_TOOLCHAIN_USES_UCLIBC || BR2_TOOLCHAIN_USES_GLIBC # elfutils
+	depends on BR2_USE_WCHAR # elfutils, libglib2
+	depends on BR2_PACKAGE_HAS_UDEV
+	select BR2_PACKAGE_BUSYBOX_SHOW_OTHERS # procps-ng
+	select BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_CAIRO_PNG
+	select BR2_PACKAGE_ELFUTILS
+	select BR2_PACKAGE_KMOD
+	select BR2_PACKAGE_LIBDRM
+	select BR2_PACKAGE_LIBGLIB2
+	select BR2_PACKAGE_LIBPCIACCESS
+	select BR2_PACKAGE_OPENSSL
+	select BR2_PACKAGE_PIXMAN
+	select BR2_PACKAGE_PROCPS_NG
+	select BR2_PACKAGE_ZLIB
+	help
+	  IGT GPU Tools is a collection of tools for development and
+	  testing of the DRM drivers.
+
+	  https://gitlab.freedesktop.org/drm/igt-gpu-tools
+
+comment "igt-gpu-tools needs udev /dev management and a glibc or uclibc toolchain w/ threads, wchar, dynamic library"
+	depends on BR2_USE_MMU
+	depends on !BR2_PACKAGE_HAS_UDEV || BR2_STATIC_LIBS || \
+		!(BR2_TOOLCHAIN_USES_UCLIBC || BR2_TOOLCHAIN_USES_GLIBC) || \
+		!BR2_TOOLCHAIN_HAS_THREADS || !BR2_USE_WCHAR

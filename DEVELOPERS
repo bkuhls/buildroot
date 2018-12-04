@@ -339,6 +339,7 @@ F:	package/glmark2/
 F:	package/gpsd/
 F:	package/gptfdisk/
 F:	package/hdparm/
+F:	package/igt-gpu-tools/
 F:	package/inih/
 F:	package/intel-gmmlib/
 F:	package/intel-mediadriver/
@@ -996,6 +997,7 @@ F:	package/libmodsecurity/
 F:	package/nginx-modsecurity/
 
 N:	Gaël Portay <gael.portay@collabora.com>
+F:	package/igt-gpu-tools/
 F:	package/qt5/qt5virtualkeyboard/
 F:	package/qt5/qt5webengine/
 F:	package/qt5/qt5webkit/
