@@ -36,6 +36,15 @@ define RHASH_CONFIGURE_CMDS
 	)
 endef
 
+define HOST_RHASH_CONFIGURE_CMDS
+	(cd $(@D); $(HOST_CONFIGURE_OPTS) ./configure \
+		--prefix="$(HOST_DIR)" \
+		--disable-gettext \
+		--disable-openssl \
+		--extra-ldflags="$(HOST_LDFLAGS) -L $(HOST_DIR)/lib -Wl,-rpath,$(HOST_DIR)/lib" \
+	)
+endef
+
 ifeq ($(BR2_SHARED_LIBS),y)
 RHASH_BUILD_TARGETS = lib-shared build-shared
 RHASH_INSTALL_TARGETS = install-lib-shared install-so-link
@@ -72,3 +81,4 @@ define RHASH_INSTALL_TARGET_CMDS
 endef
 
 $(eval $(generic-package))
+$(eval $(host-autotools-package))
