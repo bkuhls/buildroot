@@ -1,0 +1,28 @@
+From d0c75afbb18a94fe7bbd7d7d257f4d62353811dc Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Sun, 17 Jan 2021 11:58:02 +0100
+Subject: [PATCH] Revert "7.2.1: cmake: Enforce C++17"
+
+This reverts commit 34403d2e0ab50910d4b93702eb7d294b8da30235.
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ CMakeLists.txt | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 6aa3bba..fd287a6 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,8 +3,6 @@ project(pvr.hts)
+ 
+ find_package(Kodi REQUIRED)
+ 
+-set(CMAKE_CXX_STANDARD 17)
+-
+ include_directories(${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways
+                     ${PROJECT_SOURCE_DIR}/lib)
+ 
+-- 
+2.29.2
+

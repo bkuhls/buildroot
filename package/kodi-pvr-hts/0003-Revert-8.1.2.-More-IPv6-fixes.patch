@@ -1,0 +1,63 @@
+From 94bad54c5e53d16531f229328fd651fc61d1497a Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Tue, 12 Jan 2021 08:02:37 +0100
+Subject: [PATCH] Revert "8.1.2. More IPv6 fixes."
+
+This partly reverts commit 77aba172773bf38ccb3523cea7351c369b6f1060.
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ src/tvheadend/HTSPConnection.cpp | 29 +----------------------------
+ 1 file changed, 1 insertion(+), 28 deletions(-)
+
+diff --git a/src/tvheadend/HTSPConnection.cpp b/src/tvheadend/HTSPConnection.cpp
+index b9235d3..8f9f086 100644
+--- a/src/tvheadend/HTSPConnection.cpp
++++ b/src/tvheadend/HTSPConnection.cpp
+@@ -128,31 +128,6 @@ void HTSPConnection::Stop()
+  * Info
+  */
+ 
+-namespace
+-{
+-
+-bool IsIPv6NumericHost(const std::string& str)
+-{
+-  bool ret = !str.empty() && str.find(':') != std::string::npos;
+-  if (ret)
+-  {
+-    struct addrinfo hint = {};
+-    hint.ai_family = PF_UNSPEC;
+-    hint.ai_flags = AI_NUMERICHOST;
+-
+-    struct addrinfo* res = nullptr;
+-
+-    ret = getaddrinfo(str.c_str(), NULL, &hint, &res) == 0;
+-    if (ret)
+-      ret = (res->ai_family == AF_INET6);
+-
+-    freeaddrinfo(res);
+-  }
+-  return ret;
+-}
+-
+-} // unnamed namespace
+-
+ std::string HTSPConnection::GetWebURL(const char* fmt, ...) const
+ {
+   const Settings& settings = Settings::GetInstance();
+@@ -165,10 +140,8 @@ std::string HTSPConnection::GetWebURL(const char* fmt, ...) const
+     auth += "@";
+ 
+   const char* proto = settings.GetUseHTTPS() ? "https" : "http";
+-  bool isIPv6 = IsIPv6NumericHost(settings.GetHostname());
+   std::string url = kodi::tools::StringUtils::Format(
+-      "%s://%s%s%s%s:%d", proto, auth.c_str(), isIPv6 ? "[" : "", settings.GetHostname().c_str(),
+-      isIPv6 ? "]" : "", settings.GetPortHTTP());
++      "%s://%s%s:%d", proto, auth.c_str(), settings.GetHostname().c_str(), settings.GetPortHTTP());
+ 
+   va_list va;
+ 
+-- 
+2.29.2
+

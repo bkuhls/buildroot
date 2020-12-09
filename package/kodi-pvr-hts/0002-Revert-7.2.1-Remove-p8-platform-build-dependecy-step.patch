@@ -1,0 +1,101 @@
+From ae93132ccd74a8af643e782726bce2d825150e3b Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Sun, 17 Jan 2021 11:59:51 +0100
+Subject: [PATCH] Revert "7.2.1: Remove p8-platform build dependecy: step 7:
+ build system cleanup"
+
+This reverts commit d6b71de38b1c522a6f2716a7e4a90528ae06e992.
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ .clang-format                                    | 2 +-
+ CMakeLists.txt                                   | 6 ++++--
+ debian/control                                   | 3 ++-
+ depends/common/p8-platform/p8-platform.txt       | 1 +
+ depends/windowsstore/p8-platform/p8-platform.txt | 1 +
+ pvr.hts/changelog.txt                            | 1 -
+ 6 files changed, 9 insertions(+), 5 deletions(-)
+ create mode 100644 depends/common/p8-platform/p8-platform.txt
+ create mode 100644 depends/windowsstore/p8-platform/p8-platform.txt
+
+diff --git a/.clang-format b/.clang-format
+index e7f320a..8ef33f0 100644
+--- a/.clang-format
++++ b/.clang-format
+@@ -44,7 +44,7 @@ IncludeCategories:
+     Priority:        3
+   - Regex:           '^<'
+     Priority:        3
+-  - Regex:           '^["<](kodi)\/.*\.h[">]$'
++  - Regex:           '^["<](kodi|p8-platform)\/.*\.h[">]$'
+     Priority:        2
+   - Regex:           '.*'
+     Priority:        1
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index fd287a6..2a7b475 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,8 +2,10 @@ cmake_minimum_required(VERSION 3.5)
+ project(pvr.hts)
+ 
+ find_package(Kodi REQUIRED)
++find_package(p8-platform REQUIRED)
+ 
+-include_directories(${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways
++include_directories(${p8-platform_INCLUDE_DIRS}
++                    ${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways
+                     ${PROJECT_SOURCE_DIR}/lib)
+ 
+ # Sources and headers
+@@ -98,7 +100,7 @@ list(APPEND HTS_SOURCES
+ add_subdirectory(lib/libhts
+                  lib/kissnet)
+ 
+-set(DEPLIBS hts)
++set(DEPLIBS ${p8-platform_LIBRARIES} hts)
+ 
+ build_addon(pvr.hts HTS DEPLIBS)
+ 
+diff --git a/debian/control b/debian/control
+index 5547b0a..d492d64 100644
+--- a/debian/control
++++ b/debian/control
+@@ -1,7 +1,8 @@
+ Source: kodi-pvr-hts
+ Priority: extra
+ Maintainer: Nobody <nobody@kodi.tv>
+-Build-Depends: debhelper (>= 9.0.0), cmake, kodi-addon-dev
++Build-Depends: debhelper (>= 9.0.0), cmake, libp8-platform-dev,
++               kodi-addon-dev
+ Standards-Version: 4.1.2
+ Section: libs
+ 
+diff --git a/depends/common/p8-platform/p8-platform.txt b/depends/common/p8-platform/p8-platform.txt
+new file mode 100644
+index 0000000..98ed58a
+--- /dev/null
++++ b/depends/common/p8-platform/p8-platform.txt
+@@ -0,0 +1 @@
++p8-platform https://github.com/xbmc/platform.git cee64e9dc0b69e8d286dc170a78effaabfa09c44
+diff --git a/depends/windowsstore/p8-platform/p8-platform.txt b/depends/windowsstore/p8-platform/p8-platform.txt
+new file mode 100644
+index 0000000..db6f782
+--- /dev/null
++++ b/depends/windowsstore/p8-platform/p8-platform.txt
+@@ -0,0 +1 @@
++p8-platform https://github.com/afedchin/platform.git win10
+diff --git a/pvr.hts/changelog.txt b/pvr.hts/changelog.txt
+index e642eae..4806f5f 100644
+--- a/pvr.hts/changelog.txt
++++ b/pvr.hts/changelog.txt
+@@ -35,7 +35,6 @@
+ 7.2.1
+ - Fix 'pvr.hts' appearing twice in every addon log message
+ - Fix calculation of start time, stop time and file size for multi-file recordings
+-- Remove p8-platform build dependency
+ 
+ 7.2.0
+ - Add capability to use HTTP streaming instead of HTSP
+-- 
+2.29.2
+

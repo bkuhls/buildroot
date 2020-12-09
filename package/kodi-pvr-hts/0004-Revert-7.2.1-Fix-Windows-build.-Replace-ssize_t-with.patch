@@ -1,0 +1,97 @@
+From 735b500f72605bb8d72debcebf9e3eaab875d413 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Tue, 12 Jan 2021 08:03:40 +0100
+Subject: [PATCH] Revert "7.2.1: Fix Windows build. Replace ssize_t with
+ int64_t"
+
+This partly reverts commit 5442570f51e935d77dd57b32b7b37ed46a0e7f0f.
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ src/tvheadend/HTSPConnection.cpp | 6 +++---
+ src/tvheadend/HTSPVFS.cpp        | 6 +++---
+ src/tvheadend/HTSPVFS.h          | 4 ++--
+ 3 files changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/src/tvheadend/HTSPConnection.cpp b/src/tvheadend/HTSPConnection.cpp
+index 8f9f086..a9dcc4d 100644
+--- a/src/tvheadend/HTSPConnection.cpp
++++ b/src/tvheadend/HTSPConnection.cpp
+@@ -286,7 +286,7 @@ bool HTSPConnection::ReadMessage()
+   size_t cnt = 0;
+   while (cnt < len)
+   {
+-    int64_t r = m_socket->Read(buf + cnt, len - cnt, Settings::GetInstance().GetResponseTimeout());
++    ssize_t r = m_socket->Read(buf + cnt, len - cnt, Settings::GetInstance().GetResponseTimeout());
+     if (r < 0)
+     {
+       Logger::Log(LogLevel::LEVEL_ERROR, "failed to read packet from socket");
+@@ -363,10 +363,10 @@ bool HTSPConnection::SendMessage0(const char* method, htsmsg_t* msg)
+     return false;
+ 
+   /* Send data */
+-  int64_t c = m_socket->Write(buf, len);
++  ssize_t c = m_socket->Write(buf, len);
+   free(buf);
+ 
+-  if (c != static_cast<int64_t>(len))
++  if (c != static_cast<ssize_t>(len))
+   {
+     Logger::Log(LogLevel::LEVEL_ERROR, "Command %s failed: failed to write to socket", method);
+     if (!m_suspended)
+diff --git a/src/tvheadend/HTSPVFS.cpp b/src/tvheadend/HTSPVFS.cpp
+index 3beb7d2..a2b21df 100644
+--- a/src/tvheadend/HTSPVFS.cpp
++++ b/src/tvheadend/HTSPVFS.cpp
+@@ -98,7 +98,7 @@ void HTSPVFS::Close()
+   m_isRealTimeStream = false;
+ }
+ 
+-int64_t HTSPVFS::Read(unsigned char* buf, unsigned int len, bool inprogress)
++ssize_t HTSPVFS::Read(unsigned char* buf, unsigned int len, bool inprogress)
+ {
+   /* Not opened */
+   if (!m_fileId)
+@@ -107,7 +107,7 @@ int64_t HTSPVFS::Read(unsigned char* buf, unsigned int len, bool inprogress)
+   /* Tvheadend may briefly return 0 bytes when playing an in-progress recording at end-of-file
+      we'll retry 50 times with 10ms pauses (~500ms) before giving up */
+   int tries = inprogress ? 50 : 1;
+-  int64_t read = 0;
++  ssize_t read = 0;
+ 
+   for (int i = 1; i <= tries; i++)
+   {
+@@ -332,7 +332,7 @@ long long HTSPVFS::SendFileSeek(int64_t pos, int whence, bool force)
+   return ret;
+ }
+ 
+-int64_t HTSPVFS::SendFileRead(unsigned char* buf, unsigned int len)
++ssize_t HTSPVFS::SendFileRead(unsigned char* buf, unsigned int len)
+ {
+   /* Build */
+   htsmsg_t* m = htsmsg_create_map();
+diff --git a/src/tvheadend/HTSPVFS.h b/src/tvheadend/HTSPVFS.h
+index fc7167e..949c4a5 100644
+--- a/src/tvheadend/HTSPVFS.h
++++ b/src/tvheadend/HTSPVFS.h
+@@ -36,7 +36,7 @@ public:
+ 
+   bool Open(const kodi::addon::PVRRecording& rec);
+   void Close();
+-  int64_t Read(unsigned char* buf, unsigned int len, bool inprogress);
++  ssize_t Read(unsigned char* buf, unsigned int len, bool inprogress);
+   long long Seek(long long pos, int whence, bool inprogress);
+   long long Size();
+   void PauseStream(bool paused);
+@@ -45,7 +45,7 @@ public:
+ private:
+   bool SendFileOpen(bool force = false);
+   void SendFileClose();
+-  int64_t SendFileRead(unsigned char* buf, unsigned int len);
++  ssize_t SendFileRead(unsigned char* buf, unsigned int len);
+   long long SendFileSeek(int64_t pos, int whence, bool force = false);
+ 
+   HTSPConnection& m_conn;
+-- 
+2.29.2
+

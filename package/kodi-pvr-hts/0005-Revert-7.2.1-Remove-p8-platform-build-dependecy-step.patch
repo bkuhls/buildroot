@@ -1,0 +1,130 @@
+From 2c1627fc06b8a5748d67ac67eb7d6ca5e50448f6 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Tue, 12 Jan 2021 08:03:53 +0100
+Subject: [PATCH] Revert "7.2.1: Remove p8-platform build dependecy: step 6:
+ TcpSocket"
+
+This partly reverts commit 954f25d39652098b5fb1a55d44e2d410de78902b.
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ CMakeLists.txt                   | 10 +++++-----
+ src/tvheadend/HTSPConnection.cpp | 10 ++++++----
+ src/tvheadend/HTSPConnection.h   |  8 ++------
+ 3 files changed, 13 insertions(+), 15 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 2a7b475..5537e09 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -69,9 +69,7 @@ set(HTS_SOURCES_TVHEADEND_UTILITIES
+                 src/tvheadend/utilities/LifetimeMapper.h
+                 src/tvheadend/utilities/AsyncState.cpp
+                 src/tvheadend/utilities/AsyncState.h
+-                src/tvheadend/utilities/SyncedBuffer.h
+-                src/tvheadend/utilities/TCPSocket.h
+-                src/tvheadend/utilities/TCPSocket.cpp)
++                src/tvheadend/utilities/SyncedBuffer.h)
+ 
+ source_group("Source Files" FILES ${HTS_SOURCES})
+ source_group("Source Files\\tvheadend" FILES ${HTS_SOURCES_TVHEADEND})
+@@ -97,10 +95,12 @@ list(APPEND HTS_SOURCES
+             ${HTS_SOURCES_TVHEADEND_STATUS}
+             ${HTS_SOURCES_TVHEADEND_UTILITIES})
+ 
+-add_subdirectory(lib/libhts
+-                 lib/kissnet)
++add_subdirectory(lib/libhts)
+ 
+ set(DEPLIBS ${p8-platform_LIBRARIES} hts)
++if(WIN32)
++  list(APPEND DEPLIBS ws2_32)
++endif()
+ 
+ build_addon(pvr.hts HTS DEPLIBS)
+ 
+diff --git a/src/tvheadend/HTSPConnection.cpp b/src/tvheadend/HTSPConnection.cpp
+index a9dcc4d..ac7386a 100644
+--- a/src/tvheadend/HTSPConnection.cpp
++++ b/src/tvheadend/HTSPConnection.cpp
+@@ -17,7 +17,6 @@ extern "C"
+ #include "IHTSPConnectionListener.h"
+ #include "Settings.h"
+ #include "utilities/Logger.h"
+-#include "utilities/TCPSocket.h"
+ 
+ #include "kodi/Network.h"
+ #include "kodi/addon-instance/PVR.h"
+@@ -89,6 +88,7 @@ private:
+ 
+ HTSPConnection::HTSPConnection(IHTSPConnectionListener& connListener)
+   : m_connListener(connListener),
++    m_socket(nullptr),
+     m_regThread(new HTSPRegister(this)),
+     m_ready(false),
+     m_seq(0),
+@@ -289,7 +289,8 @@ bool HTSPConnection::ReadMessage()
+     ssize_t r = m_socket->Read(buf + cnt, len - cnt, Settings::GetInstance().GetResponseTimeout());
+     if (r < 0)
+     {
+-      Logger::Log(LogLevel::LEVEL_ERROR, "failed to read packet from socket");
++      Logger::Log(LogLevel::LEVEL_ERROR, "failed to read packet (%s)",
++                  m_socket->GetError().c_str());
+       free(buf);
+       return false;
+     }
+@@ -368,7 +369,8 @@ bool HTSPConnection::SendMessage0(const char* method, htsmsg_t* msg)
+ 
+   if (c != static_cast<ssize_t>(len))
+   {
+-    Logger::Log(LogLevel::LEVEL_ERROR, "Command %s failed: failed to write to socket", method);
++    Logger::Log(LogLevel::LEVEL_ERROR, "Command %s failed: failed to write (%s)", method,
++                m_socket->GetError().c_str());
+     if (!m_suspended)
+       Disconnect();
+ 
+@@ -644,7 +646,7 @@ void HTSPConnection::Process()
+         delete m_socket;
+ 
+       m_connListener.Disconnected();
+-      m_socket = new TCPSocket(host, port);
++      m_socket = new P8PLATFORM::CTcpSocket(host.c_str(), port);
+       m_ready = false;
+       m_seq = 0;
+       if (m_challenge)
+diff --git a/src/tvheadend/HTSPConnection.h b/src/tvheadend/HTSPConnection.h
+index 190d420..a58f4cd 100644
+--- a/src/tvheadend/HTSPConnection.h
++++ b/src/tvheadend/HTSPConnection.h
+@@ -21,6 +21,7 @@ extern "C"
+ 
+ #include "kodi/addon-instance/pvr/General.h"
+ #include "kodi/tools/Thread.h"
++#include "p8-platform/sockets/tcp.h"
+ 
+ namespace tvheadend
+ {
+@@ -29,11 +30,6 @@ class HTSPRegister;
+ class HTSPResponse;
+ class IHTSPConnectionListener;
+ 
+-namespace utilities
+-{
+-class TCPSocket;
+-}
+-
+ typedef std::map<uint32_t, HTSPResponse*> HTSPResponseList;
+ 
+ /*
+@@ -106,7 +102,7 @@ private:
+   };
+ 
+   IHTSPConnectionListener& m_connListener;
+-  tvheadend::utilities::TCPSocket* m_socket = nullptr;
++  P8PLATFORM::CTcpSocket* m_socket;
+   mutable std::recursive_mutex m_mutex;
+   HTSPRegister* m_regThread;
+   std::condition_variable_any m_regCond;
+-- 
+2.29.2
+
