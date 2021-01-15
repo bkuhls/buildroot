@@ -1,0 +1,97 @@
+From 2750aa33d53fa888d3e51fee1fc05702f2c74d91 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Sat, 9 Jan 2021 18:13:27 +0100
+Subject: [PATCH] CatchupController: add put_time() to support gcc < 5
+
+Patch taken from https://stackoverflow.com/a/63617586
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ src/iptvsimple/CatchupController.cpp |  8 +++++
+ src/iptvsimple/CatchupController.h   | 45 ++++++++++++++++++++++++++++
+ 2 files changed, 53 insertions(+)
+
+diff --git a/src/iptvsimple/CatchupController.cpp b/src/iptvsimple/CatchupController.cpp
+index f79d676..8387ad4 100644
+--- a/src/iptvsimple/CatchupController.cpp
++++ b/src/iptvsimple/CatchupController.cpp
+@@ -289,7 +289,11 @@ void FormatTime(const char ch, const struct tm *pTime, std::string &urlFormatStr
+   while (pos != std::string::npos)
+   {
+     std::ostringstream os;
++#if __GNUC__ && __GNUC__ < 5
++    os << put_time(pTime, StringUtils::Format("%%%c", ch).c_str());
++#else
+     os << std::put_time(pTime, StringUtils::Format("%%%c", ch).c_str());
++#endif
+     std::string timeString = os.str();
+ 
+     if (timeString.size() > 0)
+@@ -315,7 +319,11 @@ void FormatTime(const std::string name, const struct tm *pTime, std::string &url
+       formatString = std::regex_replace(formatString, timeSpecifiers, R"(%$&)");
+ 
+       std::ostringstream os;
++#if __GNUC__ && __GNUC__ < 5
++      os << put_time(pTime, formatString.c_str());
++#else
+       os << std::put_time(pTime, formatString.c_str());
++#endif
+       std::string timeString = os.str();
+ 
+       if (timeString.size() > 0)
+diff --git a/src/iptvsimple/CatchupController.h b/src/iptvsimple/CatchupController.h
+index d125f58..a5a3ff5 100644
+--- a/src/iptvsimple/CatchupController.h
++++ b/src/iptvsimple/CatchupController.h
+@@ -76,3 +76,48 @@ namespace iptvsimple
+     StreamManager m_streamManager;
+   };
+ } //namespace iptvsimple
++
++#if __GNUC__ && __GNUC__ < 5
++#include <ostream>  // std::basic_ostream
++#include <ios>      // std::ios_base
++#include <locale>   // std::use_facet, std::time_put
++#include <iterator> // std::ostreambuf_iterator
++
++template<typename CharT>
++struct _put_time
++{
++  const std::tm* time;
++  const char *fmt;
++};
++
++template<typename CharT>
++inline _put_time<CharT>
++put_time(const std::tm* time, const CharT* fmt)
++{ return { time, fmt }; }
++
++template<typename CharT, typename Traits>
++std::basic_ostream<CharT, Traits>&
++operator<<(std::basic_ostream<CharT, Traits> &os, _put_time<CharT> f)
++{
++  typedef typename std::ostreambuf_iterator<CharT, Traits> Iter;
++  typedef std::time_put<CharT, Iter> TimePut;
++
++  const CharT* const fmt_end = f.fmt + Traits::length(f.fmt);
++  const TimePut& mp = std::use_facet<TimePut>(os.getloc());
++
++  std::ios_base::iostate err = std::ios_base::goodbit;
++  try {
++    if (mp.put(Iter(os.rdbuf()), os, os.fill(), f.time, f.fmt, fmt_end).failed())
++      err |= std::ios_base::badbit;
++  }
++  catch (...) {
++    err |= std::ios_base::badbit;
++  }
++
++  if (err)
++    os.setstate(err);
++
++  return os;
++}
++
++#endif
+-- 
+2.29.2
+
