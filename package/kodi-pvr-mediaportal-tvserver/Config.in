@@ -1,7 +1,11 @@
 config BR2_PACKAGE_KODI_PVR_MEDIAPORTAL_TVSERVER
 	bool "kodi-pvr-mediaportal-tvserver"
+	depends on !BR2_TOOLCHAIN_USES_MUSL
 	select BR2_PACKAGE_TINYXML
 	help
 	  MediaPortal TVServer PVR client addon for Kodi
 
 	  https://github.com/kodi-pvr/pvr.mediaportal.tvserver
+
+comment "kodi-pvr-mediaportal-tvserver needs a uClibc or glibc toolchain"
+	depends on BR2_TOOLCHAIN_USES_MUSL
