@@ -35,7 +35,6 @@ KODI_DEPENDENCIES = \
 	host-swig \
 	host-xmlstarlet \
 	libass \
-	libcdio \
 	libcrossguid \
 	libcurl \
 	libdrm \
@@ -337,6 +336,7 @@ endif
 
 ifeq ($(BR2_PACKAGE_KODI_OPTICALDRIVE),y)
 KODI_CONF_OPTS += -DENABLE_OPTICAL=ON
+KODI_DEPENDENCIES += libcdio
 else
 KODI_CONF_OPTS += -DENABLE_OPTICAL=OFF
 endif

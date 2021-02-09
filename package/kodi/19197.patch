@@ -1,0 +1,159 @@
+From 27411b6d9a298acac681246bb95f820e79a2595d Mon Sep 17 00:00:00 2001
+From: Evgeny Grin <k2k@narod.ru>
+Date: Mon, 8 Feb 2021 20:21:03 +0300
+Subject: [PATCH 1/6] Remove unused includes from WIN32Util
+
+---
+ xbmc/platform/win32/WIN32Util.cpp | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/xbmc/platform/win32/WIN32Util.cpp b/xbmc/platform/win32/WIN32Util.cpp
+index a62d4904ede7..8e8a44238345 100644
+--- a/xbmc/platform/win32/WIN32Util.cpp
++++ b/xbmc/platform/win32/WIN32Util.cpp
+@@ -16,7 +16,6 @@
+ #include "guilib/LocalizeStrings.h"
+ #include "my_ntddscsi.h"
+ #include "storage/MediaManager.h"
+-#include "storage/cdioSupport.h"
+ #include "utils/CharsetConverter.h"
+ #include "utils/StringUtils.h"
+ #include "utils/SystemInfo.h"
+
+From 0be76f073a709d864c3ad0f1cf82ec0cc0cb1efb Mon Sep 17 00:00:00 2001
+From: Evgeny Grin <k2k@narod.ru>
+Date: Mon, 8 Feb 2021 20:35:25 +0300
+Subject: [PATCH 2/6] Shield some includes with 'ifdef HAS_DVD_DRIVE'
+
+---
+ xbmc/filesystem/DirectoryFactory.cpp          | 2 ++
+ xbmc/filesystem/FileFactory.cpp               | 2 ++
+ xbmc/music/MusicDatabase.cpp                  | 2 ++
+ xbmc/music/tags/MusicInfoTagLoaderFactory.cpp | 2 ++
+ 4 files changed, 8 insertions(+)
+
+diff --git a/xbmc/filesystem/DirectoryFactory.cpp b/xbmc/filesystem/DirectoryFactory.cpp
+index 4e5d373964fe..6025ce95735a 100644
+--- a/xbmc/filesystem/DirectoryFactory.cpp
++++ b/xbmc/filesystem/DirectoryFactory.cpp
+@@ -46,7 +46,9 @@
+ #include "platform/posix/filesystem/SMBDirectory.h"
+ #endif
+ #endif
++#ifdef HAS_DVD_DRIVE
+ #include "CDDADirectory.h"
++#endif // HAS_DVD_DRIVE
+ #include "PluginDirectory.h"
+ #if defined(HAS_ISO9660PP)
+ #include "ISO9660Directory.h"
+diff --git a/xbmc/filesystem/FileFactory.cpp b/xbmc/filesystem/FileFactory.cpp
+index 570062c59fab..02e059416178 100644
+--- a/xbmc/filesystem/FileFactory.cpp
++++ b/xbmc/filesystem/FileFactory.cpp
+@@ -26,7 +26,9 @@
+ #include "platform/posix/filesystem/SMBFile.h"
+ #endif
+ #endif
++#ifdef HAS_DVD_DRIVE
+ #include "CDDAFile.h"
++#endif // HAS_DVD_DRIVE
+ #if defined(HAS_ISO9660PP)
+ #include "ISO9660File.h"
+ #endif
+diff --git a/xbmc/music/MusicDatabase.cpp b/xbmc/music/MusicDatabase.cpp
+index b6e78f3f2883..e9e886250db3 100644
+--- a/xbmc/music/MusicDatabase.cpp
++++ b/xbmc/music/MusicDatabase.cpp
+@@ -42,7 +42,9 @@
+ #include "messaging/helpers/DialogOKHelper.h"
+ #include "music/tags/MusicInfoTag.h"
+ #include "network/Network.h"
++#ifdef HAS_DVD_DRIVE
+ #include "network/cddb.h"
++#endif // HAS_DVD_DRIVE
+ #include "playlists/SmartPlayList.h"
+ #include "profiles/ProfileManager.h"
+ #include "settings/AdvancedSettings.h"
+diff --git a/xbmc/music/tags/MusicInfoTagLoaderFactory.cpp b/xbmc/music/tags/MusicInfoTagLoaderFactory.cpp
+index b5d8a0ce5fe1..1c31d55dc24a 100644
+--- a/xbmc/music/tags/MusicInfoTagLoaderFactory.cpp
++++ b/xbmc/music/tags/MusicInfoTagLoaderFactory.cpp
+@@ -9,7 +9,9 @@
+ #include "MusicInfoTagLoaderFactory.h"
+ 
+ #include "FileItem.h"
++#ifdef HAS_DVD_DRIVE
+ #include "MusicInfoTagLoaderCDDA.h"
++#endif // HAS_DVD_DRIVE
+ #include "MusicInfoTagLoaderDatabase.h"
+ #include "MusicInfoTagLoaderFFmpeg.h"
+ #include "MusicInfoTagLoaderShn.h"
+
+From 905a7c3b454fd63727ef8c879fc7bd33e501046d Mon Sep 17 00:00:00 2001
+From: Evgeny Grin <k2k@narod.ru>
+Date: Mon, 8 Feb 2021 20:36:09 +0300
+Subject: [PATCH 3/6] Do not build MusicInfoTagLoaderCDDA when it is not used
+
+---
+ xbmc/music/tags/CMakeLists.txt | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/music/tags/CMakeLists.txt b/xbmc/music/tags/CMakeLists.txt
+index bbd3462ccdea..63f352dfc7cc 100644
+--- a/xbmc/music/tags/CMakeLists.txt
++++ b/xbmc/music/tags/CMakeLists.txt
+@@ -1,5 +1,4 @@
+ set(SOURCES MusicInfoTag.cpp
+-            MusicInfoTagLoaderCDDA.cpp
+             MusicInfoTagLoaderDatabase.cpp
+             MusicInfoTagLoaderFactory.cpp
+             MusicInfoTagLoaderFFmpeg.cpp
+@@ -10,7 +9,6 @@ set(SOURCES MusicInfoTag.cpp
+ 
+ set(HEADERS ImusicInfoTagLoader.h
+             MusicInfoTag.h
+-            MusicInfoTagLoaderCDDA.h
+             MusicInfoTagLoaderDatabase.h
+             MusicInfoTagLoaderFactory.h
+             MusicInfoTagLoaderFFmpeg.h
+@@ -19,4 +17,9 @@ set(HEADERS ImusicInfoTagLoader.h
+             TagLibVFSStream.h
+             TagLoaderTagLib.h)
+ 
++if(ENABLE_OPTICAL)
++  list(APPEND SOURCES MusicInfoTagLoaderCDDA.cpp)
++  list(APPEND HEADERS MusicInfoTagLoaderCDDA.h)
++endif()
++
+ core_add_library(music_tags)
+
+From 78cbe7550f9c66fb4eccca9133ca7f2ff022a425 Mon Sep 17 00:00:00 2001
+From: Evgeny Grin <k2k@narod.ru>
+Date: Mon, 8 Feb 2021 20:38:20 +0300
+Subject: [PATCH 6/6] CMakeLists.txt: use Cdio lib only if 'ENABLE_OPTICAL' is
+ ON
+
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index e30083d2f939..010fbadecb0b 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -118,7 +118,6 @@ endforeach()
+ 
+ # Required dependencies. Keep in alphabetical order please
+ set(required_deps ASS
+-                  Cdio
+                   CrossGUID
+                   Curl
+                   FFMPEG
+@@ -200,6 +199,7 @@ if(ENABLE_UPNP)
+ endif()
+ 
+ if(ENABLE_OPTICAL)
++  core_require_dep(Cdio)
+   list(APPEND DEP_DEFINES -DHAS_DVD_DRIVE -DHAS_CDDA_RIPPER)
+ endif()
+ 
