@@ -1,0 +1,20 @@
+config BR2_PACKAGE_LIBUDEV_ZERO
+	bool "libudev-zero"
+	depends on !BR2_STATIC_LIBS
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	select BR2_PACKAGE_HAS_UDEV
+	help
+	  libudev-zero is a daemonless replacement for libudev
+
+	  https://github.com/illiliti/libudev-zero
+
+comment "libudev-zero needs a toolchain w/ threads, dynamic library"
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || \
+		BR2_STATIC_LIBS
+
+if BR2_PACKAGE_LIBUDEV_ZERO
+
+config BR2_PACKAGE_PROVIDES_UDEV
+	default "libudev-zero"
+
+endif
