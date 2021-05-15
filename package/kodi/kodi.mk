@@ -6,9 +6,7 @@
 
 # When updating the version, please also update kodi-jsonschemabuilder
 # and kodi-texturepacker
-KODI_VERSION_MAJOR = 19.1
-KODI_VERSION_NAME = Matrix
-KODI_VERSION = $(KODI_VERSION_MAJOR)-$(KODI_VERSION_NAME)
+KODI_VERSION = e569cac854c6e46c8fe63f5f8ea0e36dd6a522d4
 KODI_SITE = $(call github,xbmc,xbmc,$(KODI_VERSION))
 KODI_LICENSE = GPL-2.0
 KODI_LICENSE_FILES = LICENSE.md
