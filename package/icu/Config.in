@@ -25,6 +25,15 @@ config BR2_PACKAGE_ICU_CUSTOM_DATA_PATH
 	  provided by buildroot.
 	  Leave empty to not use this functionality.
 
+config BR2_PACKAGE_ICU_DATA_FILTER_FILE
+	string "Path to custom data configuration file"
+	help
+	  The ICU Data Build Tool enables you to write a configuration
+	  file that specifies what features and locales to include in a
+	  custom data bundle:
+	  https://github.com/unicode-org/icu/blob/main/docs/userguide/icu_data/buildtool.md
+	  Leave empty to not use this functionality.
+
 endif
 
 comment "icu needs a toolchain w/ C++, wchar, threads, gcc >= 7, host gcc >= 7"
