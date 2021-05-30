@@ -7,7 +7,8 @@
 # Git tags (and therefore versions on release-monitoring.org) use the
 # XX-Y format, but the tarballs are named XX_Y and the containing
 # directories XX.Y.
-ICU_VERSION = 78.2
+ICU_VERSION_MAJOR = 78
+ICU_VERSION = $(ICU_VERSION_MAJOR).2
 ICU_SOURCE = icu4c-$(ICU_VERSION)-sources.tgz
 ICU_SITE = \
 	https://github.com/unicode-org/icu/releases/download/release-$(ICU_VERSION)
@@ -72,6 +73,27 @@ define ICU_COPY_CUSTOM_DATA
 	cp $(ICU_CUSTOM_DATA_PATH) $(@D)/source/data/in/
 endef
 ICU_POST_PATCH_HOOKS += ICU_COPY_CUSTOM_DATA
+endif
+
+ICU_DATA_FILTER_FILE = $(call qstrip,$(BR2_PACKAGE_ICU_DATA_FILTER_FILE))
+
+ifneq ($(ICU_DATA_FILTER_FILE),)
+HOST_ICU_DATA_SOURCE = $(subst sources.tgz,data.zip,$(ICU_SOURCE))
+HOST_ICU_EXTRA_DOWNLOADS += $(HOST_ICU_SITE)/$(HOST_ICU_DATA_SOURCE)
+
+define HOST_ICU_EXTRACT_DATA
+	rm -rf $(@D)/$(HOST_ICU_SUBDIR)/data
+	$(UNZIP) $(ICU_DL_DIR)/$(HOST_ICU_DATA_SOURCE) -d $(@D)/$(HOST_ICU_SUBDIR)
+endef
+HOST_ICU_POST_EXTRACT_HOOKS += HOST_ICU_EXTRACT_DATA
+
+HOST_ICU_CONF_ENV = ICU_DATA_FILTER_FILE=$(ICU_DATA_FILTER_FILE)
+HOST_ICU_CONF_OPTS += --with-data-packaging=archive
+
+define ICU_COPY_CUSTOM_DATA
+	$(INSTALL) -D -m 644 $(HOST_ICU_DIR)/$(HOST_ICU_SUBDIR)/data/out/icudt$(ICU_VERSION_MAJOR)l.dat $(@D)/$(ICU_SUBDIR)/data/in/
+endef
+ICU_PRE_CONFIGURE_HOOKS += ICU_COPY_CUSTOM_DATA
 endif
 
 define ICU_REMOVE_DEV_FILES
