@@ -1,0 +1,39 @@
+From 8e59bad40d92c44feb2ce9258f79e29faba21810 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date: Wed, 30 Jun 2021 19:31:08 +0200
+Subject: [PATCH] [Media Common] Fix non-X11 build
+
+media_libva_putsurface_linux.h is already included in
+https://github.com/intel/media-driver/blob/master/media_softlet/linux/common/ddi/media_libva_interface_next.cpp#L29
+
+which is guarded by defined(X11_FOUND).
+
+Removing this superflous line fixed non-X11 builds:
+
+In file included from intel-mediadriver-6c183bf8d5c002549a486e4730bbafec04fc1fc8/media_softlet/linux/common/ddi/media_libva_interface_next.cpp:38:0:
+intel-mediadriver-6c183bf8d5c002549a486e4730bbafec04fc1fc8/media_driver/linux/common/ddi/media_libva_putsurface_linux.h:31:29: fatal error: va/va_dricommon.h: No such file or directory
+ #include <va/va_dricommon.h>
+
+because va/va_dricommon.h is only present when libva was built with X11
+support:
+https://github.com/intel/libva/blob/master/va/x11/Makefile.am#L41
+
+Patch sent upstream: https://github.com/intel/media-driver/pull/1214
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ media_softlet/linux/common/ddi/media_libva_interface_next.cpp | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/media_softlet/linux/common/ddi/media_libva_interface_next.cpp b/media_softlet/linux/common/ddi/media_libva_interface_next.cpp
+index 43e8bd1ad..8576c0a61 100644
+--- a/media_softlet/linux/common/ddi/media_libva_interface_next.cpp
++++ b/media_softlet/linux/common/ddi/media_libva_interface_next.cpp
+@@ -35,7 +35,6 @@
+ #include "mos_utilities.h"
+ #include "media_interfaces_mmd.h"
+ #include "media_libva_caps.h"
+-#include "media_libva_putsurface_linux.h"
+ #include "media_ddi_prot.h"
+ 
+ MEDIA_MUTEX_T MediaLibvaInterfaceNext::m_GlobalMutex = MEDIA_MUTEX_INITIALIZER;

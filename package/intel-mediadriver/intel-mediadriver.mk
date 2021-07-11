@@ -6,9 +6,8 @@
 
 # based on https://software.intel.com/en-us/articles/build-and-debug-open-source-media-stack
 
-INTEL_MEDIADRIVER_VERSION = 21.2.3
-INTEL_MEDIADRIVER_SITE = http://github.com/intel/media-driver/archive
-INTEL_MEDIADRIVER_SOURCE= intel-media-$(INTEL_MEDIADRIVER_VERSION).tar.gz
+INTEL_MEDIADRIVER_VERSION = 29d5f8fc118476dee84f3f784443badc819a3241
+INTEL_MEDIADRIVER_SITE = $(call github,intel,media-driver,$(INTEL_MEDIADRIVER_VERSION))
 INTEL_MEDIADRIVER_LICENSE = MIT, BSD-3-Clause
 INTEL_MEDIADRIVER_LICENSE_FILES = LICENSE.md
 
