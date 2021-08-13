@@ -44,9 +44,9 @@ ifeq ($(BR2_PACKAGE_HAS_LIBGL),y)
 LIBV4L_DEPENDENCIES += libgl
 endif
 
-ifeq ($(BR2_PACKAGE_HAS_UDEV),y)
+ifeq ($(BR2_PACKAGE_HAS_LIBUDEV),y)
 LIBV4L_CONF_OPTS += --with-libudev --with-udevdir=/usr/lib/udev
-LIBV4L_DEPENDENCIES += udev
+LIBV4L_DEPENDENCIES += libudev
 else
 LIBV4L_CONF_OPTS += --without-libudev
 endif
