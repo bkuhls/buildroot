@@ -21,6 +21,11 @@ config BR2_PACKAGE_INTEL_MEDIADRIVER
 
 if BR2_PACKAGE_INTEL_MEDIADRIVER
 
+config BR2_PACKAGE_INTEL_MEDIADRIVER_NONFREE
+	bool "support non-free features"
+	help
+	  Enable support for non-free features
+
 config BR2_PACKAGE_INTEL_MEDIADRIVER_GEN8
 	bool "Gen8 support"
 	default y
