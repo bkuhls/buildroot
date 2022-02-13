@@ -1,0 +1,54 @@
+From: Debian QA Group <packages@qa.debian.org>
+Date: Sun, 12 May 2019 04:36:49 +0000
+Subject: format-1.0
+
+Downloaded from
+https://sources.debian.org/src/e3/1%3A2.82%2Bdfsg-2/debian/patches/format-1.0.patch/
+
+and removed Makefile patch.
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+
+ e3.asm   | 26 ++++++++++++++++++++++++++
+ 2 files changed, 40 insertions(+), 12 deletions(-)
+---
+ e3.asm   | 26 ++++++++++++++++++++++++++
+ 2 files changed, 33 insertions(+), 11 deletions(-)
+
+diff --git a/e3.asm b/e3.asm
+index b0a17ca..7d99f17 100644
+--- a/e3.asm
++++ b/e3.asm
+@@ -3653,6 +3653,32 @@ NoPi:	cmp ecx,'e3vi'
+ 	mov byte [eax],VI
+ 	ret
+ NoVi:	cmp ecx,'e3ws'
++	jnz NoWs
++	mov byte [eax],WS
++	ret
++NoWs:	cmp ecx,'edit'
++	jnz NoNe2
++	mov byte [eax],NE
++	ret
++NoNe2:	cmp ecx,'macs'
++	jnz NoEm2
++	mov byte [eax],EM
++	ret
++NoEm2:	cmp ecx,'pico'
++	jnz NoPi2
++	mov byte [eax],PI
++	ret
++NoPi2:  push cx
++	mov cx,'__'
++	cmp ecx,'__vi'
++	pop cx
++	jnz NoVi2
++	mov byte [eax],VI
++	ret
++NoVi2:	push cx
++	mov cx,'__'
++	cmp ecx,'__ws'
++	pop cx
+ 	jnz modeOK
+ 	mov byte [eax],WS
+ modeOK:	ret
