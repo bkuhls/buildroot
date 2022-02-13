@@ -1,0 +1,26 @@
+From: =?utf-8?q?Bernhard_=C3=9Cbelacker?= <bernhardu@mailbox.org>
+Date: Tue, 6 Nov 2018 18:52:41 +0100
+Subject: [PATCH] Align header to avoid crash.
+
+https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=913014
+
+Downloaded from
+https://sources.debian.org/src/e3/1%3A2.82%2Bdfsg-2/debian/patches/0001-Align-header-to-avoid-crash.patch/
+
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
+---
+ e3.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/e3.h b/e3.h
+index 96f8dc7..6508e9b 100644
+--- a/e3.h
++++ b/e3.h
+@@ -861,6 +861,7 @@ phdr2:					;another Elf32_Phdr starts here
+ %else
+ 	org 0x8048000
+ 	ELFheader
++	times 0xBF2 db 0
+ %endif
+ %else
+ 	;nothing
