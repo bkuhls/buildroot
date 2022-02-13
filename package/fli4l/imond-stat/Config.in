@@ -1,0 +1,7 @@
+config BR2_PACKAGE_IMOND_STAT
+	bool "imond-stat"
+	help
+	  Fli4l-specific utility: Monitors and controls ISDN and DSL
+	  connections.
+
+	  http://www.fli4l.de
