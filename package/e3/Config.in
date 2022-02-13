@@ -1,0 +1,9 @@
+config BR2_PACKAGE_E3
+	bool "e3"
+	depends on BR2_i386 || BR2_x86_64
+	help
+	  e3 is a full-screen, user-friendly text editor with an
+	  interface similar to that of either WordStar, Emacs, Pico,
+	  Nedit, or vi written in NASM assembler.
+
+	  https://sites.google.com/site/e3editor
