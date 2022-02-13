@@ -1,3 +1,4 @@
 menu "fli4l"
 	source "package/fli4l/imond/Config.in"
+	source "package/fli4l/imond-stat/Config.in"
 endmenu
