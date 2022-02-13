@@ -1,0 +1,8 @@
+config BR2_PACKAGE_IMOND
+	bool "imond"
+	select BR2_PACKAGE_LIBXCRYPT if BR2_TOOLCHAIN_USES_GLIBC
+	help
+	  Fli4l-specific utility: Monitors and controls ISDN and DSL
+	  connections.
+
+	  http://www.fli4l.de
