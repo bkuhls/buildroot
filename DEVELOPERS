@@ -469,6 +469,7 @@ F:	package/nut/
 F:	package/openconnect/
 F:	package/openvpn/
 F:	package/opus/
+F:	package/p2pool/
 F:	package/pciutils/
 F:	package/perl-crypt-openssl-guess/
 F:	package/perl-crypt-openssl-random/
