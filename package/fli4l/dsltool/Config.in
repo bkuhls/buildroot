@@ -1,0 +1,28 @@
+config BR2_PACKAGE_DSLTOOL
+	bool "dsltool"
+	depends on BR2_INSTALL_LIBSTDCPP # pango
+	depends on !BR2_STATIC_LIBS # collectd
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # harfbuzz -> pango
+	depends on BR2_TOOLCHAIN_HAS_SYNC_4 # harfbuzz -> pango
+	depends on BR2_TOOLCHAIN_HAS_THREADS # collectd, glib2 -> pango
+	depends on BR2_USE_WCHAR # glib2 -> pango
+	depends on BR2_USE_MMU # collectd, pango
+	select BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_CAIRO_PNG
+	select BR2_PACKAGE_COLLECTD
+	select BR2_PACKAGE_LIBTELNET
+	select BR2_PACKAGE_LIBXML2
+	select BR2_PACKAGE_PANGO
+	select BR2_PACKAGE_ZLIB
+	help
+	  Tool to monitor DSL modem data
+
+	  https://gitlab.com/dsltool/dsltool
+	  https://repo.nettworks.org/svn/fli4l/branches/3.10/testing/src/packages/src/src/fli4l/dsltool/
+
+comment "dsltool needs a toolchain w/ wchar, threads, dynamic library, C++, gcc >= 4.9"
+	depends on BR2_USE_MMU
+	depends on BR2_TOOLCHAIN_HAS_SYNC_4
+	depends on !BR2_USE_WCHAR || !BR2_TOOLCHAIN_HAS_THREADS || \
+		!BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 || \
+		!BR2_INSTALL_LIBSTDCPP || BR2_STATIC_LIBS
