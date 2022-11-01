@@ -32,6 +32,24 @@ config BR2_PACKAGE_INTEL_MEDIADRIVER_GEN8
 	help
 	  Enable support for Gen8 GPUs (Coffee Lake)
 
+config BR2_PACKAGE_INTEL_MEDIADRIVER_GEN9
+	bool "Gen9 support"
+	default y
+	help
+	  Enable support for Gen9 GPUs
+
+config BR2_PACKAGE_INTEL_MEDIADRIVER_GEN11
+	bool "Gen11 support"
+	default y
+	help
+	  Enable support for Gen11 GPUs
+
+config BR2_PACKAGE_INTEL_MEDIADRIVER_GEN12
+	bool "Gen12 support"
+	default y
+	help
+	  Enable support for Gen12 GPUs
+
 endif # BR2_PACKAGE_INTEL_MEDIADRIVER
 
 comment "intel-mediadriver needs a toolchain w/ dynamic library, gcc >= 8, C++, NPTL"
