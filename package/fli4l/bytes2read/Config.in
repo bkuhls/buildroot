@@ -1,0 +1,5 @@
+config BR2_PACKAGE_BYTES2READ
+	bool "bytes2read"
+	help
+	  Fli4l-specific utility: Converts a number of bytes to some other,
+	  more readable value, expressed by kiB, MiB, GiB, TiP, PiB, or EiB.
