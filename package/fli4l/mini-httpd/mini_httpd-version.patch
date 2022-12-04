@@ -1,0 +1,12 @@
+diff -Naur mini_httpd-1.21/version.h mini_httpd-fli4l-1.19/version.h
+--- mini_httpd-1.21/version.h	2014-10-19 08:34:00.000000000 +0100
++++ mini_httpd-fli4l-1.21/version.h	2015-01-13 20:32:30.000000000 +0200
+@@ -3,7 +3,7 @@
+ #ifndef _VERSION_H_
+ #define _VERSION_H_
+ 
+-#define SERVER_SOFTWARE "mini_httpd/1.21 18oct2014"
++#define SERVER_SOFTWARE "mini_httpd/1.21-fli4l 2015-01-13"
+ #define SERVER_URL "http://www.acme.com/software/mini_httpd/"
+ 
+ #endif /* _VERSION_H_ */

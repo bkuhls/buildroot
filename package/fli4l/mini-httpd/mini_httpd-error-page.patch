@@ -1,0 +1,58 @@
+diff -Naur mini_httpd-1.19/mini_httpd.c mini_httpd-1.19.errpages/mini_httpd.c
+--- mini_httpd-1.19/mini_httpd.c	2009-06-08 20:11:05.312081984 +0200
++++ mini_httpd-1.19.errpages/mini_httpd.c	2009-06-08 20:09:09.921579929 +0200
+@@ -259,7 +259,7 @@
+ static void send_authenticate( char* realm );
+ static char* virtual_file( char* f );
+ static void send_error( int s, char* title, char* extra_header, char* text );
+-static void send_error_body( int s, char* title, char* text );
++static int send_error_body( int s, char* title, char* text );
+ static int send_error_file( char* filename );
+ static void send_error_tail( void );
+ static void add_headers( int s, char* title, char* extra_header, char* me, char* mt, off_t b, time_t mod );
+@@ -2350,9 +2350,8 @@
+     add_headers(
+ 	s, title, extra_header, "", "text/html; charset=%s", (off_t) -1, (time_t) -1 );
+ 
+-    send_error_body( s, title, text );
+-
+-    send_error_tail();
++    if ( ! send_error_body( s, title, text ) )
++	send_error_tail();
+ 
+     send_response();
+ 
+@@ -2363,7 +2362,7 @@
+     }
+ 
+ 
+-static void
++static int
+ send_error_body( int s, char* title, char* text )
+     {
+     char filename[1000];
+@@ -2377,14 +2376,14 @@
+ 	    filename, sizeof(filename), "%s/%s/err%d.html",
+ 	    req_hostname, ERR_DIR, s );
+ 	if ( send_error_file( filename ) )
+-	    return;
++	    return 1;
+ 	}
+ 
+     /* Try server-wide custom error page. */
+     (void) snprintf(
+ 	filename, sizeof(filename), "%s/err%d.html", ERR_DIR, s );
+     if ( send_error_file( filename ) )
+-	return;
++	return 1;
+ 
+     /* Send built-in error page. */
+     buflen = snprintf(
+@@ -2397,6 +2396,7 @@
+     add_to_response( buf, buflen );
+     buflen = snprintf( buf, sizeof(buf), "%s\n", text );
+     add_to_response( buf, buflen );
++    return 0;
+     }
+ 
+ 
