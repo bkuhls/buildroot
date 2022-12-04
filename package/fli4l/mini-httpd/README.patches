@@ -1,0 +1,32 @@
+mini_httpd-cgi.patch (babel)
+* Changes CGI_PATH.
+
+mini_httpd-disable-config-file.patch (babel)
+* Disables code for reading/parsing a configuration file.
+
+mini_httpd-disable-root-warning.patch (kristov)
+* FFL-886: Disables warning that mini_httpd runs under the 'root' account.
+  We currently have no other possibility as the CGIs need to run admin-only
+  tools. We could think about using a different user and passing the
+  necessary capabilities to him at a later point.
+
+mini_httpd-env.patch (babel)
+* Modified mini_httpd to support SCRIPT_FILENAME.
+
+mini_httpd-error-page.patch (tobig)
+* Add a patch for mini_httpd, so mini_httpd does not add his signature to
+  user-supplied error pages.
+
+mini_httpd-index-name.patch (babel)
+* Reduces list of recognized index files.
+
+mini_httpd-ipv6.patch (kristov)
+* Avoids binding to IPv4 address/port if binding to IPv6 address/port has been
+  successful. This is neither necessary nor possible (IPv4 connections are
+  nevertheless accepted).
+
+mini_httpd-mime.patch (babel)
+* Reduces list of MIME types associated with file extensions.
+
+mini_httpd-version.patch (babel, kristov)
+* Changes mini_httpd version.
