@@ -4,5 +4,6 @@ menu "fli4l"
 	source "package/fli4l/imond/Config.in"
 	source "package/fli4l/imond-stat/Config.in"
 	source "package/fli4l/lockcommand/Config.in"
+	source "package/fli4l/mini-httpd/Config.in"
 	source "package/fli4l/proccgi/Config.in"
 endmenu
