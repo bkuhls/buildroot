@@ -1,0 +1,12 @@
+diff -urN mini_httpd-1.19.orig/mini_httpd.c mini_httpd-1.19/mini_httpd.c
+--- mini_httpd-1.19.orig/mini_httpd.c	2005-06-29 19:31:17.000000000 +0200
++++ mini_httpd-1.19/mini_httpd.c	2012-09-14 10:22:06.508756241 +0200
+@@ -525,7 +525,7 @@
+ 	listen6_fd = initialize_listen_socket( &host_addr6 );
+     else
+ 	listen6_fd = -1;
+-    if ( gotv4 )
++    if ( gotv4 && listen6_fd == -1 )
+ 	listen4_fd = initialize_listen_socket( &host_addr4 );
+     else
+ 	listen4_fd = -1;
