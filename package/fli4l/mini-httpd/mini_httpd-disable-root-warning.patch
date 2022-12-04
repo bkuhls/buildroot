@@ -1,0 +1,20 @@
+diff -urN mini_httpd-1.19.orig/mini_httpd.c mini_httpd-1.19/mini_httpd.c
+--- mini_httpd-1.19.orig/mini_httpd.c	2005-06-29 19:31:17.000000000 +0200
++++ mini_httpd-1.19/mini_httpd.c	2014-09-04 11:54:30.139707566 +0200
+@@ -721,6 +721,8 @@
+ 	    perror( "setuid" );
+ 	    exit( 1 );
+ 	    }
++#if 0 /* FFL-886: we need httpd to run as root as we have to run admin-only
++         tools from the CGIs */
+ 	/* Check for unnecessary security exposure. */
+ 	if ( ! do_chroot )
+ 	    {
+@@ -729,6 +731,7 @@
+ 	    (void) fprintf( stderr,
+ 		"%s: started as root without requesting chroot(), warning only\n", argv0 );
+ 	    }
++#endif
+ 	}
+ 
+     /* Catch various signals. */
