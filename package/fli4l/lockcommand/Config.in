@@ -1,0 +1,7 @@
+config BR2_PACKAGE_LOCKCOMMAND
+	bool "lockcommand"
+	help
+	  Fli4l-specific utility: Simple wrapper programm which calls its own
+	  command-name with a attached postfix but serialized. Its main purpose
+	  is the serialization of iptables commands. As it rewrites its own
+	  called name it should be suitable for all other tools, too
