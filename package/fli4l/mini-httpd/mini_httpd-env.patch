@@ -1,0 +1,19 @@
+--- mini_httpd-1.19/mini_httpd.c	2005-05-27 17:12:36.801399185 +0200
++++ mini_httpd-1.19.x/mini_httpd.c	2005-05-27 16:07:08.514393272 +0200
+@@ -2126,6 +2124,7 @@
+     int envn;
+     char* cp;
+     char buf[256];
++    char rp[MAXPATHLEN];
+ 
+     envn = 0;
+     envp[envn++] = build_env( "PATH=%s", CGI_PATH );
+@@ -2144,6 +2143,8 @@
+     envp[envn++] = build_env(
+ 	"REQUEST_METHOD=%s", get_method_str( method ) );
+     envp[envn++] = build_env( "SCRIPT_NAME=%s", path );
++    envp[envn++] = build_env( "SCRIPT_FILENAME=%s", realpath(file, rp) );
++    envp[envn++] = "DOCUMENT_ROOT=/usr/local/htdocs";
+     if ( pathinfo != (char*) 0 )
+ 	{
+ 	envp[envn++] = build_env( "PATH_INFO=/%s", pathinfo );
