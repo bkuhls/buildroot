@@ -1,0 +1,5 @@
+config BR2_PACKAGE_MINI_LOGIN
+	bool "mini-login"
+	select BR2_PACKAGE_LIBXCRYPT if BR2_TOOLCHAIN_USES_GLIBC
+	help
+	  Fli4l-specific utility: Minimalistic login program.
