@@ -1,0 +1,8 @@
+config BR2_PACKAGE_MINI_HTTPD
+	bool "mini-httpd"
+	select BR2_PACKAGE_LIBXCRYPT if BR2_TOOLCHAIN_USES_GLIBC
+	help
+	  mini_httpd is a small HTTP server.  Its performance is not great, but
+	  for low or medium traffic sites it's quite adequate. It implements
+	  all the basic features of an HTTP server. It can also be configured
+	  to do SSL/HTTPS.
