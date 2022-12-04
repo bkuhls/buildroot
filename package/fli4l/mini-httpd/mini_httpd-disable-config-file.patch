@@ -1,0 +1,59 @@
+diff -Naur mini_httpd-1.19/mini_httpd.c mini_httpd-fli4l-1.19/mini_httpd.c
+--- mini_httpd-1.19/mini_httpd.c	2003-12-03 19:27:22.000000000 +0100
++++ mini_httpd-fli4l-1.19/mini_httpd.c	2005-04-10 16:22:36.000000000 +0200
+@@ -232,9 +232,11 @@
+ 
+ /* Forwards. */
+ static void usage( void );
++#ifndef DISABLE_CONFIG_FILE
+ static void read_config( char* filename );
+ static void value_required( char* name, char* value );
+ static void no_value_required( char* name, char* value );
++#endif /* DISABLE_CONFIG_FILE */
+ static int initialize_listen_socket( usockaddr* usaP );
+ static void handle_request( void );
+ static void de_dotdot( char* f );
+@@ -351,11 +353,13 @@
+ 	    (void) printf( "%s\n", SERVER_SOFTWARE );
+ 	    exit( 0 );
+ 	    }
++#ifndef DISABLE_CONFIG_FILE
+ 	else if ( strcmp( argv[argn], "-C" ) == 0 && argn + 1 < argc )
+ 	    {
+ 	    ++argn;
+ 	    read_config( argv[argn] );
+ 	    }
++#endif /* DISABLE_CONFIG_FILE */
+ 	else if ( strcmp( argv[argn], "-D" ) == 0 )
+ 	    debug = 1;
+ #ifdef USE_SSL
+@@ -854,14 +858,18 @@
+ static void
+ usage( void )
+     {
++    (void) fprintf( stderr, "usage:  %s "
++#ifndef DISABLE_CONFIG_FILE
++	"[-C configfile] "
++#endif /* DISABLE_CONFIG_FILE */
+ #ifdef USE_SSL
+-    (void) fprintf( stderr, "usage:  %s [-C configfile] [-D] [-S] [-E certfile] [-Y cipher] [-p port] [-d dir] [-dd data_dir] [-c cgipat] [-u user] [-h hostname] [-r] [-v] [-l logfile] [-i pidfile] [-T charset] [-P P3P] [-M maxage]\n", argv0 );
+-#else /* USE_SSL */
+-    (void) fprintf( stderr, "usage:  %s [-C configfile] [-D] [-p port] [-d dir] [-dd data_dir] [-c cgipat] [-u user] [-h hostname] [-r] [-v] [-l logfile] [-i pidfile] [-T charset] [-P P3P] [-M maxage]\n", argv0 );
++	"[-S] [-E certfile] [-Y cipher] "
+ #endif /* USE_SSL */
++	"[-D] [-p port] [-d dir] [-dd data_dir] [-c cgipat] [-u user] [-h hostname] [-r] [-v] [-l logfile] [-i pidfile] [-T charset] [-P P3P] [-M maxage]\n", argv0 );
+     exit( 1 );
+     }
+ 
++#ifndef DISABLE_CONFIG_FILE
+ 
+ static void
+ read_config( char* filename )
+@@ -1053,6 +1061,7 @@
+ 	}
+     }
+ 
++#endif /* DISABLE_CONFIG_FILE */
+ 
+ static int
+ initialize_listen_socket( usockaddr* usaP )
