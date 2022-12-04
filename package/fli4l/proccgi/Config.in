@@ -1,0 +1,4 @@
+config BR2_PACKAGE_PROCCGI
+	bool "proccgi"
+	help
+	  Reads form variables and dumps them on standard output.
