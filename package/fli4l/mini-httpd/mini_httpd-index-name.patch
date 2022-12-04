@@ -1,0 +1,13 @@
+--- mini_httpd-1.19/mini_httpd.c	2005-05-27 17:12:36.801399185 +0200
++++ mini_httpd-1.19.x/mini_httpd.c	2005-05-27 16:07:08.514393272 +0200
+@@ -1136,9 +1136,7 @@
+     char* line;
+     char* cp;
+     int r, file_len, i;
+-    const char* index_names[] = {
+-	"index.html", "index.htm", "index.xhtml", "index.xht", "Default.htm",
+-	"index.cgi" };
++    const char* index_names[] = { "index.cgi", "index.htm", "index.php", "index.html" };
+ 
+     /* Set up the timeout for reading. */
+ #ifdef HAVE_SIGSET
