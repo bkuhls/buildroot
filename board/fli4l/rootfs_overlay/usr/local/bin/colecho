@@ -1,0 +1,131 @@
+#!/bin/sh
+
+case "$1" in
+        "-?")
+                echo "Usage: colecho <TEXT> [COLOR] [BKGCOLOR] [MODE]"
+                $0 "  Example:$0 rd bl blink" rd w blink
+                echo "TEXT/BKGCOLORs:"
+                echo "  b        : black"
+                echo "  rd       : red"
+                echo "  gn       : green"
+                echo "  bl       : blue"
+                echo "  br       : brown (MODE br -> Yellow)"
+                echo "  mg       : magenta"
+                echo "  cy       : cyan"
+                echo "  w        : white"
+                echo "  any other: normal"
+                echo
+                echo "MODEs:"
+                echo "  br   : bright/bold"
+                echo "  dk   : darken"
+                echo "  bl   : blinking"
+                echo "  inv  : inverse"
+                echo "  brbl : bright-blinking"
+                echo "  brinv: bright-inverse"
+                echo "  dibl : dim-blinking"
+                echo "  diinv: dim-inverse"
+                echo "  any  : normal"
+                ;;
+        "-n")
+                param="-n "
+                shift
+                ;;
+esac
+
+# textcolor
+case "$2" in
+        b)
+                TCOL="\033[30m";
+                ;;
+        rd)
+                TCOL="\033[31m";
+                ;;
+        gn)
+                TCOL="\033[32m";
+                ;;
+        br)
+                TCOL="\033[33m";
+                ;;
+        bl)
+                TCOL="\033[34m";
+                ;;
+        mg)
+                TCOL="\033[35m";
+                ;;
+        cy)
+                TCOL="\033[36m";
+                ;;
+        w)
+                TCOL="\033[37m";
+                ;;
+        *)
+                # normal
+                TCOL="\033[0m";
+                ;;
+esac
+
+# backgroundcolor
+case "$3" in
+        b)
+                BKGCOL="\033[40m";
+                ;;
+        rd)
+                BKGCOL="\033[41m";
+                ;;
+        gn)
+                BKGCOL="\033[42m";
+                ;;
+        br)
+                BKGCOL="\033[43m";
+                ;;
+        bl)
+                BKGCOL="\033[44m";
+                ;;
+        mg)
+                BKGCOL="\033[45m";
+                ;;
+        cy)
+                BKGCOL="\033[46m";
+                ;;
+        w)
+                BKGCOL="\033[47m";
+                ;;
+        *)
+                # normal
+                BKGCOL="\033[49m";
+                ;;
+esac
+
+# textmode
+case "$4" in
+        br)
+                TMODE="\033[1m";
+                ;;
+        dk)
+                TMODE="\033[2m";
+                ;;
+        bl)
+                TMODE="\033[5m";
+                ;;
+        inv)
+                TMODE="\033[7m";
+                ;;
+        brbl)
+                TMODE="\033[1m\033[5m";
+                ;;
+        brinv)
+                TMODE="\033[1m\033[7m";
+                ;;
+        dkb)
+                TMODE="\033[2m\033[5m";
+                ;;
+        dkinv)
+                TMODE="\033[2m\033[7m";
+                ;;
+        *)
+                TMODE="";
+                ;;
+esac
+
+# doit
+echo $param-e "$TCOL$BKGCOL$TMODE$1\033[0m"

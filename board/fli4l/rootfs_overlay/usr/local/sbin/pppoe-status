@@ -1,0 +1,39 @@
+#!/bin/sh
+#------------------------------------------------------------------------------
+# /usr/local/sbin/pppoe-status - Display PPPOE-Status (on extra tty)
+#
+# Creation:	16.11.2000  tp
+# Last Update:  $Id: pppoe-status 2927 2003-04-16 14:07:38Z knuffel $
+#------------------------------------------------------------------------------
+ 
+PIDFILE=/var/run/pppoe.pid
+ 
+while true
+do
+    clrhome
+    colecho "DSL-Status `date -R`" 0 0 br
+    echo ================================================================
+    echo
+ 
+    status=`fli4lctrl status pppoe`
+    dialmode=`cat /var/run/pppoe.dialmode`
+    # check if defaultroute -> ppp
+     
+    if [ "$dialmode" = "auto" ]
+    then
+	colecho "Dialmode: $dialmode" br 0 br
+    else
+	colecho "Dialmode: $dialmode" gn
+    fi
+
+    if [ "$status" = "online" ]
+    then
+#	set x `ls -l /var/run/pppoe.pid`
+	set x `ls -l /var/run/pppoe.up`
+ 	colecho "Status: $status since $7 $8 $9" gn
+    else
+	colecho "Status: $status" rd 0 br
+    fi
+
+    sleep 5
+done
