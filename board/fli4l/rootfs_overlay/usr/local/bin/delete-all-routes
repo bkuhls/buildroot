@@ -1,0 +1,37 @@
+#! /bin/sh
+#----------------------------------------------------------------------------
+#   delete-all-routes - delete all existing routes on an interface
+#
+#   called by imond
+#
+# Creation:     14.11.2000  fm
+# Last Update:  $Id: delete-all-routes 26936 2013-04-07 08:54:40Z kristov $
+#----------------------------------------------------------------------------
+device=$1
+
+dev=$device
+if [ "$dev" = "pppoe" ]
+then
+    dev=`cat /var/run/pppoe-device`
+    [ -n "$dev" ] || dev='ppp0'
+fi
+
+ip link set dev $dev down
+
+if [ -f /var/run/$device.conf ]
+then
+    conf=`cat /var/run/$device.conf`
+    set -- $conf
+    ip -4 addr flush dev $dev
+    ip -4 addr add $1 peer $2 dev $dev
+fi
+if [ -f /var/run/$device.conf.ipv6 ]
+then
+    conf=`cat /var/run/$device.conf.ipv6`
+    set -- $conf
+    ip -6 addr flush dev $dev
+    ip -6 addr add fe80$1/10 dev $dev
+fi
+
+ip link set dev $dev up
+exit 0
