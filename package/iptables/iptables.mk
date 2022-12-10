@@ -15,7 +15,8 @@ IPTABLES_CPE_ID_VENDOR = netfilter
 IPTABLES_SELINUX_MODULES = iptables
 
 # Building static causes ugly warnings on some plugins
-IPTABLES_CONF_OPTS = --libexecdir=/usr/lib --with-kernel=$(STAGING_DIR)/usr \
+IPTABLES_CONF_OPTS = --libexecdir=/lib --with-kernel=$(STAGING_DIR)/usr \
+	--libdir=/lib --sbindir=/sbin \
 	$(if $(BR2_STATIC_LIBS),,--disable-static)
 
 # For connlabel match
