@@ -1,0 +1,79 @@
+#!/bin/sh
+#
+# originating from http://blog.stuart.shelton.me/archives/891
+# slightly corrected and adapted to our needs by kristov
+#
+
+LOGFILE="kmsg"
+USBDEVICES="/var/run/usb.devices"
+
+echo >>"$LOGFILE" "$$ mdev usb helper started as '$0' in '$( pwd )', MDEV '$MDEV', ACTION '$ACTION', DEVPATH '$DEVPATH', SUBSYSTEM '$SUBSYSTEM'"
+
+[ -n "$MDEV" ] || exit 0
+[ -n "$DEVPATH" ] || exit 0
+[ "$SUBSYSTEM" = "usb" ] || exit 0
+
+# add zeros to device or bus
+add_zeros() {
+        case "${#1}" in
+                1)      echo "00$1"
+                        ;;
+                2)      echo "0$1"
+                        ;;
+                *)      echo "$1"
+                        ;;
+        esac
+}
+
+# e.g. DEVPATH=/devices/pci0000:00/0000:00:0f.4/usb2/2-1, MDEV=2-1
+case "$ACTION" in
+        add|"")
+                echo >>"$LOGFILE" "$$ Performing 'add' ACTION"
+
+                BUS="$( add_zeros "$( cat "/sys$DEVPATH/busnum" 2>/dev/null )" )"
+                USB_DEV="$( add_zeros "$( cat "/sys$DEVPATH/devnum" 2>/dev/null )" )"
+
+                # move usb device file
+                prefix="bus/usb/$BUS"
+                mv "$MDEV" "$prefix/$USB_DEV" \
+                        && echo >>"$LOGFILE" "$$ mv succeeded for '$prefix/$USB_DEV'" \
+                        || { echo >>"$LOGFILE" "$$ mv failed for '$prefix/$USB_DEV'" ; exit 0 ; }
+                echo "$DEVPATH $BUS $USB_DEV" >> "$USBDEVICES"
+                ;;
+        remove)
+                echo >>"$LOGFILE" "$$ Performing 'remove' ACTION"
+
+                # remove device file and possible empty dirs
+                set -- $(grep "^$DEVPATH\>" "$USBDEVICES" 2>/dev/null)
+                if [ -z "$2" -o -z "$3" ]
+                then
+                    echo >>"$LOGFILE" "$$ Cannot find device node for $DEVPATH"
+                    exit 0
+                else
+                    BUS=$2
+                    USB_DEV=$3
+                    sed -i -e "/^$(echo $DEVPATH | sed -e 's,/,\\/,g')\>/d" "$USBDEVICES"
+                fi
+
+                prefix="bus/usb/$BUS"
+                if rm -f "$prefix/$USB_DEV" 2>/dev/null \
+                        && echo >>"$LOGFILE" "$$ rm -f '$prefix/$USB_DEV' succeeded"
+                then
+                        if ! ls -1 "$prefix"/* >/dev/null 2>&1
+                        then
+                                rm -rf "$prefix" 2>/dev/null \
+                                        && echo >>"$LOGFILE" "$$ rm -rf '$prefix' succeeded" \
+                                        || { echo >>"$LOGFILE" "$$ rm -rf '$prefix' failed" ; exit 0 ; }
+                        else
+                                echo >>"$LOGFILE" "$$ Don't removing non-empty $prefix"
+                        fi
+                else
+                        echo >>"$LOGFILE" "$$ rm -f '$prefix/$USB_DEV' failed"
+                        exit 0
+                fi
+                ;;
+esac
+
+echo >>"$LOGFILE" "$$ mdev usb helper completed successfully"
+
+exit 0

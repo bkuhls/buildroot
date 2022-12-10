@@ -1,0 +1,23 @@
+#! /bin/sh
+case "$1" in
+    -s) silent=yes ; shift ;;
+    *)  silent=no ;;
+esac
+
+/bin/sed -i -e `echo -e 's/\r\r*$//g'` $*
+
+case $silent in 
+    no)
+        if [ -x /usr/local/bin/get_tree.sh ]
+        then
+            pid=$$
+            msg="'dtou $*' called, call sequence: `get_tree.sh $pid` dtou"
+            . /etc/boot.d/base-helper
+            SCRIPT=dtou
+            case x$script in
+                x) log_error "$msg" ;;
+                *) log_error "$msg, sub script $script" ;;
+            esac
+        fi
+    ;;
+esac
