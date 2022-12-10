@@ -1,0 +1,111 @@
+#!/bin/sh
+
+clocktype=$1
+if [ "$2" = "yes" ]
+then
+    LED_FIFO=/var/run/hwsupp.fifo
+else
+    LED_FIFO=/dev/null
+fi
+
+firstsync=yes
+server=localhost
+
+# LED index
+Y2K=1
+RADIO=2
+STRATUM=3
+
+status_radioclock ()
+{
+    echo "led$RADIO $1" > $LED_FIFO
+    echo "ntp_status_radioclock=$1" > /var/run/ntp_status_radioclock
+}
+
+status_stratum ()
+{
+    echo "led$STRATUM $1" > $LED_FIFO
+    echo "ntp_status_stratum=$2" > /var/run/ntp_status_stratum
+}
+
+# NTP laueft nicht synchron
+status_radioclock off
+# Funkuhr hat keinen Empfang
+status_stratum off
+
+# wait till system date is != 2000
+while [ "2000" = "`date | sed -e 's/.* \([0-9]\{4\}$\)/\1/'`" ]
+do
+    echo "led$Y2K blink" > $LED_FIFO
+    sleep 30
+done
+echo "led$Y2K on" > $LED_FIFO
+
+while [ 1 ]
+do
+    case $clocktype in
+        sure)
+            if ntpq -c pe $server 2>/dev/null | grep -q "^[*]GENERIC"
+            then
+                status_radioclock on
+            else
+                status_radioclock off
+            fi        
+        ;;
+        hopf-seriell)
+            if ntpq -c pe $server 2>/dev/null | grep -q "^[*]GENERIC"
+            then
+                status_radioclock on
+            else
+                status_radioclock off
+            fi
+        ;;
+        neoclock4x)
+            if ntpq -c pe $server 2>/dev/null | grep -q "^[*]NEOCLK4X"
+            then
+                if [ "radio" = "`ntpq -c cv $server 2>/dev/null | grep timesource= | sed -e 's/.* timesource=\"\([^\"]\+\)\".*/\1/'`" ]
+                then
+                    status_radioclock on
+                else
+                    status_radioclock off
+                fi
+            else
+                status_radioclock off
+            fi
+        ;;
+    esac
+
+    mystratum="`ntpq -c readlist $server | grep stratum= | sed -e 's/.* stratum=\([^,]\+\).*/\1/'`"
+    : ${mystratum:=0}
+    if [ $mystratum -eq 0 ]
+    then
+        # totaler Verlust der Zeitsynchronisation
+        status_stratum off $mystratum
+    elif [ $mystratum -eq 1 ]
+    then
+        status_stratum on $mystratum
+    elif [ $mystratum -eq 16 ]
+    then
+        # totaler Verlust der Zeitsynchronisation
+        status_stratum off $mystratum
+    else
+        # Ausfall der primaeren Funkuhr, aber synchronisation ueber andere Peers (Netzwerk)
+        status_stratum blink $mystratum
+    fi
+
+    if [ $firstsync = yes ]
+    then    
+        # kernel time is in sync if bit 6 (2^64 = 64 = 0x40) is _not_ set;
+        # as ash doesn't know anything about bit arithmetic we divide by 128
+        # and check if the remainder is less than 64
+        kernel_in_sync="`adjtimex | sed -n 's/ \+status: \+\([0-9]\+\).*/\1/p'`"
+        if [ -n "$kernel_in_sync" ] && [ $((kernel_in_sync % 128)) -lt 64 ]
+        then
+            firstsync=no
+	    echo "ntp_firstsync=no" > /var/run/ntp_firstsync
+       fi
+    fi
+
+    sleep 1
+
+done
