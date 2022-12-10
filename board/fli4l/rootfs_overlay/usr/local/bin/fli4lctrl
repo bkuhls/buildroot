@@ -1,0 +1,274 @@
+#! /bin/sh
+#----------------------------------------------------------------------------
+#   fli4lctrl - extend isdnctrl program for dsl and other connections
+#
+#   called by imond
+#
+#   commands emulated for dsl (pppoe & pptp):
+#
+#   fli4lctrl hangup    pppoe [deldefault]
+#   fli4lctrl dial      pppoe
+#   fli4lctrl dialmode  pppoe   off|auto|manual
+#   fli4lctrl status    pppoe
+#
+#   commands for modem
+#
+#   fli4lctrl hangup    pppX [deldefault]
+#   fli4lctrl dial      pppX
+#   fli4lctrl dialmode  pppX   off|auto|manual
+#   fli4lctrl status    pppX
+#
+#   Where X ist the Device-Number
+#
+# Creation:        14.11.2000  fm
+# Last Update:  $Id: fli4lctrl 27222 2013-04-19 22:23:33Z kristov $
+#----------------------------------------------------------------------------
+
+cmd=$1
+device=$2
+arg=$3
+
+pgm_name=`basename $0`
+
+usage ()
+{
+    {
+        echo "usage:"
+        echo "  $pgm_name hangup   [pppoe|ipppN|isdnN|pppN|ethN] [deldefault]"
+        echo "  $pgm_name dial     [pppoe|ipppN|isdnN|pppN|ethN]"
+        echo "  $pgm_name status   [pppoe|ipppN|isdnN|pppN|ethN]"
+        echo "  $pgm_name dialmode pppoe|ipppN|isdnN|pppN|ethN|"'""'"   off|auto|manual"
+    } >&2
+}
+
+# $1 = address family
+pingup ()
+{
+    /bin/ping -$1 -c 1 www.fli4l.de > /dev/null 2>&1
+    /bin/sleep 1
+
+    i=1
+    while [ $i -le 5 ]
+    do
+        /bin/ping -$1 -c 1 www.fli4l.de > /dev/null 2>&1
+
+        if [ $? = 0 ]
+        then
+            break
+        fi
+        /bin/sleep 2
+        i=`expr $i + 1`
+    done
+}
+
+call_ip()
+{
+    families=4
+    grep -q type=ppp /var/run/ipv6.tunnels/*.conf 2>/dev/null && families="$families 6"
+    for family in $families
+    do
+        ip -$family $*
+    done
+}
+
+if [ "$cmd" = "" ]
+then
+    usage
+    exit 2
+fi
+
+if [ ! "$device" ]
+then
+    ##device=`ip route show | sed '/^default/!d;s/^default.*dev \(.*\) .*$/\1/'`
+    device=`ip route show | sed '/^default/!d;s/^default.*dev \([^ ]*\).*$/\1/'`
+    if [ -z "$device" -a -f /etc/default-route-interface ]
+    then
+        device="`cat /etc/default-route-interface`"
+    fi
+    if [ ! "$device" ]; then
+        echo "$pgm_name: can not get default route interface" >&2
+        exit 1
+    fi
+fi
+
+is_pppoe=0
+case $device in
+    pppoe)
+        is_pppoe=1
+        if [ -f /var/run/pppoe-device ]; then
+            read device < /var/run/pppoe-device
+        else
+            device=ppp0
+            echo "$pgm_name: missing '/var/run/pppoe-device', assuming ppp0" >&2
+        fi
+        ;;
+        ppp*)
+        if [ -f /var/run/pppoe-device ]; then
+            read pppoe_dev < /var/run/pppoe-device
+            [ "$device" = "$pppoe_dev" ] && is_pppoe=1
+        fi
+        ;;
+    ippp[0-9]|ippp[1-9][0-9]|isdn[0-9]|isdn[1-9][0-9])
+        if [ -x /sbin/isdnctrl ]
+        then
+            exec /sbin/isdnctrl $* 2>/dev/null       # start isdnctrl
+        else
+            echo "$pgm_name: missing executable /sbin/isdnctrl" >&2
+            exit 1
+        fi
+        ;;
+    eth*| br* | bond*)
+        ;;
+    *)
+        if [ -f /var/run/circuit-name.$device ]
+        then
+            set `cat /var/run/circuit-name.$device`
+            exec $2-circuit-ctrl.sh -x $cmd $1 $arg
+            echo "$pgm_name: failed to execute '$2-circuit-ctrl.sh'" >&2
+        fi
+        echo "$pgm_name: interface not supported: $device" >&2
+        ;;
+esac
+
+case "$cmd"
+in
+    hangup)
+        [ "$arg" = "deldefault" ] && call_ip route del default 2>/dev/null
+        if [ $is_pppoe = 1 ]
+        then
+            if [ -f /var/run/pppoe.up ]
+            then
+                dsli=`cat /var/run/dsl.interface 2>/dev/null`
+                if [ "$dsli" = "fcdsl" -o -f /var/run/pppoe.HUP ]
+                then
+                    exec kill -HUP `cat /var/run/ppp0.pid` 2>/dev/null
+                else
+                    # This doesn't work because one of the two pptp processes
+                    # die if we send a SIGHUP:
+                    # exec kill -1 `cat /var/run/ppp0.pid` 2>/dev/null
+
+                    # Here we kill pppd, etc/rc.d/pptp restarts it with
+                    # defaultroute, because fli4lctrl cannot set the default
+                    # route again to ppp0 - not existant :-(
+                    exec kill `cat /var/run/$device.pid` 2>/dev/null
+                fi
+            fi
+        else # modem control goes here
+            if [ -f /var/run/$device.pid ]
+            then
+                exec kill -1 `cat /var/run/$device.pid` 2>/dev/null
+            fi
+        fi
+        ;;
+
+    dial)
+        if [ $is_pppoe = 1 ]
+        then
+            dialmode=`cat /var/run/pppoe.dialmode`
+        else
+            dialmode=`cat /var/run/$device.dialmode`
+        fi
+
+        case "$dialmode"
+        in
+            off)
+                call_ip route del default 2>/dev/null
+                echo "$pgm_name: $device dialmode is off" >&2
+                exit 1
+                ;;
+            auto | manual)
+                call_ip route del default 2>/dev/null
+                call_ip route add default dev $device
+                pingup 4 &
+                grep -q type=ppp /var/run/ipv6.tunnels/*.conf 2>/dev/null && pingup 6 &
+                ;;
+            *)
+                if [ $is_pppoe = 1 ]
+                then
+                    echo "$pgm_name: unknown dialmode in /var/run/pppoe.dialmode" >&2
+                else
+                    echo "$pgm_name: unknown dialmode in /var/run/$device.dialmode" >&2
+                fi
+                usage
+                exit 2
+                ;;
+            esac
+            ;;
+
+    dialmode)
+        case "$arg"
+        in
+            off)
+                /usr/local/bin/delete-all-routes $device
+                if [ $is_pppoe = 1 ]
+                then
+                    echo $arg >/var/run/pppoe.dialmode
+                else
+                    echo $arg >/var/run/$device.dialmode
+                fi
+                ;;
+            auto)
+                call_ip route del default 2>/dev/null
+                dri=`cat /etc/default-route-interface 2>/dev/null`
+                if [ $is_pppoe = 1 ]
+                then
+                    if [ "$dri" = "pppoe" ]
+                    then
+                           call_ip route add default dev $device
+                    fi
+                    echo $arg >/var/run/pppoe.dialmode
+                else
+                    if [ "$dri" = "$device" ]
+                    then
+                           call_ip route add default dev $device
+                    fi
+                    echo $arg >/var/run/$device.dialmode
+                fi
+                ;;
+            manual)
+                # /sbin/route del default 2>/dev/null
+                /usr/local/bin/delete-all-routes $device
+                if [ $is_pppoe = 1 ]
+                then
+                    echo $arg >/var/run/pppoe.dialmode
+                else
+                    echo $arg >/var/run/$device.dialmode
+                fi
+                ;;
+            *)
+                echo "$pgm_name: invalid argument for dialmode" >&2
+                usage
+                exit 2
+                ;;
+            esac
+            ;;
+
+    status)
+        if [ $is_pppoe = 1 ]
+        then
+            if [ -f /var/run/pppoe.up ]
+            then
+                echo "online"
+                exit 1      # exit code 1 if online
+            fi
+            echo "offline"
+            exit 0          # exit code 0 if offline
+        else
+            if [ -f /var/run/$device.up ]
+            then
+                echo "online"
+                exit 1      # exit code 1 if online
+            fi
+            echo "offline"
+            exit 0          # exit code 0 if offline
+        fi
+        ;;
+
+    *)
+        echo "$pgm_name: invalid command: $cmd" >&2
+        usage
+        exit 2
+        ;;
+esac
+
+exit 0
