@@ -1,0 +1,22 @@
+diff -uNr linux-3.18.org/drivers/bluetooth/ath3k.c linux-3.18/drivers/bluetooth/ath3k.c
+--- linux-3.18.org/drivers/bluetooth/ath3k.c	2016-12-02 17:35:38.564451000 +0100
++++ linux-3.18/drivers/bluetooth/ath3k.c	2016-12-02 17:37:17.880451000 +0100
+@@ -67,6 +67,7 @@
+ 	{ USB_DEVICE(0x0489, 0xE03D) },
+ 	{ USB_DEVICE(0x04F2, 0xAFF1) },
+ 	{ USB_DEVICE(0x0930, 0x0215) },
++	{ USB_DEVICE(0x0CF3, 0x3000) },
+ 	{ USB_DEVICE(0x0CF3, 0x3002) },
+ 	{ USB_DEVICE(0x0CF3, 0xE019) },
+ 	{ USB_DEVICE(0x13d3, 0x3304) },
+diff -uNr linux-3.18.org/drivers/bluetooth/btusb.c linux-3.18/drivers/bluetooth/btusb.c
+--- linux-3.18.org/drivers/bluetooth/btusb.c	2016-12-02 17:35:38.564451000 +0100
++++ linux-3.18/drivers/bluetooth/btusb.c	2016-12-02 17:38:48.704451000 +0100
+@@ -159,6 +159,7 @@
+ 	{ USB_DEVICE(0x0489, 0xe03d), .driver_info = BTUSB_IGNORE },
+ 	{ USB_DEVICE(0x04f2, 0xaff1), .driver_info = BTUSB_IGNORE },
+ 	{ USB_DEVICE(0x0930, 0x0215), .driver_info = BTUSB_IGNORE },
++	{ USB_DEVICE(0x0cf3, 0x3000), .driver_info = BTUSB_IGNORE },
+ 	{ USB_DEVICE(0x0cf3, 0x3002), .driver_info = BTUSB_IGNORE },
+ 	{ USB_DEVICE(0x0cf3, 0xe019), .driver_info = BTUSB_IGNORE },
+ 	{ USB_DEVICE(0x13d3, 0x3304), .driver_info = BTUSB_IGNORE },
