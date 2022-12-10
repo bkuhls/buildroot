@@ -614,7 +614,7 @@ diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/hw.c linux-6.1.97/dri
 +	ath_dbg(ath9k_hw_common(ah), RESET,
 +		"reset MAC via external reset\n");
  
--		REG_WRITE(ah, AR_RTC_RESET, 1);
+-		REG_WRITE(ah, AR_RTC_RESET(ah), 1);
 +	err = ah->external_reset();
 +	if (err) {
 +		ath_err(ath9k_hw_common(ah),
@@ -623,11 +623,11 @@ diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/hw.c linux-6.1.97/dri
  	}
  
 +	if (AR_SREV_9550(ah)) {
-+		REG_WRITE(ah, AR_RTC_RESET, 0);
++		REG_WRITE(ah, AR_RTC_RESET(ah), 0);
 +		udelay(10);
 +	}
 +
-+	REG_WRITE(ah, AR_RTC_RESET, 1);
++	REG_WRITE(ah, AR_RTC_RESET(ah), 1);
 +	udelay(10);
 +
  	return true;
@@ -663,7 +663,7 @@ diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/hw.c linux-6.1.97/dri
 +	if (AR_SREV_9300(ah) || AR_SREV_9580(ah))
 +		REG_CLR_BIT(ah, AR_CFG, AR_CFG_HALT_REQ);
 +
- 	REG_WRITE(ah, AR_RTC_RC, rst_flags);
+ 	REG_WRITE(ah, AR_RTC_RC(ah), rst_flags);
  
  	REGWRITE_BUFFER_FLUSH(ah);
 @@ -1434,8 +1460,15 @@

@@ -17,7 +17,7 @@ diff -purN linux-4.17.orig/drivers/net/phy/Kconfig linux-4.17/drivers/net/phy/Kc
 +
  comment "MII PHY device drivers"
  
- config AMD_PHY
+ config AIR_EN8811H_PHY
 diff -purN linux-4.17.orig/drivers/net/phy/Makefile linux-4.17/drivers/net/phy/Makefile
 --- linux-4.17.orig/drivers/net/phy/Makefile	2018-06-03 23:15:21.000000000 +0200
 +++ linux-4.17/drivers/net/phy/Makefile	2018-06-08 15:05:29.511475846 +0200
