@@ -1,0 +1,52 @@
+#! /bin/sh
+#----------------------------------------------------------------------------
+#   add-default-route - add default route
+#
+#   called by imond
+#
+# Creation:     14.11.2000  fm
+# Last Update:  $Id: add-default-route 26936 2013-04-07 08:54:40Z kristov $
+#----------------------------------------------------------------------------
+device=$1
+
+# $1 = family
+# $2 = gateway suffix
+add_gw()
+{
+    if [ -f /var/run/$device.$2 ]; then
+        read gw < /var/run/$device.$2
+        [ "$gw" ] && gw="via $gw"
+    fi
+    logger -t add-default-route "ip -$1 route add default dev $dev $gw"
+    ip -$1 route add default dev $dev $gw
+}
+
+wait_for_device ()
+{
+    for i in `seq 1 20`
+    do
+        if ip link show $dev 2>/dev/null | grep -q "[<,]UP[,>]"
+        then
+            add_gw 4 gw
+            grep -q type=ppp /var/run/ipv6.tunnels/*.conf 2>/dev/null && add_gw 6 gw6
+            exit 0
+        fi
+        sleep 1
+    done
+    logger -t add-default-route "giving up after $i seconds"
+}
+
+logger -t add-default-route "adding route for $device"
+dev=$device
+if [ "$dev" = "pppoe" ]
+then
+    dev=`cat /var/run/pppoe-device`
+    [ -n "$dev" ] || dev='ppp0'
+fi
+
+if ip link show $dev 2>/dev/null | grep -q "[<,]UP[,>]"
+then
+    wait_for_device
+else
+    wait_for_device &
+fi
