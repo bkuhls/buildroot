@@ -1,0 +1,12 @@
+diff -purN linux-4.17.orig/drivers/acpi/osl.c linux-4.17/drivers/acpi/osl.c
+--- linux-4.17.orig/drivers/acpi/osl.c	2018-06-03 23:15:21.000000000 +0200
++++ linux-4.17/drivers/acpi/osl.c	2018-06-08 15:06:04.547372275 +0200
+@@ -1444,6 +1444,8 @@ int acpi_check_resource_conflict(const s
+ 	u8 warn = 0;
+ 	int clash = 0;
+ 
++	if (acpi_disabled)
++		return 0;
+ 	if (acpi_enforce_resources == ENFORCE_RESOURCES_NO)
+ 		return 0;
+ 	if (!(res->flags & IORESOURCE_IO) && !(res->flags & IORESOURCE_MEM))
