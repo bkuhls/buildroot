@@ -1,0 +1,181 @@
+diff -purN linux-5.3.orig/drivers/gpio/gpio-scx200.c linux-5.3/drivers/gpio/gpio-scx200.c
+--- linux-5.3.orig/drivers/gpio/gpio-scx200.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-5.3/drivers/gpio/gpio-scx200.c	2019-09-17 10:08:37.305841745 +0200
+@@ -0,0 +1,146 @@
++/*
++ *  gpio-scx200.c - SCX200 GPIO support for PC-Engines WRAP board
++ *
++ *  Copyright (c) 2014  Carsten Spiess <fli4l at carsten-spiess.de>
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program; if not, write to the Free Software
++ *  Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ */
++
++#include <linux/module.h>
++#include <linux/types.h>
++#include <linux/miscdevice.h>
++#include <linux/gpio.h>
++#include <linux/init.h>
++#include <linux/platform_device.h>
++
++#include <linux/scx200_gpio.h>
++
++#define DEVNAME                 "gpio-scx200"
++
++#define SCX200_NUM_GPIO         64
++
++/* the platform device */
++static struct platform_device *gpio_scx200_platform_device;
++
++static int gpio_scx200_dir_in (struct gpio_chip *gc, unsigned offset)
++{
++	scx200_gpio_configure (offset, 0x07, 0x04);
++	return 0;
++}
++
++static int gpio_scx200_dir_out (struct gpio_chip *chip, unsigned offset,
++		int value)
++{
++	scx200_gpio_configure (offset, 0x07, 0x00);
++	return 0;
++}
++
++static int gpio_scx200_get_data (struct gpio_chip *chip, unsigned offset)
++{
++	return scx200_gpio_get (offset);
++}
++
++static void gpio_scx200_set_data (struct gpio_chip *chip, unsigned offset, int value)
++{
++	scx200_gpio_set (offset, value);
++}
++
++static struct gpio_chip gpio_scx200_chip = {
++	.label = DEVNAME,
++	.owner = THIS_MODULE,
++	.base = 0,
++	.ngpio = SCX200_NUM_GPIO,
++	.direction_input = gpio_scx200_dir_in,
++	.direction_output = gpio_scx200_dir_out,
++	.get = gpio_scx200_get_data,
++	.set = gpio_scx200_set_data,
++};
++
++/*
++ *
++ */
++static int gpio_scx200_probe (struct platform_device *dev)
++{
++	int ret = 0;
++
++	if (!scx200_gpio_present()) {
++		ret = -ENODEV;
++		goto out;
++	}
++
++	gpio_scx200_chip.parent = &dev->dev;
++	ret = gpiochip_add (&gpio_scx200_chip);
++	if (ret) {
++		pr_err ("adding gpiochip failed\n");
++	}
++
++out:
++	return ret;
++}
++
++static int gpio_scx200_remove (struct platform_device *dev)
++{
++	gpiochip_remove (&gpio_scx200_chip);
++	return 0;
++}
++
++static struct platform_driver gpio_scx200_driver = {
++	.probe = gpio_scx200_probe,
++	.remove = gpio_scx200_remove,
++	.driver = {
++		.owner = THIS_MODULE,
++		.name = DEVNAME
++	}
++};
++
++static int __init gpio_scx200_init (void)
++{
++	int err;
++
++	pr_info ("load SCX200 GPIO driver module\n");
++
++	err = platform_driver_register (&gpio_scx200_driver);
++	if (err)
++		goto exit;
++
++	gpio_scx200_platform_device = platform_device_register_simple (DEVNAME, -1, NULL, 0);
++	if (IS_ERR(gpio_scx200_platform_device))
++	{
++		err = PTR_ERR(gpio_scx200_platform_device);
++		goto exit_driver;
++	}
++
++	pr_info ("SCX200 GPIO driver module loaded\n");
++	return 0;
++
++exit_driver:
++	platform_driver_unregister (&gpio_scx200_driver);
++exit:
++	return err;
++}
++
++static void __exit gpio_scx200_exit (void)
++{
++	platform_device_unregister (gpio_scx200_platform_device);
++	platform_driver_unregister (&gpio_scx200_driver);
++	pr_info ("SCX200 GPIO driver module unloaded\n");
++}
++
++MODULE_AUTHOR ("Carsten Spiess <fli4l at carsten-spiess.de>");
++MODULE_DESCRIPTION("GPIO driver for SCX200");
++MODULE_LICENSE("GPL");
++
++module_init (gpio_scx200_init);
++module_exit (gpio_scx200_exit);
+diff -purN linux-5.3.orig/drivers/gpio/Kconfig linux-5.3/drivers/gpio/Kconfig
+--- linux-5.3.orig/drivers/gpio/Kconfig	2019-09-15 23:19:32.000000000 +0200
++++ linux-5.3/drivers/gpio/Kconfig	2019-09-17 10:08:37.305841745 +0200
+@@ -464,6 +464,16 @@ config GPIO_SNPS_CREG
+ 	  where only several fields in register belong to GPIO lines and
+ 	  each GPIO line owns a field with different length and on/off value.
+ 
++config GPIO_SCX200
++	tristate "NatSemi SCx200 GPIO Support"
++	depends on SCx200_GPIO
++	help
++	  Driver to enable the GPIOs found on the National Semiconductor
++	  SCx200 processors.
++
++	  To compile this driver as a module, choose M here: the module will
++	  be called gpio-scx200.
++
+ config GPIO_SPEAR_SPICS
+ 	bool "ST SPEAr13xx SPI Chip Select as GPIO support"
+ 	depends on PLAT_SPEAR
+diff -purN linux-5.3.orig/drivers/gpio/Makefile linux-5.3/drivers/gpio/Makefile
+--- linux-5.3.orig/drivers/gpio/Makefile	2019-09-15 23:19:32.000000000 +0200
++++ linux-5.3/drivers/gpio/Makefile	2019-09-17 10:08:37.305841745 +0200
+@@ -120,6 +120,7 @@ obj-$(CONFIG_GPIO_REG)			+= gpio-reg.o
+ obj-$(CONFIG_ARCH_SA1100)		+= gpio-sa1100.o
+ obj-$(CONFIG_GPIO_SAMA5D2_PIOBU)	+= gpio-sama5d2-piobu.o
+ obj-$(CONFIG_GPIO_SCH311X)		+= gpio-sch311x.o
++obj-$(CONFIG_GPIO_SCX200)>+= gpio-scx200.o
+ obj-$(CONFIG_GPIO_SCH)			+= gpio-sch.o
+ obj-$(CONFIG_GPIO_SIOX)			+= gpio-siox.o
+ obj-$(CONFIG_GPIO_SODAVILLE)		+= gpio-sodaville.o
