@@ -1,0 +1,4 @@
+config BR2_PACKAGE_NETCALC_FLI4L
+	bool "netcalc-fli4l"
+	help
+	  Fli4l-specific utility: Performs various calculations on IP addresses.
