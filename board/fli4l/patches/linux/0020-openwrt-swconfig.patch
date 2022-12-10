@@ -1,0 +1,1826 @@
+diff -purN linux-4.17.orig/drivers/net/phy/Kconfig linux-4.17/drivers/net/phy/Kconfig
+--- linux-4.17.orig/drivers/net/phy/Kconfig	2018-06-03 23:15:21.000000000 +0200
++++ linux-4.17/drivers/net/phy/Kconfig	2018-06-08 15:05:29.511475846 +0200
+@@ -61,6 +61,16 @@
+ 	depends on HWMON || HWMON=n
+ 	select MDIO_I2C
+ 
++config SWCONFIG
++	tristate "Switch configuration API"
++	help
++	  Switch configuration API using netlink. This allows
++	  you to configure the VLAN features of certain switches.
++
++config SWCONFIG_LEDS
++	bool "Switch LED trigger support"
++	depends on (SWCONFIG && LEDS_TRIGGERS)
++
+ comment "MII PHY device drivers"
+ 
+ config AIR_EN8811H_PHY
+diff -purN linux-4.17.orig/drivers/net/phy/Makefile linux-4.17/drivers/net/phy/Makefile
+--- linux-4.17.orig/drivers/net/phy/Makefile	2018-06-03 23:15:21.000000000 +0200
++++ linux-4.17/drivers/net/phy/Makefile	2018-06-08 15:05:29.511475846 +0200
+@@ -23,6 +23,7 @@
+ 
+ obj-$(CONFIG_PHYLINK)		+= phylink.o
+ obj-$(CONFIG_PHYLIB)		+= libphy.o
++obj-$(CONFIG_SWCONFIG)>>--+= swconfig.o
+ 
+ obj-$(CONFIG_NETWORK_PHY_TIMESTAMPING) += mii_timestamper.o
+ 
+diff -purN linux-4.17.orig/drivers/net/phy/swconfig.c linux-4.17/drivers/net/phy/swconfig.c
+--- linux-4.17.orig/drivers/net/phy/swconfig.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-4.17/drivers/net/phy/swconfig.c	2018-06-08 15:05:29.515475834 +0200
+@@ -0,0 +1,1153 @@
++/*
++ * swconfig.c: Switch configuration API
++ *
++ * Copyright (C) 2008 Felix Fietkau <nbd@openwrt.org>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#include <linux/types.h>
++#include <linux/module.h>
++#include <linux/init.h>
++#include <linux/list.h>
++#include <linux/if.h>
++#include <linux/if_ether.h>
++#include <linux/capability.h>
++#include <linux/skbuff.h>
++#include <linux/switch.h>
++#include <linux/of.h>
++#include <linux/version.h>
++
++#define SWCONFIG_DEVNAME	"switch%d"
++
++#include "swconfig_leds.c"
++
++MODULE_AUTHOR("Felix Fietkau <nbd@openwrt.org>");
++MODULE_LICENSE("GPL");
++
++static int swdev_id;
++static struct list_head swdevs;
++static DEFINE_SPINLOCK(swdevs_lock);
++struct swconfig_callback;
++
++struct swconfig_callback {
++	struct sk_buff *msg;
++	struct genlmsghdr *hdr;
++	struct genl_info *info;
++	int cmd;
++
++	/* callback for filling in the message data */
++	int (*fill)(struct swconfig_callback *cb, void *arg);
++
++	/* callback for closing the message before sending it */
++	int (*close)(struct swconfig_callback *cb, void *arg);
++
++	struct nlattr *nest[4];
++	int args[4];
++};
++
++/* defaults */
++
++static int
++swconfig_get_vlan_ports(struct switch_dev *dev, const struct switch_attr *attr,
++			struct switch_val *val)
++{
++	int ret;
++	if (val->port_vlan >= dev->vlans)
++		return -EINVAL;
++
++	if (!dev->ops->get_vlan_ports)
++		return -EOPNOTSUPP;
++
++	ret = dev->ops->get_vlan_ports(dev, val);
++	return ret;
++}
++
++static int
++swconfig_set_vlan_ports(struct switch_dev *dev, const struct switch_attr *attr,
++			struct switch_val *val)
++{
++	struct switch_port *ports = val->value.ports;
++	const struct switch_dev_ops *ops = dev->ops;
++	int i;
++
++	if (val->port_vlan >= dev->vlans)
++		return -EINVAL;
++
++	/* validate ports */
++	if (val->len > dev->ports)
++		return -EINVAL;
++
++	if (!ops->set_vlan_ports)
++		return -EOPNOTSUPP;
++
++	for (i = 0; i < val->len; i++) {
++		if (ports[i].id >= dev->ports)
++			return -EINVAL;
++
++		if (ops->set_port_pvid &&
++		    !(ports[i].flags & (1 << SWITCH_PORT_FLAG_TAGGED)))
++			ops->set_port_pvid(dev, ports[i].id, val->port_vlan);
++	}
++
++	return ops->set_vlan_ports(dev, val);
++}
++
++static int
++swconfig_set_pvid(struct switch_dev *dev, const struct switch_attr *attr,
++			struct switch_val *val)
++{
++	if (val->port_vlan >= dev->ports)
++		return -EINVAL;
++
++	if (!dev->ops->set_port_pvid)
++		return -EOPNOTSUPP;
++
++	return dev->ops->set_port_pvid(dev, val->port_vlan, val->value.i);
++}
++
++static int
++swconfig_get_pvid(struct switch_dev *dev, const struct switch_attr *attr,
++			struct switch_val *val)
++{
++	if (val->port_vlan >= dev->ports)
++		return -EINVAL;
++
++	if (!dev->ops->get_port_pvid)
++		return -EOPNOTSUPP;
++
++	return dev->ops->get_port_pvid(dev, val->port_vlan, &val->value.i);
++}
++
++static const char *
++swconfig_speed_str(enum switch_port_speed speed)
++{
++	switch (speed) {
++	case SWITCH_PORT_SPEED_10:
++		return "10baseT";
++	case SWITCH_PORT_SPEED_100:
++		return "100baseT";
++	case SWITCH_PORT_SPEED_1000:
++		return "1000baseT";
++	default:
++		break;
++	}
++
++	return "unknown";
++}
++
++static int
++swconfig_get_link(struct switch_dev *dev, const struct switch_attr *attr,
++			struct switch_val *val)
++{
++	struct switch_port_link link;
++	int len;
++	int ret;
++
++	if (val->port_vlan >= dev->ports)
++		return -EINVAL;
++
++	if (!dev->ops->get_port_link)
++		return -EOPNOTSUPP;
++
++	memset(&link, 0, sizeof(link));
++	ret = dev->ops->get_port_link(dev, val->port_vlan, &link);
++	if (ret)
++		return ret;
++
++	memset(dev->buf, 0, sizeof(dev->buf));
++
++	if (link.link)
++		len = snprintf(dev->buf, sizeof(dev->buf),
++			       "port:%d link:up speed:%s %s-duplex %s%s%s%s%s",
++			       val->port_vlan,
++			       swconfig_speed_str(link.speed),
++			       link.duplex ? "full" : "half",
++			       link.tx_flow ? "txflow " : "",
++			       link.rx_flow ?	"rxflow " : "",
++			       link.eee & ADVERTISED_100baseT_Full ? "eee100 " : "",
++			       link.eee & ADVERTISED_1000baseT_Full ? "eee1000 " : "",
++			       link.aneg ? "auto" : "");
++	else
++		len = snprintf(dev->buf, sizeof(dev->buf), "port:%d link:down",
++			       val->port_vlan);
++
++	val->value.s = dev->buf;
++	val->len = len;
++
++	return 0;
++}
++
++static int
++swconfig_apply_config(struct switch_dev *dev, const struct switch_attr *attr,
++			struct switch_val *val)
++{
++	/* don't complain if not supported by the switch driver */
++	if (!dev->ops->apply_config)
++		return 0;
++
++	return dev->ops->apply_config(dev);
++}
++
++static int
++swconfig_reset_switch(struct switch_dev *dev, const struct switch_attr *attr,
++			struct switch_val *val)
++{
++	/* don't complain if not supported by the switch driver */
++	if (!dev->ops->reset_switch)
++		return 0;
++
++	return dev->ops->reset_switch(dev);
++}
++
++enum global_defaults {
++	GLOBAL_APPLY,
++	GLOBAL_RESET,
++};
++
++enum vlan_defaults {
++	VLAN_PORTS,
++};
++
++enum port_defaults {
++	PORT_PVID,
++	PORT_LINK,
++};
++
++static struct switch_attr default_global[] = {
++	[GLOBAL_APPLY] = {
++		.type = SWITCH_TYPE_NOVAL,
++		.name = "apply",
++		.description = "Activate changes in the hardware",
++		.set = swconfig_apply_config,
++	},
++	[GLOBAL_RESET] = {
++		.type = SWITCH_TYPE_NOVAL,
++		.name = "reset",
++		.description = "Reset the switch",
++		.set = swconfig_reset_switch,
++	}
++};
++
++static struct switch_attr default_port[] = {
++	[PORT_PVID] = {
++		.type = SWITCH_TYPE_INT,
++		.name = "pvid",
++		.description = "Primary VLAN ID",
++		.set = swconfig_set_pvid,
++		.get = swconfig_get_pvid,
++	},
++	[PORT_LINK] = {
++		.type = SWITCH_TYPE_STRING,
++		.name = "link",
++		.description = "Get port link information",
++		.set = NULL,
++		.get = swconfig_get_link,
++	}
++};
++
++static struct switch_attr default_vlan[] = {
++	[VLAN_PORTS] = {
++		.type = SWITCH_TYPE_PORTS,
++		.name = "ports",
++		.description = "VLAN port mapping",
++		.set = swconfig_set_vlan_ports,
++		.get = swconfig_get_vlan_ports,
++	},
++};
++
++static const struct switch_attr *
++swconfig_find_attr_by_name(const struct switch_attrlist *alist,
++				const char *name)
++{
++	int i;
++
++	for (i = 0; i < alist->n_attr; i++)
++		if (strcmp(name, alist->attr[i].name) == 0)
++			return &alist->attr[i];
++
++	return NULL;
++}
++
++static void swconfig_defaults_init(struct switch_dev *dev)
++{
++	const struct switch_dev_ops *ops = dev->ops;
++
++	dev->def_global = 0;
++	dev->def_vlan = 0;
++	dev->def_port = 0;
++
++	if (ops->get_vlan_ports || ops->set_vlan_ports)
++		set_bit(VLAN_PORTS, &dev->def_vlan);
++
++	if (ops->get_port_pvid || ops->set_port_pvid)
++		set_bit(PORT_PVID, &dev->def_port);
++
++	if (ops->get_port_link &&
++	    !swconfig_find_attr_by_name(&ops->attr_port, "link"))
++		set_bit(PORT_LINK, &dev->def_port);
++
++	/* always present, can be no-op */
++	set_bit(GLOBAL_APPLY, &dev->def_global);
++	set_bit(GLOBAL_RESET, &dev->def_global);
++}
++
++
++static struct genl_family switch_fam = {
++	.id = GENL_ID_GENERATE,
++	.name = "switch",
++	.hdrsize = 0,
++	.version = 1,
++	.maxattr = SWITCH_ATTR_MAX,
++};
++
++static const struct nla_policy switch_policy[SWITCH_ATTR_MAX+1] = {
++	[SWITCH_ATTR_ID] = { .type = NLA_U32 },
++	[SWITCH_ATTR_OP_ID] = { .type = NLA_U32 },
++	[SWITCH_ATTR_OP_PORT] = { .type = NLA_U32 },
++	[SWITCH_ATTR_OP_VLAN] = { .type = NLA_U32 },
++	[SWITCH_ATTR_OP_VALUE_INT] = { .type = NLA_U32 },
++	[SWITCH_ATTR_OP_VALUE_STR] = { .type = NLA_NUL_STRING },
++	[SWITCH_ATTR_OP_VALUE_PORTS] = { .type = NLA_NESTED },
++	[SWITCH_ATTR_TYPE] = { .type = NLA_U32 },
++};
++
++static const struct nla_policy port_policy[SWITCH_PORT_ATTR_MAX+1] = {
++	[SWITCH_PORT_ID] = { .type = NLA_U32 },
++	[SWITCH_PORT_FLAG_TAGGED] = { .type = NLA_FLAG },
++};
++
++static inline void
++swconfig_lock(void)
++{
++	spin_lock(&swdevs_lock);
++}
++
++static inline void
++swconfig_unlock(void)
++{
++	spin_unlock(&swdevs_lock);
++}
++
++static struct switch_dev *
++swconfig_get_dev(struct genl_info *info)
++{
++	struct switch_dev *dev = NULL;
++	struct switch_dev *p;
++	int id;
++
++	if (!info->attrs[SWITCH_ATTR_ID])
++		goto done;
++
++	id = nla_get_u32(info->attrs[SWITCH_ATTR_ID]);
++	swconfig_lock();
++	list_for_each_entry(p, &swdevs, dev_list) {
++		if (id != p->id)
++			continue;
++
++		dev = p;
++		break;
++	}
++	if (dev)
++		mutex_lock(&dev->sw_mutex);
++	else
++		pr_debug("device %d not found\n", id);
++	swconfig_unlock();
++done:
++	return dev;
++}
++
++static inline void
++swconfig_put_dev(struct switch_dev *dev)
++{
++	mutex_unlock(&dev->sw_mutex);
++}
++
++static int
++swconfig_dump_attr(struct swconfig_callback *cb, void *arg)
++{
++	struct switch_attr *op = arg;
++	struct genl_info *info = cb->info;
++	struct sk_buff *msg = cb->msg;
++	int id = cb->args[0];
++	void *hdr;
++
++	hdr = genlmsg_put(msg, info->snd_portid, info->snd_seq, &switch_fam,
++			NLM_F_MULTI, SWITCH_CMD_NEW_ATTR);
++	if (IS_ERR(hdr))
++		return -1;
++
++	if (nla_put_u32(msg, SWITCH_ATTR_OP_ID, id))
++		goto nla_put_failure;
++	if (nla_put_u32(msg, SWITCH_ATTR_OP_TYPE, op->type))
++		goto nla_put_failure;
++	if (nla_put_string(msg, SWITCH_ATTR_OP_NAME, op->name))
++		goto nla_put_failure;
++	if (op->description)
++		if (nla_put_string(msg, SWITCH_ATTR_OP_DESCRIPTION,
++			op->description))
++			goto nla_put_failure;
++
++	genlmsg_end(msg, hdr);
++	return msg->len;
++nla_put_failure:
++	genlmsg_cancel(msg, hdr);
++	return -EMSGSIZE;
++}
++
++/* spread multipart messages across multiple message buffers */
++static int
++swconfig_send_multipart(struct swconfig_callback *cb, void *arg)
++{
++	struct genl_info *info = cb->info;
++	int restart = 0;
++	int err;
++
++	do {
++		if (!cb->msg) {
++			cb->msg = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
++			if (cb->msg == NULL)
++				goto error;
++		}
++
++		if (!(cb->fill(cb, arg) < 0))
++			break;
++
++		/* fill failed, check if this was already the second attempt */
++		if (restart)
++			goto error;
++
++		/* try again in a new message, send the current one */
++		restart = 1;
++		if (cb->close) {
++			if (cb->close(cb, arg) < 0)
++				goto error;
++		}
++		err = genlmsg_reply(cb->msg, info);
++		cb->msg = NULL;
++		if (err < 0)
++			goto error;
++
++	} while (restart);
++
++	return 0;
++
++error:
++	if (cb->msg)
++		nlmsg_free(cb->msg);
++	return -1;
++}
++
++static int
++swconfig_list_attrs(struct sk_buff *skb, struct genl_info *info)
++{
++	struct genlmsghdr *hdr = nlmsg_data(info->nlhdr);
++	const struct switch_attrlist *alist;
++	struct switch_dev *dev;
++	struct swconfig_callback cb;
++	int err = -EINVAL;
++	int i;
++
++	/* defaults */
++	struct switch_attr *def_list;
++	unsigned long *def_active;
++	int n_def;
++
++	dev = swconfig_get_dev(info);
++	if (!dev)
++		return -EINVAL;
++
++	switch (hdr->cmd) {
++	case SWITCH_CMD_LIST_GLOBAL:
++		alist = &dev->ops->attr_global;
++		def_list = default_global;
++		def_active = &dev->def_global;
++		n_def = ARRAY_SIZE(default_global);
++		break;
++	case SWITCH_CMD_LIST_VLAN:
++		alist = &dev->ops->attr_vlan;
++		def_list = default_vlan;
++		def_active = &dev->def_vlan;
++		n_def = ARRAY_SIZE(default_vlan);
++		break;
++	case SWITCH_CMD_LIST_PORT:
++		alist = &dev->ops->attr_port;
++		def_list = default_port;
++		def_active = &dev->def_port;
++		n_def = ARRAY_SIZE(default_port);
++		break;
++	default:
++		WARN_ON(1);
++		goto out;
++	}
++
++	memset(&cb, 0, sizeof(cb));
++	cb.info = info;
++	cb.fill = swconfig_dump_attr;
++	for (i = 0; i < alist->n_attr; i++) {
++		if (alist->attr[i].disabled)
++			continue;
++		cb.args[0] = i;
++		err = swconfig_send_multipart(&cb, (void *) &alist->attr[i]);
++		if (err < 0)
++			goto error;
++	}
++
++	/* defaults */
++	for (i = 0; i < n_def; i++) {
++		if (!test_bit(i, def_active))
++			continue;
++		cb.args[0] = SWITCH_ATTR_DEFAULTS_OFFSET + i;
++		err = swconfig_send_multipart(&cb, (void *) &def_list[i]);
++		if (err < 0)
++			goto error;
++	}
++	swconfig_put_dev(dev);
++
++	if (!cb.msg)
++		return 0;
++
++	return genlmsg_reply(cb.msg, info);
++
++error:
++	if (cb.msg)
++		nlmsg_free(cb.msg);
++out:
++	swconfig_put_dev(dev);
++	return err;
++}
++
++static const struct switch_attr *
++swconfig_lookup_attr(struct switch_dev *dev, struct genl_info *info,
++		struct switch_val *val)
++{
++	struct genlmsghdr *hdr = nlmsg_data(info->nlhdr);
++	const struct switch_attrlist *alist;
++	const struct switch_attr *attr = NULL;
++	int attr_id;
++
++	/* defaults */
++	struct switch_attr *def_list;
++	unsigned long *def_active;
++	int n_def;
++
++	if (!info->attrs[SWITCH_ATTR_OP_ID])
++		goto done;
++
++	switch (hdr->cmd) {
++	case SWITCH_CMD_SET_GLOBAL:
++	case SWITCH_CMD_GET_GLOBAL:
++		alist = &dev->ops->attr_global;
++		def_list = default_global;
++		def_active = &dev->def_global;
++		n_def = ARRAY_SIZE(default_global);
++		break;
++	case SWITCH_CMD_SET_VLAN:
++	case SWITCH_CMD_GET_VLAN:
++		alist = &dev->ops->attr_vlan;
++		def_list = default_vlan;
++		def_active = &dev->def_vlan;
++		n_def = ARRAY_SIZE(default_vlan);
++		if (!info->attrs[SWITCH_ATTR_OP_VLAN])
++			goto done;
++		val->port_vlan = nla_get_u32(info->attrs[SWITCH_ATTR_OP_VLAN]);
++		if (val->port_vlan >= dev->vlans)
++			goto done;
++		break;
++	case SWITCH_CMD_SET_PORT:
++	case SWITCH_CMD_GET_PORT:
++		alist = &dev->ops->attr_port;
++		def_list = default_port;
++		def_active = &dev->def_port;
++		n_def = ARRAY_SIZE(default_port);
++		if (!info->attrs[SWITCH_ATTR_OP_PORT])
++			goto done;
++		val->port_vlan = nla_get_u32(info->attrs[SWITCH_ATTR_OP_PORT]);
++		if (val->port_vlan >= dev->ports)
++			goto done;
++		break;
++	default:
++		WARN_ON(1);
++		goto done;
++	}
++
++	if (!alist)
++		goto done;
++
++	attr_id = nla_get_u32(info->attrs[SWITCH_ATTR_OP_ID]);
++	if (attr_id >= SWITCH_ATTR_DEFAULTS_OFFSET) {
++		attr_id -= SWITCH_ATTR_DEFAULTS_OFFSET;
++		if (attr_id >= n_def)
++			goto done;
++		if (!test_bit(attr_id, def_active))
++			goto done;
++		attr = &def_list[attr_id];
++	} else {
++		if (attr_id >= alist->n_attr)
++			goto done;
++		attr = &alist->attr[attr_id];
++	}
++
++	if (attr->disabled)
++		attr = NULL;
++
++done:
++	if (!attr)
++		pr_debug("attribute lookup failed\n");
++	val->attr = attr;
++	return attr;
++}
++
++static int
++swconfig_parse_ports(struct sk_buff *msg, struct nlattr *head,
++		struct switch_val *val, int max)
++{
++	struct nlattr *nla;
++	int rem;
++
++	val->len = 0;
++	nla_for_each_nested(nla, head, rem) {
++		struct nlattr *tb[SWITCH_PORT_ATTR_MAX+1];
++		struct switch_port *port = &val->value.ports[val->len];
++
++		if (val->len >= max)
++			return -EINVAL;
++
++		if (nla_parse_nested(tb, SWITCH_PORT_ATTR_MAX, nla,
++				port_policy))
++			return -EINVAL;
++
++		if (!tb[SWITCH_PORT_ID])
++			return -EINVAL;
++
++		port->id = nla_get_u32(tb[SWITCH_PORT_ID]);
++		if (tb[SWITCH_PORT_FLAG_TAGGED])
++			port->flags |= (1 << SWITCH_PORT_FLAG_TAGGED);
++		val->len++;
++	}
++
++	return 0;
++}
++
++static int
++swconfig_set_attr(struct sk_buff *skb, struct genl_info *info)
++{
++	const struct switch_attr *attr;
++	struct switch_dev *dev;
++	struct switch_val val;
++	int err = -EINVAL;
++
++	dev = swconfig_get_dev(info);
++	if (!dev)
++		return -EINVAL;
++
++	memset(&val, 0, sizeof(val));
++	attr = swconfig_lookup_attr(dev, info, &val);
++	if (!attr || !attr->set)
++		goto error;
++
++	val.attr = attr;
++	switch (attr->type) {
++	case SWITCH_TYPE_NOVAL:
++		break;
++	case SWITCH_TYPE_INT:
++		if (!info->attrs[SWITCH_ATTR_OP_VALUE_INT])
++			goto error;
++		val.value.i =
++			nla_get_u32(info->attrs[SWITCH_ATTR_OP_VALUE_INT]);
++		break;
++	case SWITCH_TYPE_STRING:
++		if (!info->attrs[SWITCH_ATTR_OP_VALUE_STR])
++			goto error;
++		val.value.s =
++			nla_data(info->attrs[SWITCH_ATTR_OP_VALUE_STR]);
++		break;
++	case SWITCH_TYPE_PORTS:
++		val.value.ports = dev->portbuf;
++		memset(dev->portbuf, 0,
++			sizeof(struct switch_port) * dev->ports);
++
++		/* TODO: implement multipart? */
++		if (info->attrs[SWITCH_ATTR_OP_VALUE_PORTS]) {
++			err = swconfig_parse_ports(skb,
++				info->attrs[SWITCH_ATTR_OP_VALUE_PORTS],
++				&val, dev->ports);
++			if (err < 0)
++				goto error;
++		} else {
++			val.len = 0;
++			err = 0;
++		}
++		break;
++	default:
++		goto error;
++	}
++
++	err = attr->set(dev, attr, &val);
++error:
++	swconfig_put_dev(dev);
++	return err;
++}
++
++static int
++swconfig_close_portlist(struct swconfig_callback *cb, void *arg)
++{
++	if (cb->nest[0])
++		nla_nest_end(cb->msg, cb->nest[0]);
++	return 0;
++}
++
++static int
++swconfig_send_port(struct swconfig_callback *cb, void *arg)
++{
++	const struct switch_port *port = arg;
++	struct nlattr *p = NULL;
++
++	if (!cb->nest[0]) {
++		cb->nest[0] = nla_nest_start(cb->msg, cb->cmd);
++		if (!cb->nest[0])
++			return -1;
++	}
++
++	p = nla_nest_start(cb->msg, SWITCH_ATTR_PORT);
++	if (!p)
++		goto error;
++
++	if (nla_put_u32(cb->msg, SWITCH_PORT_ID, port->id))
++		goto nla_put_failure;
++	if (port->flags & (1 << SWITCH_PORT_FLAG_TAGGED)) {
++		if (nla_put_flag(cb->msg, SWITCH_PORT_FLAG_TAGGED))
++			goto nla_put_failure;
++	}
++
++	nla_nest_end(cb->msg, p);
++	return 0;
++
++nla_put_failure:
++		nla_nest_cancel(cb->msg, p);
++error:
++	nla_nest_cancel(cb->msg, cb->nest[0]);
++	return -1;
++}
++
++static int
++swconfig_send_ports(struct sk_buff **msg, struct genl_info *info, int attr,
++		const struct switch_val *val)
++{
++	struct swconfig_callback cb;
++	int err = 0;
++	int i;
++
++	if (!val->value.ports)
++		return -EINVAL;
++
++	memset(&cb, 0, sizeof(cb));
++	cb.cmd = attr;
++	cb.msg = *msg;
++	cb.info = info;
++	cb.fill = swconfig_send_port;
++	cb.close = swconfig_close_portlist;
++
++	cb.nest[0] = nla_nest_start(cb.msg, cb.cmd);
++	for (i = 0; i < val->len; i++) {
++		err = swconfig_send_multipart(&cb, &val->value.ports[i]);
++		if (err)
++			goto done;
++	}
++	err = val->len;
++	swconfig_close_portlist(&cb, NULL);
++	*msg = cb.msg;
++
++done:
++	return err;
++}
++
++static int
++swconfig_get_attr(struct sk_buff *skb, struct genl_info *info)
++{
++	struct genlmsghdr *hdr = nlmsg_data(info->nlhdr);
++	const struct switch_attr *attr;
++	struct switch_dev *dev;
++	struct sk_buff *msg = NULL;
++	struct switch_val val;
++	int err = -EINVAL;
++	int cmd = hdr->cmd;
++
++	dev = swconfig_get_dev(info);
++	if (!dev)
++		return -EINVAL;
++
++	memset(&val, 0, sizeof(val));
++	attr = swconfig_lookup_attr(dev, info, &val);
++	if (!attr || !attr->get)
++		goto error;
++
++	if (attr->type == SWITCH_TYPE_PORTS) {
++		val.value.ports = dev->portbuf;
++		memset(dev->portbuf, 0,
++			sizeof(struct switch_port) * dev->ports);
++	}
++
++	err = attr->get(dev, attr, &val);
++	if (err)
++		goto error;
++
++	msg = nlmsg_new(NLMSG_GOODSIZE, GFP_KERNEL);
++	if (!msg)
++		goto error;
++
++	hdr = genlmsg_put(msg, info->snd_portid, info->snd_seq, &switch_fam,
++			0, cmd);
++	if (IS_ERR(hdr))
++		goto nla_put_failure;
++
++	switch (attr->type) {
++	case SWITCH_TYPE_INT:
++		if (nla_put_u32(msg, SWITCH_ATTR_OP_VALUE_INT, val.value.i))
++			goto nla_put_failure;
++		break;
++	case SWITCH_TYPE_STRING:
++		if (nla_put_string(msg, SWITCH_ATTR_OP_VALUE_STR, val.value.s))
++			goto nla_put_failure;
++		break;
++	case SWITCH_TYPE_PORTS:
++		err = swconfig_send_ports(&msg, info,
++				SWITCH_ATTR_OP_VALUE_PORTS, &val);
++		if (err < 0)
++			goto nla_put_failure;
++		break;
++	default:
++		pr_debug("invalid type in attribute\n");
++		err = -EINVAL;
++		goto error;
++	}
++	genlmsg_end(msg, hdr);
++	err = msg->len;
++	if (err < 0)
++		goto nla_put_failure;
++
++	swconfig_put_dev(dev);
++	return genlmsg_reply(msg, info);
++
++nla_put_failure:
++	if (msg)
++		nlmsg_free(msg);
++error:
++	swconfig_put_dev(dev);
++	if (!err)
++		err = -ENOMEM;
++	return err;
++}
++
++static int
++swconfig_send_switch(struct sk_buff *msg, u32 pid, u32 seq, int flags,
++		const struct switch_dev *dev)
++{
++	struct nlattr *p = NULL, *m = NULL;
++	void *hdr;
++	int i;
++
++	hdr = genlmsg_put(msg, pid, seq, &switch_fam, flags,
++			SWITCH_CMD_NEW_ATTR);
++	if (IS_ERR(hdr))
++		return -1;
++
++	if (nla_put_u32(msg, SWITCH_ATTR_ID, dev->id))
++		goto nla_put_failure;
++	if (nla_put_string(msg, SWITCH_ATTR_DEV_NAME, dev->devname))
++		goto nla_put_failure;
++	if (nla_put_string(msg, SWITCH_ATTR_ALIAS, dev->alias))
++		goto nla_put_failure;
++	if (nla_put_string(msg, SWITCH_ATTR_NAME, dev->name))
++		goto nla_put_failure;
++	if (nla_put_u32(msg, SWITCH_ATTR_VLANS, dev->vlans))
++		goto nla_put_failure;
++	if (nla_put_u32(msg, SWITCH_ATTR_PORTS, dev->ports))
++		goto nla_put_failure;
++	if (nla_put_u32(msg, SWITCH_ATTR_CPU_PORT, dev->cpu_port))
++		goto nla_put_failure;
++
++	m = nla_nest_start(msg, SWITCH_ATTR_PORTMAP);
++	if (!m)
++		goto nla_put_failure;
++	for (i = 0; i < dev->ports; i++) {
++		p = nla_nest_start(msg, SWITCH_ATTR_PORTS);
++		if (!p)
++			continue;
++		if (dev->portmap[i].s) {
++			if (nla_put_string(msg, SWITCH_PORTMAP_SEGMENT,
++						dev->portmap[i].s))
++				goto nla_put_failure;
++			if (nla_put_u32(msg, SWITCH_PORTMAP_VIRT,
++						dev->portmap[i].virt))
++				goto nla_put_failure;
++		}
++		nla_nest_end(msg, p);
++	}
++	nla_nest_end(msg, m);
++	genlmsg_end(msg, hdr);
++	return msg->len;
++nla_put_failure:
++	genlmsg_cancel(msg, hdr);
++	return -EMSGSIZE;
++}
++
++static int swconfig_dump_switches(struct sk_buff *skb,
++		struct netlink_callback *cb)
++{
++	struct switch_dev *dev;
++	int start = cb->args[0];
++	int idx = 0;
++
++	swconfig_lock();
++	list_for_each_entry(dev, &swdevs, dev_list) {
++		if (++idx <= start)
++			continue;
++		if (swconfig_send_switch(skb, NETLINK_CB(cb->skb).portid,
++				cb->nlh->nlmsg_seq, NLM_F_MULTI,
++				dev) < 0)
++			break;
++	}
++	swconfig_unlock();
++	cb->args[0] = idx;
++
++	return skb->len;
++}
++
++static int
++swconfig_done(struct netlink_callback *cb)
++{
++	return 0;
++}
++
++static struct genl_ops swconfig_ops[] = {
++	{
++		.cmd = SWITCH_CMD_LIST_GLOBAL,
++		.doit = swconfig_list_attrs,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_LIST_VLAN,
++		.doit = swconfig_list_attrs,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_LIST_PORT,
++		.doit = swconfig_list_attrs,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_GET_GLOBAL,
++		.doit = swconfig_get_attr,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_GET_VLAN,
++		.doit = swconfig_get_attr,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_GET_PORT,
++		.doit = swconfig_get_attr,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_SET_GLOBAL,
++		.doit = swconfig_set_attr,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_SET_VLAN,
++		.doit = swconfig_set_attr,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_SET_PORT,
++		.doit = swconfig_set_attr,
++		.policy = switch_policy,
++	},
++	{
++		.cmd = SWITCH_CMD_GET_SWITCH,
++		.dumpit = swconfig_dump_switches,
++		.policy = switch_policy,
++		.done = swconfig_done,
++	}
++};
++
++#ifdef CONFIG_OF
++void
++of_switch_load_portmap(struct switch_dev *dev)
++{
++	struct device_node *port;
++
++	if (!dev->of_node)
++		return;
++
++	for_each_child_of_node(dev->of_node, port) {
++		const __be32 *prop;
++		const char *segment;
++		int size, phys;
++
++		if (!of_device_is_compatible(port, "swconfig,port"))
++			continue;
++
++		if (of_property_read_string(port, "swconfig,segment", &segment))
++			continue;
++
++		prop = of_get_property(port, "swconfig,portmap", &size);
++		if (!prop)
++			continue;
++
++		if (size != (2 * sizeof(*prop))) {
++			pr_err("%s: failed to parse port mapping\n",
++					port->name);
++			continue;
++		}
++
++		phys = be32_to_cpup(prop++);
++		if ((phys < 0) | (phys >= dev->ports)) {
++			pr_err("%s: physical port index out of range\n",
++					port->name);
++			continue;
++		}
++
++		dev->portmap[phys].s = kstrdup(segment, GFP_KERNEL);
++		dev->portmap[phys].virt = be32_to_cpup(prop);
++		pr_debug("Found port: %s, physical: %d, virtual: %d\n",
++			segment, phys, dev->portmap[phys].virt);
++	}
++}
++#endif
++
++int
++register_switch(struct switch_dev *dev, struct net_device *netdev)
++{
++	struct switch_dev *sdev;
++	const int max_switches = 8 * sizeof(unsigned long);
++	unsigned long in_use = 0;
++	int err;
++	int i;
++
++	INIT_LIST_HEAD(&dev->dev_list);
++	if (netdev) {
++		dev->netdev = netdev;
++		if (!dev->alias)
++			dev->alias = netdev->name;
++	}
++	BUG_ON(!dev->alias);
++
++	if (dev->ports > 0) {
++		dev->portbuf = kzalloc(sizeof(struct switch_port) *
++				dev->ports, GFP_KERNEL);
++		if (!dev->portbuf)
++			return -ENOMEM;
++		dev->portmap = kzalloc(sizeof(struct switch_portmap) *
++				dev->ports, GFP_KERNEL);
++		if (!dev->portmap) {
++			kfree(dev->portbuf);
++			return -ENOMEM;
++		}
++	}
++	swconfig_defaults_init(dev);
++	mutex_init(&dev->sw_mutex);
++	swconfig_lock();
++	dev->id = ++swdev_id;
++
++	list_for_each_entry(sdev, &swdevs, dev_list) {
++		if (!sscanf(sdev->devname, SWCONFIG_DEVNAME, &i))
++			continue;
++		if (i < 0 || i > max_switches)
++			continue;
++
++		set_bit(i, &in_use);
++	}
++	i = find_first_zero_bit(&in_use, max_switches);
++
++	if (i == max_switches) {
++		swconfig_unlock();
++		return -ENFILE;
++	}
++
++#ifdef CONFIG_OF
++	if (dev->ports)
++		of_switch_load_portmap(dev);
++#endif
++
++	/* fill device name */
++	snprintf(dev->devname, IFNAMSIZ, SWCONFIG_DEVNAME, i);
++
++	list_add_tail(&dev->dev_list, &swdevs);
++	swconfig_unlock();
++
++	err = swconfig_create_led_trigger(dev);
++	if (err)
++		return err;
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(register_switch);
++
++void
++unregister_switch(struct switch_dev *dev)
++{
++	swconfig_destroy_led_trigger(dev);
++	kfree(dev->portbuf);
++	mutex_lock(&dev->sw_mutex);
++	swconfig_lock();
++	list_del(&dev->dev_list);
++	swconfig_unlock();
++	mutex_unlock(&dev->sw_mutex);
++}
++EXPORT_SYMBOL_GPL(unregister_switch);
++
++
++static int __init
++swconfig_init(void)
++{
++	int err;
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,13,0))
++	int i;
++#endif
++
++	INIT_LIST_HEAD(&swdevs);
++	
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,13,0))
++	err = genl_register_family(&switch_fam);
++	if (err)
++		return err;
++
++	for (i = 0; i < ARRAY_SIZE(swconfig_ops); i++) {
++		err = genl_register_ops(&switch_fam, &swconfig_ops[i]);
++		if (err)
++			goto unregister;
++	}
++	return 0;
++
++unregister:
++	genl_unregister_family(&switch_fam);
++	return err;
++#else
++	err = genl_register_family_with_ops(&switch_fam, swconfig_ops);
++	if (err)
++		return err;
++	return 0;
++#endif
++}
++
++static void __exit
++swconfig_exit(void)
++{
++	genl_unregister_family(&switch_fam);
++}
++
++module_init(swconfig_init);
++module_exit(swconfig_exit);
++
+diff -purN linux-4.17.orig/drivers/net/phy/swconfig_leds.c linux-4.17/drivers/net/phy/swconfig_leds.c
+--- linux-4.17.orig/drivers/net/phy/swconfig_leds.c	1970-01-01 01:00:00.000000000 +0100
++++ linux-4.17/drivers/net/phy/swconfig_leds.c	2018-06-08 15:05:29.515475834 +0200
+@@ -0,0 +1,354 @@
++/*
++ * swconfig_led.c: LED trigger support for the switch configuration API
++ *
++ * Copyright (C) 2011 Gabor Juhos <juhosg@openwrt.org>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ */
++
++#ifdef CONFIG_SWCONFIG_LEDS
++
++#include <linux/leds.h>
++#include <linux/ctype.h>
++#include <linux/device.h>
++#include <linux/workqueue.h>
++
++#define SWCONFIG_LED_TIMER_INTERVAL	(HZ / 10)
++#define SWCONFIG_LED_NUM_PORTS		32
++
++struct switch_led_trigger {
++	struct led_trigger trig;
++	struct switch_dev *swdev;
++
++	struct delayed_work sw_led_work;
++	u32 port_mask;
++	u32 port_link;
++	unsigned long port_traffic[SWCONFIG_LED_NUM_PORTS];
++};
++
++struct swconfig_trig_data {
++	struct led_classdev *led_cdev;
++	struct switch_dev *swdev;
++
++	rwlock_t lock;
++	u32 port_mask;
++
++	bool prev_link;
++	unsigned long prev_traffic;
++	enum led_brightness prev_brightness;
++};
++
++static void
++swconfig_trig_set_brightness(struct swconfig_trig_data *trig_data,
++			     enum led_brightness brightness)
++{
++	led_set_brightness(trig_data->led_cdev, brightness);
++	trig_data->prev_brightness = brightness;
++}
++
++static void
++swconfig_trig_update_port_mask(struct led_trigger *trigger)
++{
++	struct list_head *entry;
++	struct switch_led_trigger *sw_trig;
++	u32 port_mask;
++
++	if (!trigger)
++		return;
++
++	sw_trig = (void *) trigger;
++
++	port_mask = 0;
++	read_lock(&trigger->leddev_list_lock);
++	list_for_each(entry, &trigger->led_cdevs) {
++		struct led_classdev *led_cdev;
++		struct swconfig_trig_data *trig_data;
++
++		led_cdev = list_entry(entry, struct led_classdev, trig_list);
++		trig_data = led_cdev->trigger_data;
++		if (trig_data) {
++			read_lock(&trig_data->lock);
++			port_mask |= trig_data->port_mask;
++			read_unlock(&trig_data->lock);
++		}
++	}
++	read_unlock(&trigger->leddev_list_lock);
++
++	sw_trig->port_mask = port_mask;
++
++	if (port_mask)
++		schedule_delayed_work(&sw_trig->sw_led_work,
++				      SWCONFIG_LED_TIMER_INTERVAL);
++	else
++		cancel_delayed_work_sync(&sw_trig->sw_led_work);
++}
++
++static ssize_t
++swconfig_trig_port_mask_store(struct device *dev, struct device_attribute *attr,
++			      const char *buf, size_t size)
++{
++	struct led_classdev *led_cdev = dev_get_drvdata(dev);
++	struct swconfig_trig_data *trig_data = led_cdev->trigger_data;
++	unsigned long port_mask;
++	ssize_t ret = -EINVAL;
++	char *after;
++	size_t count;
++
++	port_mask = simple_strtoul(buf, &after, 16);
++	count =	after - buf;
++
++	if (*after && isspace(*after))
++		count++;
++
++	if (count == size) {
++		bool changed;
++
++		write_lock(&trig_data->lock);
++
++		changed = (trig_data->port_mask != port_mask);
++		if (changed) {
++			trig_data->port_mask = port_mask;
++			if (port_mask == 0)
++				swconfig_trig_set_brightness(trig_data, LED_OFF);
++		}
++
++		write_unlock(&trig_data->lock);
++
++		if (changed)
++			swconfig_trig_update_port_mask(led_cdev->trigger);
++
++		ret = count;
++	}
++
++	return ret;
++}
++
++static ssize_t
++swconfig_trig_port_mask_show(struct device *dev, struct device_attribute *attr,
++			     char *buf)
++{
++	struct led_classdev *led_cdev = dev_get_drvdata(dev);
++	struct swconfig_trig_data *trig_data = led_cdev->trigger_data;
++
++	read_lock(&trig_data->lock);
++	sprintf(buf, "%#x\n", trig_data->port_mask);
++	read_unlock(&trig_data->lock);
++
++	return strlen(buf) + 1;
++}
++
++static DEVICE_ATTR(port_mask, 0644, swconfig_trig_port_mask_show,
++		   swconfig_trig_port_mask_store);
++
++static void
++swconfig_trig_activate(struct led_classdev *led_cdev)
++{
++	struct switch_led_trigger *sw_trig;
++	struct swconfig_trig_data *trig_data;
++	int err;
++
++	if (led_cdev->trigger->activate != swconfig_trig_activate)
++		return;
++
++	trig_data = kzalloc(sizeof(struct swconfig_trig_data), GFP_KERNEL);
++	if (!trig_data)
++		return;
++
++	sw_trig = (void *) led_cdev->trigger;
++
++	rwlock_init(&trig_data->lock);
++	trig_data->led_cdev = led_cdev;
++	trig_data->swdev = sw_trig->swdev;
++	led_cdev->trigger_data = trig_data;
++
++	err = device_create_file(led_cdev->dev, &dev_attr_port_mask);
++	if (err)
++		goto err_free;
++
++	return;
++
++err_free:
++	led_cdev->trigger_data = NULL;
++	kfree(trig_data);
++}
++
++static void
++swconfig_trig_deactivate(struct led_classdev *led_cdev)
++{
++	struct swconfig_trig_data *trig_data;
++
++	swconfig_trig_update_port_mask(led_cdev->trigger);
++
++	trig_data = (void *) led_cdev->trigger_data;
++	if (trig_data) {
++		device_remove_file(led_cdev->dev, &dev_attr_port_mask);
++		kfree(trig_data);
++	}
++}
++
++static void
++swconfig_trig_led_event(struct switch_led_trigger *sw_trig,
++			struct led_classdev *led_cdev)
++{
++	struct swconfig_trig_data *trig_data;
++	u32 port_mask;
++	bool link;
++
++	trig_data = led_cdev->trigger_data;
++	if (!trig_data)
++		return;
++
++	read_lock(&trig_data->lock);
++	port_mask = trig_data->port_mask;
++	read_unlock(&trig_data->lock);
++
++	link = !!(sw_trig->port_link & port_mask);
++	if (!link) {
++		if (link != trig_data->prev_link)
++			swconfig_trig_set_brightness(trig_data, LED_OFF);
++	} else {
++		unsigned long traffic;
++		int i;
++
++		traffic = 0;
++		for (i = 0; i < SWCONFIG_LED_NUM_PORTS; i++) {
++			if (port_mask & (1 << i))
++				traffic += sw_trig->port_traffic[i];
++		}
++
++		if (trig_data->prev_brightness != LED_FULL)
++			swconfig_trig_set_brightness(trig_data, LED_FULL);
++		else if (traffic != trig_data->prev_traffic)
++			swconfig_trig_set_brightness(trig_data, LED_OFF);
++
++		trig_data->prev_traffic = traffic;
++	}
++
++	trig_data->prev_link = link;
++}
++
++static void
++swconfig_trig_update_leds(struct switch_led_trigger *sw_trig)
++{
++	struct list_head *entry;
++	struct led_trigger *trigger;
++
++	trigger = &sw_trig->trig;
++	read_lock(&trigger->leddev_list_lock);
++	list_for_each(entry, &trigger->led_cdevs) {
++		struct led_classdev *led_cdev;
++
++		led_cdev = list_entry(entry, struct led_classdev, trig_list);
++		swconfig_trig_led_event(sw_trig, led_cdev);
++	}
++	read_unlock(&trigger->leddev_list_lock);
++}
++
++static void
++swconfig_led_work_func(struct work_struct *work)
++{
++	struct switch_led_trigger *sw_trig;
++	struct switch_dev *swdev;
++	u32 port_mask;
++	u32 link;
++	int i;
++
++	sw_trig = container_of(work, struct switch_led_trigger,
++			       sw_led_work.work);
++
++	port_mask = sw_trig->port_mask;
++	swdev = sw_trig->swdev;
++
++	link = 0;
++	for (i = 0; i < SWCONFIG_LED_NUM_PORTS; i++) {
++		u32 port_bit;
++
++		port_bit = BIT(i);
++		if ((port_mask & port_bit) == 0)
++			continue;
++
++		if (swdev->ops->get_port_link) {
++			struct switch_port_link port_link;
++
++			memset(&port_link, '\0', sizeof(port_link));
++			swdev->ops->get_port_link(swdev, i, &port_link);
++
++			if (port_link.link)
++				link |= port_bit;
++		}
++
++		if (swdev->ops->get_port_stats) {
++			struct switch_port_stats port_stats;
++
++			memset(&port_stats, '\0', sizeof(port_stats));
++			swdev->ops->get_port_stats(swdev, i, &port_stats);
++			sw_trig->port_traffic[i] = port_stats.tx_bytes +
++						   port_stats.rx_bytes;
++		}
++	}
++
++	sw_trig->port_link = link;
++
++	swconfig_trig_update_leds(sw_trig);
++
++	schedule_delayed_work(&sw_trig->sw_led_work,
++			      SWCONFIG_LED_TIMER_INTERVAL);
++}
++
++static int
++swconfig_create_led_trigger(struct switch_dev *swdev)
++{
++	struct switch_led_trigger *sw_trig;
++	int err;
++
++	if (!swdev->ops->get_port_link)
++		return 0;
++
++	sw_trig = kzalloc(sizeof(struct switch_led_trigger), GFP_KERNEL);
++	if (!sw_trig)
++		return -ENOMEM;
++
++	sw_trig->swdev = swdev;
++	sw_trig->trig.name = swdev->devname;
++	sw_trig->trig.activate = swconfig_trig_activate;
++	sw_trig->trig.deactivate = swconfig_trig_deactivate;
++
++	INIT_DELAYED_WORK(&sw_trig->sw_led_work, swconfig_led_work_func);
++
++	err = led_trigger_register(&sw_trig->trig);
++	if (err)
++		goto err_free;
++
++	swdev->led_trigger = sw_trig;
++
++	return 0;
++
++err_free:
++	kfree(sw_trig);
++	return err;
++}
++
++static void
++swconfig_destroy_led_trigger(struct switch_dev *swdev)
++{
++	struct switch_led_trigger *sw_trig;
++
++	sw_trig = swdev->led_trigger;
++	if (sw_trig) {
++		cancel_delayed_work_sync(&sw_trig->sw_led_work);
++		led_trigger_unregister(&sw_trig->trig);
++		kfree(sw_trig);
++	}
++}
++
++#else /* SWCONFIG_LEDS */
++static inline int
++swconfig_create_led_trigger(struct switch_dev *swdev) { return 0; }
++
++static inline void
++swconfig_destroy_led_trigger(struct switch_dev *swdev) { }
++#endif /* CONFIG_SWCONFIG_LEDS */
+diff -purN linux-4.17.orig/include/linux/switch.h linux-4.17/include/linux/switch.h
+--- linux-4.17.orig/include/linux/switch.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-4.17/include/linux/switch.h	2018-06-08 15:05:29.515475834 +0200
+@@ -0,0 +1,169 @@
++/*
++ * switch.h: Switch configuration API
++ *
++ * Copyright (C) 2008 Felix Fietkau <nbd@openwrt.org>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++#ifndef _LINUX_SWITCH_H
++#define _LINUX_SWITCH_H
++
++#include <net/genetlink.h>
++#include <uapi/linux/switch.h>
++
++struct switch_dev;
++struct switch_op;
++struct switch_val;
++struct switch_attr;
++struct switch_attrlist;
++struct switch_led_trigger;
++
++int register_switch(struct switch_dev *dev, struct net_device *netdev);
++void unregister_switch(struct switch_dev *dev);
++
++/**
++ * struct switch_attrlist - attribute list
++ *
++ * @n_attr: number of attributes
++ * @attr: pointer to the attributes array
++ */
++struct switch_attrlist {
++	int n_attr;
++	const struct switch_attr *attr;
++};
++
++enum switch_port_speed {
++	SWITCH_PORT_SPEED_UNKNOWN = 0,
++	SWITCH_PORT_SPEED_10 = 10,
++	SWITCH_PORT_SPEED_100 = 100,
++	SWITCH_PORT_SPEED_1000 = 1000,
++};
++
++struct switch_port_link {
++	bool link;
++	bool duplex;
++	bool aneg;
++	bool tx_flow;
++	bool rx_flow;
++	enum switch_port_speed speed;
++	/* in ethtool adv_t format */
++	u32 eee;
++};
++
++struct switch_port_stats {
++	unsigned long tx_bytes;
++	unsigned long rx_bytes;
++};
++
++/**
++ * struct switch_dev_ops - switch driver operations
++ *
++ * @attr_global: global switch attribute list
++ * @attr_port: port attribute list
++ * @attr_vlan: vlan attribute list
++ *
++ * Callbacks:
++ *
++ * @get_vlan_ports: read the port list of a VLAN
++ * @set_vlan_ports: set the port list of a VLAN
++ *
++ * @get_port_pvid: get the primary VLAN ID of a port
++ * @set_port_pvid: set the primary VLAN ID of a port
++ *
++ * @apply_config: apply all changed settings to the switch
++ * @reset_switch: resetting the switch
++ */
++struct switch_dev_ops {
++	struct switch_attrlist attr_global, attr_port, attr_vlan;
++
++	int (*get_vlan_ports)(struct switch_dev *dev, struct switch_val *val);
++	int (*set_vlan_ports)(struct switch_dev *dev, struct switch_val *val);
++
++	int (*get_port_pvid)(struct switch_dev *dev, int port, int *val);
++	int (*set_port_pvid)(struct switch_dev *dev, int port, int val);
++
++	int (*apply_config)(struct switch_dev *dev);
++	int (*reset_switch)(struct switch_dev *dev);
++
++	int (*get_port_link)(struct switch_dev *dev, int port,
++			     struct switch_port_link *link);
++	int (*get_port_stats)(struct switch_dev *dev, int port,
++			      struct switch_port_stats *stats);
++};
++
++struct switch_dev {
++	struct device_node *of_node;
++	const struct switch_dev_ops *ops;
++	/* will be automatically filled */
++	char devname[IFNAMSIZ];
++
++	const char *name;
++	/* NB: either alias or netdev must be set */
++	const char *alias;
++	struct net_device *netdev;
++
++	int ports;
++	int vlans;
++	int cpu_port;
++
++	/* the following fields are internal for swconfig */
++	int id;
++	struct list_head dev_list;
++	unsigned long def_global, def_port, def_vlan;
++
++	struct mutex sw_mutex;
++	struct switch_port *portbuf;
++	struct switch_portmap *portmap;
++
++	char buf[128];
++
++#ifdef CONFIG_SWCONFIG_LEDS
++	struct switch_led_trigger *led_trigger;
++#endif
++};
++
++struct switch_port {
++	u32 id;
++	u32 flags;
++};
++
++struct switch_portmap {
++	u32 virt;
++	const char *s;
++};
++
++struct switch_val {
++	const struct switch_attr *attr;
++	int port_vlan;
++	int len;
++	union {
++		const char *s;
++		u32 i;
++		struct switch_port *ports;
++	} value;
++};
++
++struct switch_attr {
++	int disabled;
++	int type;
++	const char *name;
++	const char *description;
++
++	int (*set)(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val);
++	int (*get)(struct switch_dev *dev, const struct switch_attr *attr, struct switch_val *val);
++
++	/* for driver internal use */
++	int id;
++	int ofs;
++	int max;
++};
++
++#endif /* _LINUX_SWITCH_H */
+diff -purN linux-4.17.orig/include/uapi/linux/switch.h linux-4.17/include/uapi/linux/switch.h
+--- linux-4.17.orig/include/uapi/linux/switch.h	1970-01-01 01:00:00.000000000 +0100
++++ linux-4.17/include/uapi/linux/switch.h	2018-06-08 15:05:29.515475834 +0200
+@@ -0,0 +1,103 @@
++/*
++ * switch.h: Switch configuration API
++ *
++ * Copyright (C) 2008 Felix Fietkau <nbd@openwrt.org>
++ *
++ * This program is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU General Public License
++ * as published by the Free Software Foundation; either version 2
++ * of the License, or (at your option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ */
++
++#ifndef _UAPI_LINUX_SWITCH_H
++#define _UAPI_LINUX_SWITCH_H
++
++#include <linux/types.h>
++#include <linux/netdevice.h>
++#include <linux/netlink.h>
++#include <linux/genetlink.h>
++#ifndef __KERNEL__
++#include <netlink/netlink.h>
++#include <netlink/genl/genl.h>
++#include <netlink/genl/ctrl.h>
++#endif
++
++/* main attributes */
++enum {
++	SWITCH_ATTR_UNSPEC,
++	/* global */
++	SWITCH_ATTR_TYPE,
++	/* device */
++	SWITCH_ATTR_ID,
++	SWITCH_ATTR_DEV_NAME,
++	SWITCH_ATTR_ALIAS,
++	SWITCH_ATTR_NAME,
++	SWITCH_ATTR_VLANS,
++	SWITCH_ATTR_PORTS,
++	SWITCH_ATTR_PORTMAP,
++	SWITCH_ATTR_CPU_PORT,
++	/* attributes */
++	SWITCH_ATTR_OP_ID,
++	SWITCH_ATTR_OP_TYPE,
++	SWITCH_ATTR_OP_NAME,
++	SWITCH_ATTR_OP_PORT,
++	SWITCH_ATTR_OP_VLAN,
++	SWITCH_ATTR_OP_VALUE_INT,
++	SWITCH_ATTR_OP_VALUE_STR,
++	SWITCH_ATTR_OP_VALUE_PORTS,
++	SWITCH_ATTR_OP_DESCRIPTION,
++	/* port lists */
++	SWITCH_ATTR_PORT,
++	SWITCH_ATTR_MAX
++};
++
++enum {
++	/* port map */
++	SWITCH_PORTMAP_PORTS,
++	SWITCH_PORTMAP_SEGMENT,
++	SWITCH_PORTMAP_VIRT,
++	SWITCH_PORTMAP_MAX
++};
++
++/* commands */
++enum {
++	SWITCH_CMD_UNSPEC,
++	SWITCH_CMD_GET_SWITCH,
++	SWITCH_CMD_NEW_ATTR,
++	SWITCH_CMD_LIST_GLOBAL,
++	SWITCH_CMD_GET_GLOBAL,
++	SWITCH_CMD_SET_GLOBAL,
++	SWITCH_CMD_LIST_PORT,
++	SWITCH_CMD_GET_PORT,
++	SWITCH_CMD_SET_PORT,
++	SWITCH_CMD_LIST_VLAN,
++	SWITCH_CMD_GET_VLAN,
++	SWITCH_CMD_SET_VLAN
++};
++
++/* data types */
++enum switch_val_type {
++	SWITCH_TYPE_UNSPEC,
++	SWITCH_TYPE_INT,
++	SWITCH_TYPE_STRING,
++	SWITCH_TYPE_PORTS,
++	SWITCH_TYPE_NOVAL,
++};
++
++/* port nested attributes */
++enum {
++	SWITCH_PORT_UNSPEC,
++	SWITCH_PORT_ID,
++	SWITCH_PORT_FLAG_TAGGED,
++	SWITCH_PORT_ATTR_MAX
++};
++
++#define SWITCH_ATTR_DEFAULTS_OFFSET	0x1000
++
++
++#endif /* _UAPI_LINUX_SWITCH_H */
