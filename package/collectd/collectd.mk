@@ -214,6 +214,10 @@ COLLECTD_DEPENDENCIES = \
 	$(if $(BR2_PACKAGE_COLLECTD_WRITEPROMETHEUS),libmicrohttpd protobuf-c) \
 	$(if $(BR2_PACKAGE_COLLECTD_WRITEREDIS),hiredis)
 
+ifeq ($(BR2_PACKAGE_COLLECTD_IPTABLES),y)
+COLLECTD_CONF_OPTS += --with-libiptc=$(STAGING_DIR)
+endif
+
 # include/library fixups
 ifeq ($(BR2_PACKAGE_JANSSON),y)
 COLLECTD_CONF_OPTS += --with-libjansson=$(STAGING_DIR)/usr
