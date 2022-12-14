@@ -1,0 +1,28 @@
+revert http://gitorious.org/fetchmail/fetchmail/commit/88dbe5e39105112e4a666d1a182b7e0e5236102e
+       http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=282259
+
+to log sleeping at/awakened at messages
+
+diff -uNr fetchmail-6.3.24.org//fetchmail.c fetchmail-6.3.24/fetchmail.c
+--- fetchmail-6.3.24.org//fetchmail.c	2012-12-14 00:56:41.000000000 +0100
++++ fetchmail-6.3.24/fetchmail.c	2013-03-02 09:34:21.000000000 +0100
+@@ -920,8 +920,7 @@
+ 		exit(PS_AUTHFAIL);
+ 	    }
+ 
+-	    if ((outlevel > O_SILENT && !run.use_syslog && isatty(1))
+-		    || outlevel > O_NORMAL)
++	    if (outlevel > O_SILENT)
+ 		report(stdout,
+ 		       GT_("sleeping at %s for %d seconds\n"), timestamp(), run.poll_interval);
+ 
+@@ -956,8 +955,7 @@
+ 		    ctl->wedged = FALSE;
+ 	    }
+ 
+-	    if ((outlevel > O_SILENT && !run.use_syslog && isatty(1))
+-		    || outlevel > O_NORMAL)
++	    if (outlevel > O_SILENT)
+ 		report(stdout, GT_("awakened at %s\n"), timestamp());
+ 	}
+     } while (run.poll_interval);
