@@ -1,0 +1,17 @@
+https://github.com/xbmc/xbmc/pull/14501
+https://github.com/xbmc/xbmc/pull/14758
+
+https://github.com/xbmc/xbmc/issues/18070#issuecomment-646242931
+
+diff -uNr xbmc-2c4bcdbfa5e8957c74d25396fc726952fabecf82.org/xbmc/utils/FileUtils.cpp xbmc-2c4bcdbfa5e8957c74d25396fc726952fabecf82/xbmc/utils/FileUtils.cpp
+--- xbmc-2c4bcdbfa5e8957c74d25396fc726952fabecf82.org/xbmc/utils/FileUtils.cpp	2020-02-03 06:43:15.000000000 +0100
++++ xbmc-2c4bcdbfa5e8957c74d25396fc726952fabecf82/xbmc/utils/FileUtils.cpp	2020-02-08 20:04:55.287277402 +0100
+@@ -160,7 +160,7 @@
+       sources.at(sourceIndex).m_allowSharing)
+     return true;
+ 
+-  return false;
++  return true;
+ }
+ 
+ CDateTime CFileUtils::GetModificationDate(const std::string& strFileNameAndPath,
