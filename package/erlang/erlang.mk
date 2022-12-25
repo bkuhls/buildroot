@@ -5,9 +5,8 @@
 ################################################################################
 
 # See note below when updating Erlang
-ERLANG_VERSION = 22.3.4.22
-ERLANG_SITE = \
-	https://github.com/erlang/otp/releases/download/OTP-$(ERLANG_VERSION)
+ERLANG_VERSION = 20.3
+ERLANG_SITE = http://www.erlang.org/download
 ERLANG_SOURCE = otp_src_$(ERLANG_VERSION).tar.gz
 ERLANG_DEPENDENCIES = host-erlang
 
@@ -31,14 +30,10 @@ ERLANG_POST_PATCH_HOOKS += ERLANG_REMOVE_SSL_DEPS
 define ERLANG_RUN_AUTOCONF
 	cd $(@D) && PATH=$(BR_PATH) ./otp_build autoconf
 endef
-ERLANG_DEPENDENCIES += host-autoconf
-ERLANG_PRE_CONFIGURE_HOOKS += ERLANG_RUN_AUTOCONF
-HOST_ERLANG_DEPENDENCIES += host-autoconf
-HOST_ERLANG_PRE_CONFIGURE_HOOKS += ERLANG_RUN_AUTOCONF
 
 # Whenever updating Erlang, this value should be updated as well, to the
 # value of EI_VSN in the file lib/erl_interface/vsn.mk
-ERLANG_EI_VSN = 3.13.2.2
+ERLANG_EI_VSN = 3.10.1
 
 # The configure checks for these functions fail incorrectly
 ERLANG_CONF_ENV = ac_cv_func_isnan=yes ac_cv_func_isinf=yes
