@@ -40,11 +40,11 @@ endef
 define EXIM_USE_DEFAULT_CONFIG_FILE
 	$(INSTALL) -m 0644 $(@D)/src/EDITME $(@D)/Local/Makefile
 	$(call exim-config-change,BIN_DIRECTORY,/usr/sbin)
-	$(call exim-config-change,CONFIGURE_FILE,/etc/exim/configure)
+	$(call exim-config-change,CONFIGURE_FILE,/etc/exim.conf)
 	$(call exim-config-change,LOG_FILE_PATH,/var/log/exim/exim_%slog)
 	$(call exim-config-change,PID_FILE_PATH,/var/run/exim/exim.pid)
 	$(call exim-config-change,EXIM_USER,ref:exim)
-	$(call exim-config-change,EXIM_GROUP,mail)
+	$(call exim-config-change,EXIM_GROUP,exim)
 	$(call exim-config-change,TRANSPORT_LMTP,yes)
 	$(call exim-config-change,PCRE_LIBS,-lpcre2-8)
 	$(call exim-config-change,PCRE2_CONFIG,no)
@@ -53,6 +53,10 @@ define EXIM_USE_DEFAULT_CONFIG_FILE
 	$(call exim-config-change,AUTH_PLAINTEXT,yes)
 	$(call exim-config-change,AUTH_CRAM_MD5,yes)
 	$(call exim-config-unset,SUPPORT_DANE)
+	$(call exim-config-change,LOOKUP_PASSWD,yes)
+	$(call exim-config-change,PID_FILE_PATH,/var/run/exim.pid)
+	$(call exim-config-change,COMPRESS_COMMAND,/bin/gzip)
+	$(call exim-config-change,ZCAT_COMMAND,/bin/zcat)
 endef
 
 ifeq ($(BR2_PACKAGE_DOVECOT),y)
