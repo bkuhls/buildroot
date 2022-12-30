@@ -1,0 +1,65 @@
+diff -uNr mwscrape-568ccbe6e12dd6391277df02adf724ba0e5f9197.orig/mwscrape/scrape.py mwscrape-568ccbe6e12dd6391277df02adf724ba0e5f9197/mwscrape/scrape.py
+--- mwscrape-568ccbe6e12dd6391277df02adf724ba0e5f9197.orig/mwscrape/scrape.py	2020-04-28 05:18:24.000000000 +0200
++++ mwscrape-568ccbe6e12dd6391277df02adf724ba0e5f9197/mwscrape/scrape.py	2020-12-31 14:14:46.624349087 +0100
+@@ -291,12 +291,8 @@
+             fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+             yield
+         except IOError as ex:
+-            if ex.errno == 11:
+-                print(
+-                    "Scrape for this host is already in progress. "
+-                    "Use --speed option instead of starting multiple processes."
+-                )
+-            raise SystemExit(1)
++            pass
++            yield
+         finally:
+             lock_fd.close()
+ 
+@@ -449,7 +445,6 @@
+         title = page.name
+         if not page.exists:
+             print("Not found: %s" % title)
+-            inc_count("not_found")
+             if args.delete_not_found:
+                 try:
+                     del db[title]
+@@ -486,7 +481,6 @@
+ 
+             if page.redirect:
+                 print("Failed to resolve redirect %s", title)
+-                inc_count("failed_redirect")
+                 return
+ 
+             doc = db.get(title)
+@@ -510,9 +504,7 @@
+                 revid = doc.get("parse", {}).get("revid")
+                 if page.revision == revid:
+                     print("%s is up to date (rev. %s), skipping" % (title, revid))
+-                    inc_count("up_to_date")
+                     return
+-                inc_count("updated")
+                 print(
+                     "[%s] rev. %s => %s %s"
+                     % (
+@@ -534,12 +526,10 @@
+         except Exception:
+             print("Failed to process %s:" % title)
+             traceback.print_exc()
+-            inc_count("error")
+             return
+         if doc:
+             doc.update(parse)
+         else:
+-            inc_count("new")
+             doc = parse
+             if aliases:
+                 doc["aliases"] = list(aliases)
+@@ -562,7 +552,6 @@
+                 print("Already saw %s, skipping" % (title,))
+                 continue
+             seen[title] = True
+-            update_session(title)
+             yield page
+ 
+     with flock(
