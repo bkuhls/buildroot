@@ -140,6 +140,8 @@ define SAMBA4_CONFIGURE_CMDS
 			--without-ldb-lmdb \
 			--disable-glusterfs \
 			--with-cluster-support \
+			--with-static-modules=ALL \
+			--nonshared-binary=smbd/smbd \
 			--bundled-libraries='!asn1_compile,!compile_et' \
 			--with-shared-modules=$(subst $(space),$(comma),$(strip $(SAMBA4_SHARED_MODULES))) \
 			$(SAMBA4_CONF_OPTS) \
