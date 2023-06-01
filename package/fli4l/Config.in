@@ -1,6 +1,7 @@
 menu "fli4l"
 	source "package/fli4l/bytes2read/Config.in"
 	source "package/fli4l/dsltool/Config.in"
+	source "package/fli4l/hconv/Config.in"
 	source "package/fli4l/imond/Config.in"
 	source "package/fli4l/imond-stat/Config.in"
 	source "package/fli4l/lockcommand/Config.in"
