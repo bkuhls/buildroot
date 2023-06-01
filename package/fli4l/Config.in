@@ -9,4 +9,5 @@ menu "fli4l"
 	source "package/fli4l/mini-login/Config.in"
 	source "package/fli4l/netcalc-fli4l/Config.in"
 	source "package/fli4l/proccgi/Config.in"
+	source "package/fli4l/ovpnctrl/Config.in"
 endmenu
