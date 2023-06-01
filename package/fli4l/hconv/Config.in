@@ -1,0 +1,4 @@
+config BR2_PACKAGE_HCONV
+	bool "hconv"
+	help
+	  Fli4l-specific utility: hconv
