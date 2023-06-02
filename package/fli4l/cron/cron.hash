@@ -1,0 +1,5 @@
+# From https://snapshot.debian.org/archive/debian/20250406T210903Z/pool/main/c/cron/cron_3.0pl1-196.dsc
+sha256  d931e0688005dfa85cfdb60e19bf0a3848ebfa3ee3415bf2a6ea3ea9e5bcfd21 cron_3.0pl1.orig.tar.gz
+sha256  bb942aea9589c6c5b7ceb6dc75b79cf48c3b1c51788cccf9c52923375bef4b95 cron_3.0pl1-196.debian.tar.xz
+# Locally computed
+sha256  5172e3da991db727bcd5026a6243f02b276041591dfa6987b7a8427ae4023af4  README
