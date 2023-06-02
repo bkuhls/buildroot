@@ -1,0 +1,4 @@
+config BR2_PACKAGE_CRON
+	bool "cron"
+	help
+	  Fli4l-specific utility: cron
