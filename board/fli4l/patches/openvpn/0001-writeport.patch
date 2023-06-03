@@ -1,0 +1,200 @@
+diff -uNr openvpn-2.6.4.orig/src/openvpn/init.c openvpn-2.6.4/src/openvpn/init.c
+--- openvpn-2.6.4.orig/src/openvpn/init.c	2023-05-11 08:09:21.000000000 +0200
++++ openvpn-2.6.4/src/openvpn/init.c	2023-06-09 17:31:37.414454202 +0200
+@@ -4348,6 +4348,7 @@
+             if (management_open(management,
+                                 c->options.management_addr,
+                                 c->options.management_port,
++                                c->options.management_writeport,
+                                 c->options.management_user_pass,
+                                 c->options.management_client_user,
+                                 c->options.management_client_group,
+diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.c openvpn-2.6.4/src/openvpn/manage.c
+--- openvpn-2.6.4.orig/src/openvpn/manage.c	2023-05-11 08:09:21.000000000 +0200
++++ openvpn-2.6.4/src/openvpn/manage.c	2023-06-09 17:28:50.804257074 +0200
+@@ -1909,8 +1909,49 @@
+                 msg(M_WARN|M_ERRNO,
+                     "Failed to get the management socket address");
+             }
+-            msg(D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
+-                print_sockaddr(man_addr, &gc));
++            {
++              msg (D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
++                   print_sockaddr(man_addr, &gc));
++              if (man->settings.writeport_file_name)
++                {
++                  man->settings.writeport_file_fd = open(man->settings.writeport_file_name, O_CREAT|O_WRONLY, S_IRUSR|S_IWUSR);
++                  if (-1 != man->settings.writeport_file_fd)
++                    {
++                      man->settings.writeport_file_lock.l_type   = F_WRLCK;     /* F_RDLCK, F_WRLCK, F_UNLCK */
++                      man->settings.writeport_file_lock.l_start  = 0L;          /* byte offset relative to l_whence */
++                      man->settings.writeport_file_lock.l_whence = SEEK_SET;    /* SEEK_SET, SEEK_CUR, SEEK_END */
++                      man->settings.writeport_file_lock.l_len    = 0L;          /* #bytes (0 means to EOF) */
++                      if(-1 != fcntl(man->settings.writeport_file_fd, F_SETLK, &man->settings.writeport_file_lock))
++                        {
++                          int port = ((struct sockaddr_in *)man->settings.local->ai_addr)->sin_port;
++                          if (0 == port)
++                            {
++                              struct sockaddr_in tmpSockAddr;
++                              socklen_t tmpSockAddrBufSize = sizeof(tmpSockAddr);
++
++                              if(getsockname(man->connection.sd_top, (struct sockaddr *)&tmpSockAddr, &tmpSockAddrBufSize))
++                                {
++                                  msg (M_ERR, "getsockname failed");
++                                  port = -1;
++                                }
++                              else
++                                port = tmpSockAddr.sin_port;
++                            }
++                          struct buffer out = alloc_buf_gc (32, &gc);
++                          buf_printf (&out, "%d\n", ntohs (port));
++                          buffer_write_file (man->settings.writeport_file_name, &out);
++                        }
++                      else
++                        {
++                          msg (D_MANAGEMENT, "MANAGEMENT: fcntl file is locked");
++                        }
++                    }
++                  else
++                    {
++                      msg (M_ERR, "Open error on file %s", man->settings.writeport_file_name);
++                    }
++                }
++            }
+         }
+     }
+ 
+@@ -2454,6 +2495,7 @@
+ man_settings_init(struct man_settings *ms,
+                   const char *addr,
+                   const char *port,
++                  const char *writeport_file,
+                   const char *pass_file,
+                   const char *client_user,
+                   const char *client_group,
+@@ -2472,6 +2514,19 @@
+         ms->client_gid = -1;
+ 
+         /*
++         * Save writeport filename
++         */
++        ms->writeport_file_fd = -1;
++        if (writeport_file)
++        {
++            ms->writeport_file_name = string_alloc (writeport_file, NULL);
++        }
++        else
++        {
++            ms->writeport_file_name = NULL;
++        }
++
++        /*
+          * Get username/password
+          */
+         if (pass_file)
+@@ -2562,6 +2617,13 @@
+     {
+         freeaddrinfo(ms->local);
+     }
++
++    ms->writeport_file_lock.l_type = F_UNLCK;
++    fcntl(ms->writeport_file_fd, F_SETLK, &ms->writeport_file_lock);
++    close(ms->writeport_file_fd);
++    unlink(ms->writeport_file_name);
++    free (ms->writeport_file_name);
++
+     CLEAR(*ms);
+ }
+ 
+@@ -2660,6 +2722,7 @@
+ management_open(struct management *man,
+                 const char *addr,
+                 const char *port,
++                const char *writeport_file,
+                 const char *pass_file,
+                 const char *client_user,
+                 const char *client_group,
+@@ -2678,6 +2741,7 @@
+     man_settings_init(&man->settings,
+                       addr,
+                       port,
++                      writeport_file,
+                       pass_file,
+                       client_user,
+                       client_group,
+diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.h openvpn-2.6.4/src/openvpn/manage.h
+--- openvpn-2.6.4.orig/src/openvpn/manage.h	2023-05-11 08:09:21.000000000 +0200
++++ openvpn-2.6.4/src/openvpn/manage.h	2023-06-09 17:31:37.414454202 +0200
+@@ -261,6 +261,9 @@
+ #define MANSIG_MAP_USR1_TO_HUP  (1<<1)
+ #define MANSIG_MAP_USR1_TO_TERM (1<<2)
+     unsigned int mansig;
++    char *writeport_file_name;
++    int writeport_file_fd;
++    struct flock writeport_file_lock;
+ };
+ 
+ /* up_query modes */
+@@ -348,6 +351,7 @@
+ bool management_open(struct management *man,
+                      const char *addr,
+                      const char *port,
++                     const char *writeport_file,
+                      const char *pass_file,
+                      const char *client_user,
+                      const char *client_group,
+diff -uNr openvpn-2.6.4.orig/src/openvpn/options.c openvpn-2.6.4/src/openvpn/options.c
+--- openvpn-2.6.4.orig/src/openvpn/options.c	2023-05-11 08:09:21.000000000 +0200
++++ openvpn-2.6.4/src/openvpn/options.c	2023-06-09 17:31:37.414454202 +0200
+@@ -395,6 +395,8 @@
+     "--management-up-down : Report tunnel up/down events to management interface.\n"
+     "--management-log-cache n : Cache n lines of log file history for usage\n"
+     "                  by the management channel.\n"
++    "--management-writeport file : Write used port for management interface\n"
++    "                  to file.\n"
+ #if UNIX_SOCK_SUPPORT
+     "--management-client-user u  : When management interface is a unix socket, only\n"
+     "                              allow connections from user u.\n"
+@@ -1936,6 +1938,7 @@
+ #ifdef ENABLE_MANAGEMENT
+     SHOW_STR(management_addr);
+     SHOW_STR(management_port);
++    SHOW_STR(management_writeport);
+     SHOW_STR(management_user_pass);
+     SHOW_INT(management_log_history_cache);
+     SHOW_INT(management_echo_buffer_size);
+@@ -2450,6 +2453,11 @@
+         msg(M_USAGE, "--management-client-(user|group) can only be used on unix domain sockets");
+     }
+ 
++    if (options->management_port == 0 && !options->management_writeport)
++    {
++        msg (M_USAGE, "--management ip port [pass] uses port=0 to auto-select the management port but there is no --management-writeport option to record the used port");
++    }
++
+     if (options->management_addr
+         && !(options->management_flags & MF_UNIX_SOCK)
+         && (!options->management_user_pass))
+@@ -5891,6 +5899,11 @@
+         VERIFY_PERMISSION(OPT_P_GENERAL);
+         options->management_flags |= MF_CONNECT_AS_CLIENT;
+     }
++    else if (streq(p[0], "management-writeport") && p[1])
++    {
++        VERIFY_PERMISSION(OPT_P_GENERAL);
++        options->management_writeport = p[1];
++    }
+     else if (streq(p[0], "management-external-key"))
+     {
+         VERIFY_PERMISSION(OPT_P_GENERAL);
+diff -uNr openvpn-2.6.4.orig/src/openvpn/options.h openvpn-2.6.4/src/openvpn/options.h
+--- openvpn-2.6.4.orig/src/openvpn/options.h	2023-05-11 08:09:21.000000000 +0200
++++ openvpn-2.6.4/src/openvpn/options.h	2023-06-09 17:31:37.414454202 +0200
+@@ -430,6 +430,7 @@
+ #ifdef ENABLE_MANAGEMENT
+     const char *management_addr;
+     const char *management_port;
++    const char *management_writeport;
+     const char *management_user_pass;
+     int management_log_history_cache;
+     int management_echo_buffer_size;
