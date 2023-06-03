@@ -1,0 +1,31 @@
+# HG changeset patch
+# User Christoph Schulz <develop@kristov.de>
+# Date 1512506743 -3600
+#      Tue Dec 05 21:45:43 2017 +0100
+# Branch FFL-1993
+# Node ID e5f8d720da154fc416f67dd82b01f4b045c11f4a
+# Parent  72f0e909ca9262fe730dd7695af99f4676e886ad
+socket: fix --mtu-disc when not specifying layer-3 protocol to use
+
+The member "af" of struct link_socket_info specifies what address family should
+be used when looking up addresses. If AF_UNSPEC, the address family is taken
+from the first appropriate addrinfo structure returned by openvpn_getaddrinfo().
+However, this address family is not stored back in "af" (except when no remote
+host is given), which causes set_mtu_discover_type() to bail out as it cannot
+cope with AF_UNSPEC. This patch fixes this problem by letting create_socket()
+store the address family of the chosen address back to the "af" member of struct
+link_socket_info just before returning to the caller.
+
+diff --git a/src/openvpn/socket.c b/src/openvpn/socket.c
+--- a/src/openvpn/socket.c
++++ b/src/openvpn/socket.c
+@@ -1156,6 +1156,9 @@
+     }
+ #endif
+ 
++    /* remember address family used */
++    sock->info.af = addr->ai_family;
++
+     bind_local(sock, addr->ai_family);
+ }
+ 
