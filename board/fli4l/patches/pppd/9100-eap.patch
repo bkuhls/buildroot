@@ -1,0 +1,34 @@
+--- pppd-2.5.0/pppd/eap.c.orig	2023-03-18 10:11:05.000000000 +0100
++++ pppd-2.5.0/pppd/eap.c	2023-06-11 20:06:02.551455402 +0200
+@@ -2584,8 +2584,15 @@
+ 
+ 								if (BCMP(hash, inp, MD5_DIGEST_LENGTH) == 0) {
+ 									esp->es_server.ea_type = EAPT_MD5CHAP;
+-									eap_send_success(esp);
++									/*
++									 * eap_send_success() can call network_phase() which can call
++									 * lcp_close() due to callback negotiation; this will reset
++									 * ea_state to eapInitial, which causes eap_figure_next_state()
++									 * to choose eapBadAuth for the next state. So first decide
++									 * which is the next state and then call eap_send_success().
++									 */
+ 									eap_figure_next_state(esp, 0);
++									eap_send_success(esp);
+ 
+ 									if (esp->es_rechallenge != 0) {
+ 										TIMEOUT(eap_rechallenge, esp, esp->es_rechallenge);
+@@ -2770,8 +2777,13 @@
+ 				break;
+ 			}
+ 			esp->es_server.ea_type = EAPT_SRP;
+-			eap_send_success(esp);
++			/*
++			 * see the EAPT_MD5CHAP case why the calls to
++			 * eap_figure_next_state() and eap_send_success() are
++			 * reversed
++			 */
+ 			eap_figure_next_state(esp, 0);
++			eap_send_success(esp);
+ 			if (esp->es_rechallenge != 0)
+ 				TIMEOUT(eap_rechallenge, esp,
+ 				    esp->es_rechallenge);
