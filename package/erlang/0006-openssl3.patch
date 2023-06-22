@@ -1,0 +1,13 @@
+diff -uNr otp_src_20.3.orig/lib/crypto/c_src/crypto.c otp_src_20.3/lib/crypto/c_src/crypto.c
+--- otp_src_20.3.orig/lib/crypto/c_src/crypto.c	2018-03-13 21:11:05.000000000 +0100
++++ otp_src_20.3/lib/crypto/c_src/crypto.c	2023-06-22 18:36:42.686719290 +0200
+@@ -184,6 +184,9 @@
+     && LIBRESSL_VERSION_NUMBER >= PACKED_OPENSSL_VERSION_PLAIN(2,6,1)
+ # undef HAVE_RSA_SSLV23_PADDING
+ #endif
++#if OPENSSL_VERSION_NUMBER >= PACKED_OPENSSL_VERSION_PLAIN(3,0,0)
++# undef HAVE_RSA_SSLV23_PADDING
++#endif
+ 
+ #if defined(HAVE_CMAC)
+ #include <openssl/cmac.h>
