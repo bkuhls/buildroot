@@ -61,6 +61,10 @@ CLAMAV_CONF_OPTS = \
 	-Dtest_run_result=ON \
 	-Dtest_run_result__TRYRUN_OUTPUT=ON
 
+CLAMAV_CONF_OPTS += \
+	-DAPP_CONFIG_DIRECTORY=/etc \
+	-DDATABASE_DIRECTORY=/var/lib/clamav
+
 ifeq ($(BR2_PACKAGE_NCURSES),y)
 CLAMAV_CONF_OPTS += -DENABLE_APP=ON
 CLAMAV_DEPENDENCIES += ncurses
