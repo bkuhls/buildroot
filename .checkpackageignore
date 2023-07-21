@@ -481,6 +481,9 @@ package/elfutils/0002-Really-make-Werror-conditional-to-BUILD_WERROR.patch lib_p
 package/erlang-p1-sip/0001-correct-include.patch lib_patch.Upstream
 package/erlang-p1-xmpp/0001-fix-includes.patch lib_patch.Upstream
 package/erlang-rebar/0001-src-rebar_port_compiler-add-fPIC-to-LDFLAGS-by-defau.patch lib_patch.Upstream
+package/erlang/0001-erts-ethread-instruct-libatomic_ops-we-do-require-CA.patch lib_patch.Upstream
+package/erlang/0002-erts-emulator-reorder-inclued-headers-paths.patch lib_patch.Upstream
+package/erlang/0003-crypto-Fixes-for-LibreSSL-3-5-0.patch lib_patch.Upstream
 package/espeak/0001-Fix-build-of-shared-library-on-architectures-needing.patch lib_patch.Upstream
 package/espeak/0002-tr_languages-cast-string_ordinal-init-values.patch lib_patch.Upstream
 package/eudev/S10udev Shellcheck lib_sysv.ConsecutiveEmptyLines lib_sysv.Indent lib_sysv.Variables
