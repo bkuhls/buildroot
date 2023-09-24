@@ -1,0 +1,7 @@
+config BR2_PACKAGE_KISSFFT
+	bool "kissfft"
+	help
+	  A Fast Fourier Transform (FFT) library that tries to Keep it
+	  Simple, Stupid
+
+	  https://github.com/mborgerding/kissfft

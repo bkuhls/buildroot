@@ -1,0 +1,63 @@
+From 959304a1c7c378339e9dc9c4f6d3871f4a2924f1 Mon Sep 17 00:00:00 2001
+From: nia <nia@netbsd.org>
+Date: Fri, 9 Apr 2021 13:02:40 +0200
+Subject: [PATCH] Allow building on BSD/Solaris/etc with CMake
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+It's not only GNU systems that need libm linked.
+
+Note, the tests still fail with:
+error: ‘M_PIl’ was not declared in this scope; did you mean ‘M_PI’?
+   46 |         long double phinc = 2*k0* M_PIl / nfft;
+
+Signed-off-by: Nia Alarie <nia@NetBSD.org>
+
+Upstream: https://github.com/mborgerding/kissfft/pull/64
+[Bernd: Used Debian version of this PR instead to fix include of
+ GNUInstallDirs: https://sources.debian.org/src/kissfft/131.1.0-3/debian/patches/0001-PR64.patch/]
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ CMakeLists.txt | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0213798..8aa285d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -105,7 +105,7 @@ endif()
+ # Add GNUInstallDirs for GNU infrastructure before target)include_directories
+ #
+ 
+-if(CMAKE_SYSTEM_NAME MATCHES "^(Linux|kFreeBSD|GNU)$" AND NOT CMAKE_CROSSCOMPILING)
++if(UNIX)
+     include(GNUInstallDirs)
+ endif()
+ 
+@@ -239,10 +239,10 @@ add_library(kissfft::kissfft ALIAS kissfft)
+ add_library(kissfft::kissfft-${KISSFFT_DATATYPE} ALIAS kissfft)
+ 
+ #
+-# Build with libm (-lm) on Linux and kFreeBSD
++# Build with libm (-lm) on Unix
+ #
+ 
+-if(CMAKE_SYSTEM_NAME MATCHES "^(Linux|kFreeBSD|GNU)$" AND NOT CMAKE_CROSSCOMPILING)
++if(UNIX AND NOT CMAKE_CROSSCOMPILING)
+     target_link_libraries(kissfft PRIVATE m)
+ endif()
+ 
+@@ -255,10 +255,10 @@ function(add_kissfft_executable NAME)
+     target_link_libraries(${NAME} PRIVATE kissfft::kissfft)
+ 
+     #
+-    # Build with libm (-lm) on Linux and kFreeBSD
++    # Build with libm (-lm) on Unix
+     #
+ 
+-    if(CMAKE_SYSTEM_NAME MATCHES "^(Linux|kFreeBSD|GNU)$" AND NOT CMAKE_CROSSCOMPILING)
++    if(UNIX AND NOT CMAKE_CROSSCOMPILING)
+         target_link_libraries(${NAME} PRIVATE m)
+     endif()
+ 
