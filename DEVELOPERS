@@ -397,6 +397,7 @@ F:	package/intel-mediasdk/
 F:	package/intel-microcode/
 F:	package/intel-vpl-gpu-rt/
 F:	package/jsoncpp/
+F:	package/kissfft/
 F:	package/kodi*
 F:	package/lame/
 F:	package/lcms2/

@@ -1,0 +1,48 @@
+From 6cdc9b533a1a9520dbb3b02a040e7c4f7bef7767 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Sun, 24 Sep 2023 12:36:10 +0200
+Subject: [PATCH] kissfft library is implemented only in C
+
+By default, CMake assumes that the project is using both C and C++. By
+explicitly passing 'C' as argument of the project() macro, we tell
+CMake that only C is used, which prevents CMake from checking if a C++
+compiler exists.
+Enable CXX for tests only for testcpp.cc.
+
+Upstream: https://github.com/mborgerding/kissfft/pull/90
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ CMakeLists.txt      | 2 +-
+ test/CMakeLists.txt | 2 ++
+ 2 files changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 0213798..913cc8d 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -33,7 +33,7 @@ set(MAKEFILE_EXTRACTED_VERSION "${KFVER_MAJOR}.${KFVER_MINOR}.${KFVER_PATCH}")
+ #
+ 
+ cmake_minimum_required(VERSION 3.6)
+-project(kissfft VERSION "${MAKEFILE_EXTRACTED_VERSION}")
++project(kissfft VERSION "${MAKEFILE_EXTRACTED_VERSION}" LANGUAGES C)
+ 
+ #
+ # CMake configuration options
+diff --git a/test/CMakeLists.txt b/test/CMakeLists.txt
+index 0a0e403..63389db 100644
+--- a/test/CMakeLists.txt
++++ b/test/CMakeLists.txt
+@@ -8,6 +8,8 @@ endfunction()
+ 
+ set(KISSFFT_TEST_NUMFFTS 10000)
+ 
++enable_language(CXX)
++
+ #
+ # Add tools-independent fastfilt_* (../tools/fft_*) executable without adding a test
+ #
+-- 
+2.39.2
+
