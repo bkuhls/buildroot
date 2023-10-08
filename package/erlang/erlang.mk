@@ -4,6 +4,7 @@
 #
 ################################################################################
 
+# See note below when updating Erlang
 ERLANG_VERSION = 26.0.2
 ERLANG_RELEASE = $(firstword $(subst ., ,$(ERLANG_VERSION)))
 ERLANG_SITE = \
