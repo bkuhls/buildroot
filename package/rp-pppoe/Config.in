@@ -4,6 +4,7 @@ comment "rp-pppoe needs a toolchain w/ dynamic library"
 
 config BR2_PACKAGE_RP_PPPOE
 	bool "rp-pppoe"
+	depends on !BR2_sparc64 && !BR2_sparc # pppd
 	depends on !BR2_STATIC_LIBS
 	depends on BR2_USE_MMU # fork()
 	select BR2_PACKAGE_PPPD
