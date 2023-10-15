@@ -48,6 +48,7 @@ config BR2_PACKAGE_NETWORK_MANAGER_MODEM_MANAGER
 
 config BR2_PACKAGE_NETWORK_MANAGER_PPPD
 	bool "pppd support"
+	depends on !BR2_sparc64 && !BR2_sparc # pppd
 	select BR2_PACKAGE_PPPD
 	help
 	  This option enables support for PPPD daemon
