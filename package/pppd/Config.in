@@ -1,5 +1,6 @@
 config BR2_PACKAGE_PPPD
 	bool "pppd"
+	depends on !BR2_sparc64 && !BR2_sparc
 	depends on !BR2_STATIC_LIBS
 	depends on BR2_USE_MMU
 	select BR2_PACKAGE_OPENSSL if BR2_TOOLCHAIN_USES_GLIBC
@@ -22,5 +23,12 @@ config BR2_PACKAGE_PPPD_FILTER
 endif
 
 comment "pppd needs a toolchain w/ dynamic library"
+	depends on !BR2_sparc64 && !BR2_sparc
 	depends on BR2_STATIC_LIBS
 	depends on BR2_USE_MMU
+
+# pppd is disabled for sparc and sparc64 architectures because it fails
+# to build with a redefinition of 'struct termio' error, with no proper
+# fix or workaround for now
+comment "pppd is disabled for sparc and sparc64 architectures"
+	depends on BR2_sparc64 || BR2_sparc
