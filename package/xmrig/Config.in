@@ -25,6 +25,15 @@ config BR2_PACKAGE_XMRIG
 
 	  https://xmrig.com
 
+if BR2_PACKAGE_XMRIG
+
+config BR2_PACKAGE_XMRIG_MONEROOCEAN
+	bool "moneroocean"
+	help
+	  Use MoneroOcean fork
+
+endif
+
 comment "xmrig needs a glibc or musl toolchain w/ NPTL, dynamic library, C++, gcc >= 4.9"
 	depends on BR2_PACKAGE_XMRIG_ARCH_SUPPORTS
 	depends on BR2_USE_MMU
