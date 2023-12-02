@@ -4,8 +4,14 @@
 #
 ################################################################################
 
-XMRIG_VERSION = 6.25.0
+XMRIG_BASE_VERSION = 6.25.0
+ifeq ($(BR2_PACKAGE_XMRIG_MONEROOCEAN),y)
+XMRIG_VERSION = $(XMRIG_BASE_VERSION)-mo1
+XMRIG_SITE = $(call github,MoneroOcean,xmrig,v$(XMRIG_VERSION))
+else
+XMRIG_VERSION = $(XMRIG_BASE_VERSION)
 XMRIG_SITE = $(call github,xmrig,xmrig,v$(XMRIG_VERSION))
+endif
 XMRIG_LICENSE = GPL-3.0+
 XMRIG_LICENSE_FILES = LICENSE
 XMRIG_DEPENDENCIES = libuv
