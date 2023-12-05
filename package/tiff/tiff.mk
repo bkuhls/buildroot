@@ -105,9 +105,9 @@ TIFF_CONF_OPTS += --disable-old-jpeg
 endif
 
 ifeq ($(BR2_PACKAGE_TIFF_UTILITIES),y)
-TIFF_CONF_OPTS += --enable-tools
+TIFF_CONF_OPTS += --enable-tools --enable-tools-unsupported
 else
-TIFF_CONF_OPTS += --disable-tools
+TIFF_CONF_OPTS += --disable-tools --disable-tools-unsupported
 endif
 
 ifeq ($(BR2_PACKAGE_TIFF_ZSTD),y)
