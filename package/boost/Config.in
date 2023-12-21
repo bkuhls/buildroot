@@ -22,10 +22,39 @@ config BR2_PACKAGE_BOOST_ATOMIC
 	help
 	  C++11-style atomic<>.
 
+config BR2_PACKAGE_BOOST_CHARCONV
+	bool "boost-charconv"
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # C++11
+	help
+	  An Implementation of <charconv> in C++11.
+
+comment "boost-charconv needs a toolchain w/ C++11, gcc>=4.9"
+	depends on !BR2_TOOLCHAIN_GCC_AT_LEAST_4_9
+
 config BR2_PACKAGE_BOOST_CHRONO
 	bool "boost-chrono"
 	help
 	  Useful time utilities. C++11.
+
+config BR2_PACKAGE_BOOST_COBALT
+	bool "boost-cobalt"
+	depends on BR2_PACKAGE_BOOST_CONTEXT_ARCH_SUPPORTS
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_10 # C++20
+	depends on !BR2_TOOLCHAIN_HAS_GCC_BUG_64735 # boost-context
+	select BR2_PACKAGE_BOOST_CONTEXT
+	select BR2_PACKAGE_BOOST_CONTAINER
+	select BR2_PACKAGE_BOOST_DATE_TIME
+	select BR2_PACKAGE_BOOST_EXCEPTION
+	help
+	  Basic algorithms and types for C++20 coroutines.
+
+comment "boost-cobalt needs a toolchain w/ C++20, gcc>=10"
+	depends on !BR2_TOOLCHAIN_GCC_AT_LEAST_10
+
+comment "boost-cobalt needs a toolchain not affected by GCC bug 64735"
+	depends on BR2_PACKAGE_BOOST_CONTEXT_ARCH_SUPPORTS
+	depends on BR2_TOOLCHAIN_HAS_GCC_BUG_64735
+
 
 config BR2_PACKAGE_BOOST_CONTAINER
 	bool "boost-container"
