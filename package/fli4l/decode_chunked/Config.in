@@ -1,0 +1,5 @@
+config BR2_PACKAGE_DECODE_CHUNKED
+	bool "decode_chunked"
+	help
+	  Fli4l-specific utility: Converts chunked HTTP transfers to
+	  non-chunked ones.
