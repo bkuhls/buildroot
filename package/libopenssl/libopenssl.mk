@@ -107,7 +107,7 @@ define LIBOPENSSL_CONFIGURE_CMDS
 			$(if $(BR2_PACKAGE_LIBOPENSSL_UNSECURE),,no-unit-test no-crypto-mdebug no-autoerrinit) \
 			$(if $(BR2_PACKAGE_LIBOPENSSL_DYNAMIC_ENGINE),,no-dynamic-engine ) \
 			$(if $(BR2_PACKAGE_LIBOPENSSL_ENABLE_COMP),,no-comp) \
-			$(if $(BR2_STATIC_LIBS),zlib,zlib-dynamic) \
+			zlib \
 			$(if $(BR2_STATIC_LIBS),no-dso)
 endef
 
