@@ -1,0 +1,28 @@
+From e65b88a3376fbae52205534ac22d80487cb93f80 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Fri, 8 Mar 2024 19:52:21 +0100
+Subject: [PATCH 1/2] epggrab/otamux.c: Reduce initial scan delay to 3s
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ src/epggrab/otamux.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/epggrab/otamux.c b/src/epggrab/otamux.c
+index aa7d94c81..5f661d0f2 100644
+--- a/src/epggrab/otamux.c
++++ b/src/epggrab/otamux.c
+@@ -972,8 +972,8 @@ epggrab_ota_post ( void )
+ 
+   /* Init timer (call after full init - wait for network tuners) */
+   if (epggrab_conf.ota_initial) {
+-    tvhtrace(LS_EPGGRAB, "ota initial scan in 15 seconds");
+-    epggrab_ota_trigger(15);
++    tvhtrace(LS_EPGGRAB, "ota initial scan in 3 seconds");
++    epggrab_ota_trigger(3);
+     t = time(NULL);
+   }
+ 
+-- 
+2.39.2
+
