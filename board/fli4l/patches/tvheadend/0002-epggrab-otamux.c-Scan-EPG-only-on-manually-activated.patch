@@ -1,0 +1,27 @@
+From 5017943aa621dbc0a1f1e1a2d5d3209d6c68ddd4 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Fri, 8 Mar 2024 19:55:34 +0100
+Subject: [PATCH 2/2] epggrab/otamux.c: Scan EPG only on manually activated mux
+
+https://tvheadend.org/d/2037-scan-epg-only-on-manually-activated-mux
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ src/epggrab/otamux.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/epggrab/otamux.c b/src/epggrab/otamux.c
+index 5f661d0f2..d06717c49 100644
+--- a/src/epggrab/otamux.c
++++ b/src/epggrab/otamux.c
+@@ -388,7 +388,7 @@ epggrab_mux_stop ( mpegts_mux_t *mm, void *p, int reason )
+   tvhtrace(LS_EPGGRAB, "mux %s (%p) stop", mm->mm_nicename, mm);
+   TAILQ_FOREACH(ota, &epggrab_ota_active, om_q_link)
+     if (!uuid_cmp(&ota->om_mux_uuid, &mm->mm_id.in_uuid)) {
+-      epggrab_ota_done(ota, done);
++//      epggrab_ota_done(ota, done);
+       break;
+     }
+ }
+-- 
+2.39.2
+
