@@ -141,11 +141,11 @@ in
                 dsli=`cat /var/run/dsl.interface 2>/dev/null`
                 if [ "$dsli" = "fcdsl" -o -f /var/run/pppoe.HUP ]
                 then
-                    exec kill -HUP `cat /var/run/ppp0.pid` 2>/dev/null
+                    exec kill -HUP `cat /var/run/pppd/ppp0.pid` 2>/dev/null
                 else
                     # This doesn't work because one of the two pptp processes
                     # die if we send a SIGHUP:
-                    # exec kill -1 `cat /var/run/ppp0.pid` 2>/dev/null
+                    # exec kill -1 `cat /var/run/pppd/ppp0.pid` 2>/dev/null
 
                     # Here we kill pppd, etc/rc.d/pptp restarts it with
                     # defaultroute, because fli4lctrl cannot set the default
