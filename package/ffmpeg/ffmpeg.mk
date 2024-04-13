@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-FFMPEG_VERSION = 6.1.4
+FFMPEG_VERSION = 8.0.1
 FFMPEG_SOURCE = ffmpeg-$(FFMPEG_VERSION).tar.xz
 FFMPEG_SITE = https://ffmpeg.org/releases
 FFMPEG_INSTALL_STAGING = YES
@@ -32,7 +32,6 @@ FFMPEG_CONF_OPTS = \
 	--disable-gray \
 	--enable-swscale-alpha \
 	--disable-small \
-	--disable-crystalhd \
 	--disable-dxva2 \
 	--enable-runtime-cpudetect \
 	--disable-hardcoded-tables \
@@ -126,10 +125,14 @@ else
 FFMPEG_CONF_OPTS += --disable-libxcb
 endif
 
+define FFMPEG_APPLY_POSTPROC_PATCH
+	cd $(@D) && \
+	patch -p1 -E -i $(TOPDIR)/package/ffmpeg/libpostproc-0001.diff
+endef
+
 ifeq ($(BR2_PACKAGE_FFMPEG_POSTPROC),y)
 FFMPEG_CONF_OPTS += --enable-postproc
-else
-FFMPEG_CONF_OPTS += --disable-postproc
+FFMPEG_POST_PATCH_HOOKS += FFMPEG_APPLY_POSTPROC_PATCH
 endif
 
 ifeq ($(BR2_PACKAGE_FFMPEG_SWSCALE),y)
