@@ -10,7 +10,7 @@ Fixes https://trac.ffmpeg.org/ticket/9138
 Patch sent upstream:
 http://ffmpeg.org/pipermail/ffmpeg-devel/2021-June/281272.html
 
-[Bernd: rebased for version 6.1.2]
+[Bernd: rebased for version 6.1.2, 7.1 & 8.0]
 Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
 [Dario: make the patch to be applied with fuzz factor 0]
 Signed-off-by: Dario Binacchi <dario.binacchi@amarulasolutions.com>
@@ -23,15 +23,15 @@ diff --git a/configure b/configure
 index a89cfa6d959d..6ec00df75312 100755
 --- a/configure
 +++ b/configure
-@@ -2227,6 +2227,7 @@ HEADERS_LIST="
-     OpenGL_gl3_h
+@@ -2317,6 +2317,7 @@ HEADERS_LIST="
+     opencv2_core_core_c_h
      poll_h
      pthread_np_h
 +    sys_auxv_h
+     sys_hwprobe_h
      sys_param_h
      sys_resource_h
-     sys_select_h
-@@ -6472,6 +6473,7 @@ check_func_headers VideoToolbox/VTCompressionSession.h VTCompressionSessionPrepa
+@@ -6792,6 +6793,7 @@ check_func_headers VideoToolbox/VTCompressionSession.h VTCompressionSessionPrepa
  check_func_headers VideoToolbox/VideoToolbox.h VTPixelRotationSessionCreate -framework VideoToolbox
  check_headers windows.h
  check_headers asm/types.h
