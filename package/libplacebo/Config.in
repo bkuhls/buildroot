@@ -1,0 +1,5 @@
+config BR2_PACKAGE_LIBPLACEBO
+	bool "libplacebo"
+	help
+
+	  https://code.videolan.org/videolan/dav1d
