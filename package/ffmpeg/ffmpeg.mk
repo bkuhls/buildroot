@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-FFMPEG_VERSION = 7.0.3
+FFMPEG_VERSION = 9.0.2
 FFMPEG_SOURCE = ffmpeg-$(FFMPEG_VERSION).tar.xz
 FFMPEG_SITE = https://ffmpeg.org/releases
 FFMPEG_INSTALL_STAGING = YES
@@ -52,9 +52,7 @@ FFMPEG_CONF_OPTS = \
 	--disable-libvo-amrwbenc \
 	--disable-symver \
 	--disable-doc \
-	--disable-mmal \
-	--disable-omx \
-	--disable-omx-rpi
+	--disable-mmal
 
 FFMPEG_DEPENDENCIES += host-pkgconf
 
@@ -125,10 +123,14 @@ else
 FFMPEG_CONF_OPTS += --disable-libxcb
 endif
 
+define FFMPEG_APPLY_POSTPROC_PATCH
+	cd $(@D) && \
+	patch -p1 -E -i $(TOPDIR)/package/ffmpeg/libpostproc-0001.diff
+endef
+
 ifeq ($(BR2_PACKAGE_FFMPEG_POSTPROC),y)
 FFMPEG_CONF_OPTS += --enable-postproc
-else
-FFMPEG_CONF_OPTS += --disable-postproc
+FFMPEG_POST_PATCH_HOOKS += FFMPEG_APPLY_POSTPROC_PATCH
 endif
 
 ifeq ($(BR2_PACKAGE_FFMPEG_SWSCALE),y)
