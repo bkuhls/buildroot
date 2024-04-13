@@ -308,7 +308,7 @@ FREESWITCH_LICENSE += , BSD-3-Clause (libvpx, libyuv)
 FREESWITCH_LICENSE_FILES += libs/libvpx/LICENSE libs/libyuv/LICENSE
 FREESWITCH_CONF_OPTS += --enable-libvpx --enable-libyuv
 FREESWITCH_DEPENDENCIES += host-yasm ffmpeg
-FREESWITCH_ENABLED_MODULES += applications/mod_av applications/mod_fsv
+FREESWITCH_ENABLED_MODULES += applications/mod_fsv
 FREESWITCH_MAKE_ENV += CROSS=$(TARGET_CROSS)
 
 # Freeswitch's buildsystem forgets to pass important environment
