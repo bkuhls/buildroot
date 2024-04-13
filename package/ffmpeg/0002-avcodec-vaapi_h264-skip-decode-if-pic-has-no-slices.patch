@@ -10,8 +10,7 @@ Corresponding kodi bug: https://github.com/xbmc/xbmc/issues/15704
 Downloaded from Kodi ffmpeg repo:
 https://github.com/xbmc/FFmpeg/commit/2c6b3f357331e203ad87214984661c40704aceb7
 
-Patch was sent upstream:
-http://ffmpeg.org/pipermail/ffmpeg-devel/2019-March/240863.html
+Upstream: http://ffmpeg.org/pipermail/ffmpeg-devel/2019-March/240863.html
 
 Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
 ---
