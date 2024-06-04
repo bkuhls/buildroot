@@ -146,6 +146,13 @@ endif
 
 comment "Legacy options removed in 2025.05"
 
+config BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_SWRAST
+	bool "mesa Gallium swrast driver was replaced by softpipe"
+	select BR2_LEGACY
+	select BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_SOFTPIPE
+	help
+	  The Gallium swrast driver was replaced by softpipe.
+
 # BR2_PACKAGE_DOCKER_ENGINE_DOCKER_INIT is still referenced in docker-engine
 config BR2_PACKAGE_DOCKER_ENGINE_DOCKER_INIT
 	bool "docker-engine init support is now a choice"
