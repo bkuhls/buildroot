@@ -1,0 +1,44 @@
+From 388622e9b626039c1e403b4952c2c905af364a96 Mon Sep 17 00:00:00 2001
+From: Tyler Stromberg <tylers@mac.com>
+Date: Thu, 9 Jul 2020 14:48:17 -0700
+Subject: [PATCH] Add missing include statements in in6addr tests
+
+Compilation is failing on macOS Big Sur due to in6addr_any and in6addr_loopback
+being redeclared. The underlying issue is that the tests for these are failing
+due to missing include statements:
+
+conftest.c:197:1: error: implicitly declaring library function 'printf'
+with type 'int (const char *, ...)' [-Werror,-Wimplicit-function-declaration]
+printf("%d", in6addr_any.s6_addr[16]);
+^
+conftest.c:197:1: note: include the header <stdio.h> or explicitly provide
+a declaration for 'printf'
+
+ERL-1306
+
+Upstream: https://github.com/erlang/otp/commit/4b0467c36f6365807015977332ed9f13c3c143a0
+
+---
+ erts/configure.in | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/erts/configure.in b/erts/configure.in
+index 21e1437adb6d..c0dbdedd7905 100644
+--- a/erts/configure.in
++++ b/erts/configure.in
+@@ -2240,6 +2240,7 @@ AC_CACHE_CHECK(
+ 		#include <sys/types.h>
+ 		#include <sys/socket.h>
+ 		#include <netinet/in.h>
++		#include <stdio.h>
+ 	    ]],
+ 	    [[printf("%d", in6addr_any.s6_addr[16]);]]
+ 	)],
+@@ -2263,6 +2264,7 @@ AC_CACHE_CHECK(
+ 		#include <sys/types.h>
+ 		#include <sys/socket.h>
+ 		#include <netinet/in.h>
++		#include <stdio.h>
+ 	    ]],
+ 	    [[printf("%d", in6addr_loopback.s6_addr[16]);]]
+ 	)],
