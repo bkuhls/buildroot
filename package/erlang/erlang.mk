@@ -30,8 +30,12 @@ ERLANG_POST_PATCH_HOOKS += ERLANG_REMOVE_SSL_DEPS
 
 # Patched erts/aclocal.m4
 define ERLANG_RUN_AUTOCONF
-	cd $(@D) && PATH=$(BR_PATH) ./otp_build autoconf
+	cd $(@D) && PATH=$(BR_PATH) ONLY_ERTS=yes ./otp_build autoconf
 endef
+ERLANG_DEPENDENCIES += host-autoconf
+ERLANG_PRE_CONFIGURE_HOOKS += ERLANG_RUN_AUTOCONF
+HOST_ERLANG_DEPENDENCIES += host-autoconf
+HOST_ERLANG_PRE_CONFIGURE_HOOKS += ERLANG_RUN_AUTOCONF
 
 # Whenever updating Erlang, this value should be updated as well, to the
 # value of EI_VSN in the file lib/erl_interface/vsn.mk
