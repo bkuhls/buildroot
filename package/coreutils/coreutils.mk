@@ -11,6 +11,12 @@ COREUTILS_LICENSE = GPL-3.0+
 COREUTILS_LICENSE_FILES = COPYING
 COREUTILS_CPE_ID_VENDOR = gnu
 
+# Do not build subdirectory gnulilb-tests
+define COREUTILS_REMOVE_GNULIB_TESTS
+	$(SED) 's/^SUBDIRS =.*/SUBDIRS = po ./g' $(@D)/Makefile.in
+endef
+COREUTILS_POST_PATCH_HOOKS = COREUTILS_REMOVE_GNULIB_TESTS
+
 COREUTILS_CONF_OPTS = --disable-rpath \
 	$(if $(BR2_TOOLCHAIN_USES_MUSL),--with-included-regex)
 
