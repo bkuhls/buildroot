@@ -1,0 +1,57 @@
+diff -uNr syslinux-6.03.orig/com32/chain/chain.c syslinux-6.03/com32/chain/chain.c
+--- syslinux-6.03.orig/com32/chain/chain.c	2014-10-06 18:27:44.000000000 +0200
++++ syslinux-6.03/com32/chain/chain.c	2024-06-19 20:43:04.346287182 +0200
+@@ -514,7 +514,7 @@
+     if (opt.file) {
+ 	fdat.base = (opt.fseg << 4) + opt.foff;
+ 
+-	if (loadfile(opt.file, &fdat.data, &fdat.size)) {
++	if (loadfile(opt.file, &fdat.data, (size_t*)&fdat.size)) {
+ 	    error("Couldn't read the boot file.");
+ 	    goto bail;
+ 	}
+diff -uNr syslinux-6.03.orig/com32/lib/syslinux/load_linux.c syslinux-6.03/com32/lib/syslinux/load_linux.c
+--- syslinux-6.03.orig/com32/lib/syslinux/load_linux.c	2014-10-06 18:27:44.000000000 +0200
++++ syslinux-6.03/com32/lib/syslinux/load_linux.c	2024-06-19 20:39:46.072743032 +0200
+@@ -312,7 +312,7 @@
+      */
+     base = prot_mode_base;
+     if (prot_mode_size &&
+-	syslinux_memmap_find(amap, &base,
++	syslinux_memmap_find(amap, (addr_t*)&base,
+ 			     hdr.relocatable_kernel ?
+ 			     hdr.init_size : prot_mode_size,
+ 			     hdr.relocatable_kernel, hdr.kernel_alignment,
+diff -uNr syslinux-6.03.orig/com32/modules/pxechn.c syslinux-6.03/com32/modules/pxechn.c
+--- syslinux-6.03.orig/com32/modules/pxechn.c	2014-10-06 18:27:44.000000000 +0200
++++ syslinux-6.03/com32/modules/pxechn.c	2024-06-19 20:42:21.021081489 +0200
+@@ -982,7 +982,7 @@
+     pxe_set_regs(&regs);
+     /* Load the file late; it's the most time-expensive operation */
+     printf("%s: Attempting to load '%s': ", app_name_str, pxe.fn);
+-    if (loadfile(pxe.fn, &file.data, &file.size)) {
++    if (loadfile(pxe.fn, &file.data, (size_t*)&file.size)) {
+ 	pxe_error(errno, NULL, NULL);
+ 	rv = -2;
+ 	goto ret;
+diff -uNr syslinux-6.03.orig/efi/main.c syslinux-6.03/efi/main.c
+--- syslinux-6.03.orig/efi/main.c	2014-10-06 18:27:44.000000000 +0200
++++ syslinux-6.03/efi/main.c	2024-06-19 21:16:30.134253303 +0200
+@@ -127,7 +127,7 @@
+      * Inform the firmware that we failed to execute correctly, which
+      * will trigger the next entry in the EFI Boot Manager list.
+      */
+-    longjmp(load_error_buf, 1);
++    longjmp(*load_error_buf, 1);
+ }
+ 
+ void bios_timer_cleanup(void)
+@@ -1326,7 +1326,7 @@
+ 		status = uefi_call_wrapper(in->ReadKeyStroke, 2, in, &key);
+ 	} while (status != EFI_NOT_READY);
+ 
+-	if (!setjmp(load_error_buf))
++	if (!setjmp(*load_error_buf))
+ 		load_env32(NULL);
+ 
+ 	/* load_env32() failed.. cancel timer and bailout */
