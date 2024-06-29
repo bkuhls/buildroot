@@ -1,0 +1,538 @@
+From 020ed669b3ff1422f725a531f7579a19a21de457 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Andr=C3=A9=20Apitzsch?= <git@apitzsch.eu>
+Date: Sun, 23 Jun 2024 16:41:28 +0200
+Subject: [PATCH 1/2] Fix function passed to avio_alloc_context() (ffmpeg 7)
+
+Upstream: https://github.com/tvheadend/tvheadend/pull/1721
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ src/input/mpegts/iptv/iptv_libav.c | 5 +++++
+ src/muxer/muxer_libav.c            | 7 ++++++-
+ 2 files changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/src/input/mpegts/iptv/iptv_libav.c b/src/input/mpegts/iptv/iptv_libav.c
+index bdba7d600c..5e60f5a12c 100644
+--- a/src/input/mpegts/iptv/iptv_libav.c
++++ b/src/input/mpegts/iptv/iptv_libav.c
+@@ -46,8 +46,13 @@ typedef struct {
+ /*
+  *
+  */
++#if LIBAVFORMAT_VERSION_MAJOR > 60
++static int
++iptv_libav_write_packet(void *opaque, const uint8_t *buf, int buf_size)
++#else
+ static int
+ iptv_libav_write_packet(void *opaque, uint8_t *buf, int buf_size)
++#endif
+ {
+   iptv_libav_priv_t *la = opaque;
+ 
+diff --git a/src/muxer/muxer_libav.c b/src/muxer/muxer_libav.c
+index e4c9758559..b62671f41b 100644
+--- a/src/muxer/muxer_libav.c
++++ b/src/muxer/muxer_libav.c
+@@ -55,8 +55,13 @@ static const AVRational mpeg_tc = {1, 90000};
+ /**
+  * Callback function for libavformat
+  */
+-static int 
++#if LIBAVFORMAT_VERSION_MAJOR > 60
++static int
++lav_muxer_write(void *opaque, const uint8_t *buf, int buf_size)
++#else
++static int
+ lav_muxer_write(void *opaque, uint8_t *buf, int buf_size)
++#endif
+ {
+   int r;
+   lav_muxer_t *lm = (lav_muxer_t*)opaque;
+
+From e5b292476267361ca5816a885c5123d31a0bd7f7 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Andr=C3=A9=20Apitzsch?= <git@apitzsch.eu>
+Date: Sun, 23 Jun 2024 16:50:50 +0200
+Subject: [PATCH 2/2] Replace deprecated channels/channel_layout
+
+Upstream: https://github.com/tvheadend/tvheadend/pull/1721
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ src/muxer/muxer_libav.c                       |  4 ++
+ src/transcoding/codec.h                       |  5 ++
+ src/transcoding/codec/codec.c                 |  4 ++
+ src/transcoding/codec/codecs/aac.c            | 13 ++++
+ src/transcoding/codec/codecs/flac.c           | 14 ++++
+ src/transcoding/codec/codecs/libs/libvorbis.c | 17 +++++
+ src/transcoding/codec/codecs/vorbis.c         |  7 ++
+ src/transcoding/codec/internals.h             |  8 +++
+ src/transcoding/codec/profile.c               |  5 ++
+ src/transcoding/codec/profile_audio_class.c   | 37 +++++++++++
+ src/transcoding/transcode/audio.c             | 65 +++++++++++++++++++
+ src/transcoding/transcode/helpers.c           | 13 ++++
+ 12 files changed, 192 insertions(+)
+
+diff --git a/src/muxer/muxer_libav.c b/src/muxer/muxer_libav.c
+index b62671f41b..79a4a969b9 100644
+--- a/src/muxer/muxer_libav.c
++++ b/src/muxer/muxer_libav.c
+@@ -151,7 +151,11 @@ lav_muxer_add_stream(lav_muxer_t *lm,
+     c->sample_fmt    = AV_SAMPLE_FMT_S16;
+ 
+     c->sample_rate   = sri_to_rate(ssc->es_sri);
++#if LIBAVUTIL_VERSION_MAJOR > 57
++    c->ch_layout.nb_channels = ssc->es_channels;
++#else
+     c->channels      = ssc->es_channels;
++#endif
+ 
+ #if 0
+     c->time_base.num = 1;
+diff --git a/src/transcoding/codec.h b/src/transcoding/codec.h
+index dd41c84f8e..b68b73925f 100644
+--- a/src/transcoding/codec.h
++++ b/src/transcoding/codec.h
+@@ -153,8 +153,13 @@ tvh_codec_profile_audio_get_sample_fmts(TVHCodecProfile *self);
+ const int *
+ tvh_codec_profile_audio_get_sample_rates(TVHCodecProfile *self);
+ 
++#if LIBAVCODEC_VERSION_MAJOR > 59
++const AVChannelLayout *
++tvh_codec_profile_audio_get_channel_layouts(TVHCodecProfile *self);
++#else
+ const uint64_t *
+ tvh_codec_profile_audio_get_channel_layouts(TVHCodecProfile *self);
++#endif
+ 
+ 
+ /* module level ============================================================= */
+diff --git a/src/transcoding/codec/codec.c b/src/transcoding/codec/codec.c
+index 631d362073..fbaee36b84 100644
+--- a/src/transcoding/codec/codec.c
++++ b/src/transcoding/codec/codec.c
+@@ -136,7 +136,11 @@ tvh_codec_audio_init(TVHAudioCodec *self, const AVCodec *codec)
+             self->sample_rates = default_sample_rates;
+     }
+     if (!self->channel_layouts) {
++#if LIBAVCODEC_VERSION_MAJOR > 59
++        self->channel_layouts = codec->ch_layouts;
++#else
+         self->channel_layouts = codec->channel_layouts;
++#endif
+     }
+ }
+ 
+diff --git a/src/transcoding/codec/codecs/aac.c b/src/transcoding/codec/codecs/aac.c
+index 4c51736e2c..44477287c6 100644
+--- a/src/transcoding/codec/codecs/aac.c
++++ b/src/transcoding/codec/codecs/aac.c
+@@ -30,6 +30,18 @@ static const AVProfile aac_profiles[] = {
+     { FF_PROFILE_UNKNOWN },
+ };
+ 
++#if LIBAVCODEC_VERSION_MAJOR > 59
++// see aac_chan_configs in ffmpeg-6.0/libavcodec/aacenctab.h
++static const AVChannelLayout aac_channel_layouts[] = {
++    AV_CHANNEL_LAYOUT_MONO,
++    AV_CHANNEL_LAYOUT_STEREO,
++    AV_CHANNEL_LAYOUT_SURROUND,
++    AV_CHANNEL_LAYOUT_4POINT0,
++    AV_CHANNEL_LAYOUT_5POINT0_BACK,
++    AV_CHANNEL_LAYOUT_5POINT1_BACK,
++    AV_CHANNEL_LAYOUT_7POINT1,
++};
++#else
+ // see aac_chan_configs in ffmpeg-3.0.2/libavcodec/aacenctab.h
+ static const uint64_t aac_channel_layouts[] = {
+     AV_CH_LAYOUT_MONO,
+@@ -41,6 +53,7 @@ static const uint64_t aac_channel_layouts[] = {
+     AV_CH_LAYOUT_7POINT1_WIDE_BACK,
+     0
+ };
++#endif
+ 
+ 
+ typedef struct {
+diff --git a/src/transcoding/codec/codecs/flac.c b/src/transcoding/codec/codecs/flac.c
+index de0ad78a6d..3bb62c4545 100644
+--- a/src/transcoding/codec/codecs/flac.c
++++ b/src/transcoding/codec/codecs/flac.c
+@@ -23,6 +23,19 @@
+ 
+ /* flac ====================================================================== */
+ 
++#if LIBAVCODEC_VERSION_MAJOR > 59
++// see flac_channel_layouts ffmpeg-6.0/libavcodec/flac.c
++static const AVChannelLayout flac_channel_layouts[] = {
++    AV_CHANNEL_LAYOUT_MONO,
++    AV_CHANNEL_LAYOUT_STEREO,
++    AV_CHANNEL_LAYOUT_SURROUND,
++    AV_CHANNEL_LAYOUT_QUAD,
++    AV_CHANNEL_LAYOUT_5POINT0,
++    AV_CHANNEL_LAYOUT_5POINT1,
++    AV_CHANNEL_LAYOUT_6POINT1,
++    AV_CHANNEL_LAYOUT_7POINT1
++};
++#else
+ // see flac_channel_layouts ffmpeg-3.4/libavcodec/flac.c & flacenc.c
+ static const uint64_t flac_channel_layouts[] = {
+     AV_CH_LAYOUT_MONO,
+@@ -35,6 +48,7 @@ static const uint64_t flac_channel_layouts[] = {
+     AV_CH_LAYOUT_5POINT1_BACK,
+     0
+ };
++#endif
+ 
+ 
+ typedef struct {
+diff --git a/src/transcoding/codec/codecs/libs/libvorbis.c b/src/transcoding/codec/codecs/libs/libvorbis.c
+index 230f52009c..cc66aad3ac 100644
+--- a/src/transcoding/codec/codecs/libs/libvorbis.c
++++ b/src/transcoding/codec/codecs/libs/libvorbis.c
+@@ -23,6 +23,22 @@
+ 
+ /* libvorbis ================================================================ */
+ 
++#if LIBAVCODEC_VERSION_MAJOR > 59
++// see libvorbis_setup() in ffmpeg-6.0/libavcodec/libvorbisenc.c
++static const AVChannelLayout libvorbis_channel_layouts[] = {
++    AV_CHANNEL_LAYOUT_MONO,
++    AV_CHANNEL_LAYOUT_STEREO,
++    AV_CHANNEL_LAYOUT_SURROUND,
++    AV_CHANNEL_LAYOUT_2_2,
++    AV_CHANNEL_LAYOUT_QUAD,
++    AV_CHANNEL_LAYOUT_5POINT0,
++    AV_CHANNEL_LAYOUT_5POINT0_BACK,
++    AV_CHANNEL_LAYOUT_5POINT1,
++    AV_CHANNEL_LAYOUT_5POINT1_BACK,
++    AV_CHANNEL_LAYOUT_6POINT1,
++    AV_CHANNEL_LAYOUT_7POINT1
++};
++#else
+ // see libvorbis_setup() in ffmpeg-3.0.2/libavcodec/libvorbisenc.c
+ static const uint64_t libvorbis_channel_layouts[] = {
+     AV_CH_LAYOUT_MONO,
+@@ -40,6 +56,7 @@ static const uint64_t libvorbis_channel_layouts[] = {
+     //AV_CH_LAYOUT_STEREO_DOWNMIX,
+     0
+ };
++#endif
+ 
+ 
+ static int
+diff --git a/src/transcoding/codec/codecs/vorbis.c b/src/transcoding/codec/codecs/vorbis.c
+index abd35d51eb..17a718c88b 100644
+--- a/src/transcoding/codec/codecs/vorbis.c
++++ b/src/transcoding/codec/codecs/vorbis.c
+@@ -31,11 +31,18 @@ tvh_codec_profile_vorbis_open(TVHCodecProfile *self, AVDictionary **opts)
+ }
+ 
+ 
++#if LIBAVCODEC_VERSION_MAJOR > 59
++// see vorbis_encode_init() in ffmpeg-6.0/libavcodec/vorbis_data.c
++static const AVChannelLayout vorbis_channel_layouts[] = {
++    AV_CHANNEL_LAYOUT_STEREO
++};
++#else
+ // see vorbis_encode_init() in ffmpeg-3.0.2/libavcodec/vorbisenc.c
+ static const uint64_t vorbis_channel_layouts[] = {
+     AV_CH_LAYOUT_STEREO,
+     0
+ };
++#endif
+ 
+ 
+ static const codec_profile_class_t codec_profile_vorbis_class = {
+diff --git a/src/transcoding/codec/internals.h b/src/transcoding/codec/internals.h
+index f7a7ac96ce..978bf71758 100644
+--- a/src/transcoding/codec/internals.h
++++ b/src/transcoding/codec/internals.h
+@@ -181,7 +181,11 @@ typedef struct tvh_codec_audio {
+     TVHCodec;
+     const enum AVSampleFormat *sample_fmts;
+     const int *sample_rates;
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    const AVChannelLayout *channel_layouts;
++#else
+     const uint64_t *channel_layouts;
++#endif
+ } TVHAudioCodec;
+ 
+ 
+@@ -231,7 +235,11 @@ typedef struct tvh_codec_profile_audio {
+     char *language3;
+     int sample_fmt;
+     int sample_rate;
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    AVChannelLayout channel_layout;
++#else
+     int64_t channel_layout;
++#endif
+ } TVHAudioCodecProfile;
+ 
+ 
+diff --git a/src/transcoding/codec/profile.c b/src/transcoding/codec/profile.c
+index fd05146367..12796f3cf3 100644
+--- a/src/transcoding/codec/profile.c
++++ b/src/transcoding/codec/profile.c
+@@ -327,8 +327,13 @@ tvh_codec_profile_audio_get_sample_rates(TVHCodecProfile *self)
+     return tvh_codec_audio_getattr(codec, sample_rates);
+ }
+ 
++#if LIBAVCODEC_VERSION_MAJOR > 59
++const AVChannelLayout *
++tvh_codec_profile_audio_get_channel_layouts(TVHCodecProfile *self)
++#else
+ const uint64_t *
+ tvh_codec_profile_audio_get_channel_layouts(TVHCodecProfile *self)
++#endif
+ {
+     TVHCodec *codec = tvh_codec_profile_get_codec(self);
+     return tvh_codec_audio_getattr(codec, channel_layouts);
+diff --git a/src/transcoding/codec/profile_audio_class.c b/src/transcoding/codec/profile_audio_class.c
+index dc3e225505..512d2fd8d3 100644
+--- a/src/transcoding/codec/profile_audio_class.c
++++ b/src/transcoding/codec/profile_audio_class.c
+@@ -87,8 +87,13 @@ static htsmsg_t *
+ tvh_codec_audio_get_list_channel_layouts(TVHAudioCodec *self)
+ {
+     htsmsg_t *list = NULL, *map = NULL;
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    const AVChannelLayout *channel_layouts = self->channel_layouts;
++    AVChannelLayout l;
++#else
+     const uint64_t *channel_layouts = self->channel_layouts;
+     uint64_t l = 0;
++#endif
+     char l_buf[16];
+     int i;
+ 
+@@ -98,6 +103,22 @@ tvh_codec_audio_get_list_channel_layouts(TVHAudioCodec *self)
+             list = NULL;
+         }
+         else {
++#if LIBAVCODEC_VERSION_MAJOR > 59
++            ADD_ENTRY(list, map, s64, l.u.mask, str, AUTO_STR);
++            for (i = 0; ; i++) {
++                l = channel_layouts[i];
++                if (l.u.mask < INT64_MAX) {
++                    if (!(map = htsmsg_create_map())) {
++                        htsmsg_destroy(list);
++                        list = NULL;
++                        break;
++                    }
++                    l_buf[0] = '\0';
++                    av_channel_layout_describe(&l, l_buf,sizeof(l_buf));
++                    ADD_ENTRY(list, map, s64, l.u.mask, str, l_buf);
++                }
++            }
++#else
+             ADD_ENTRY(list, map, s64, l, str, AUTO_STR);
+             for (i = 0; (l = channel_layouts[i]); i++) {
+                 if (l < INT64_MAX) {
+@@ -111,6 +132,7 @@ tvh_codec_audio_get_list_channel_layouts(TVHAudioCodec *self)
+                     ADD_ENTRY(list, map, s64, l, str, l_buf);
+                 }
+             }
++#endif
+         }
+     }
+     return list;
+@@ -127,11 +149,19 @@ tvh_codec_profile_audio_is_copy(TVHAudioCodecProfile *self, tvh_ssc_t *ssc)
+     // and sample_rate (48kHz) for input
+     int ssc_channels = ssc->es_channels ? ssc->es_channels : 2;
+     int ssc_sr = ssc->es_sri ? sri_to_rate(ssc->es_sri) : 48000;
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    if ((self->channel_layout.order != AV_CHANNEL_ORDER_UNSPEC &&
++         ssc_channels != self->channel_layout.nb_channels) ||
++        (self->sample_rate && ssc_sr != self->sample_rate)) {
++        return 0;
++    }
++#else
+     if ((self->channel_layout &&
+          ssc_channels != av_get_channel_layout_nb_channels(self->channel_layout)) ||
+         (self->sample_rate && ssc_sr != self->sample_rate)) {
+         return 0;
+     }
++#endif
+     return 1;
+ }
+ 
+@@ -147,10 +177,17 @@ tvh_codec_profile_audio_open(TVHAudioCodecProfile *self, AVDictionary **opts)
+         AV_DICT_SET_INT(opts, "sample_rate", self->sample_rate,
+                         AV_DICT_DONT_OVERWRITE);
+     }
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    if (self->channel_layout.order != AV_CHANNEL_ORDER_UNSPEC) {
++        AV_DICT_SET_INT(opts, "channel_layout", self->channel_layout.u.mask,
++                        AV_DICT_DONT_OVERWRITE);
++    }
++#else
+     if (self->channel_layout) {
+         AV_DICT_SET_INT(opts, "channel_layout", self->channel_layout,
+                         AV_DICT_DONT_OVERWRITE);
+     }
++#endif
+     return 0;
+ }
+ 
+diff --git a/src/transcoding/transcode/audio.c b/src/transcoding/transcode/audio.c
+index 27bc32b339..826bd8784d 100644
+--- a/src/transcoding/transcode/audio.c
++++ b/src/transcoding/transcode/audio.c
+@@ -79,6 +79,47 @@ _audio_context_sample_rate(TVHContext *self, AVDictionary **opts)
+ }
+ 
+ 
++#if LIBAVCODEC_VERSION_MAJOR > 59
++static AVChannelLayout
++_audio_context_channel_layout(TVHContext *self, AVDictionary **opts)
++{
++    const AVChannelLayout *channel_layouts =
++        tvh_codec_profile_audio_get_channel_layouts(self->profile);
++    AVChannelLayout ilayout = self->iavctx->ch_layout;
++    AVChannelLayout olayout;
++    AVChannelLayout altlayout;
++    int tmp = 0, ichannels = 0, i;
++    char obuf[64], abuf[64], ibuf[64];
++
++    if (!tvh_context_get_int_opt(opts, "ch_layout", &tmp) &&
++        !(av_channel_layout_from_mask(&olayout, tmp)) && channel_layouts) {
++        ichannels = ilayout.nb_channels;
++        for (i = 0; (av_channel_layout_from_mask(&olayout, channel_layouts[i].u.mask)); i++) {
++            if (av_channel_layout_compare(&olayout, &ilayout)) {
++                break;
++            }
++            if (olayout.nb_channels <= ichannels) {
++                altlayout = olayout;
++            }
++        }
++    }
++    if (tvhtrace_enabled()) {
++        strcpy(obuf, "none");
++        av_channel_layout_describe(&olayout, obuf, sizeof(obuf));
++        strcpy(abuf, "none");
++        av_channel_layout_describe(&altlayout, abuf, sizeof(abuf));
++        strcpy(ibuf, "none");
++        av_channel_layout_describe(&ilayout, ibuf, sizeof(ibuf));
++        tvh_context_log(self, LOG_TRACE, "audio layout selection: old %s, alt %s, in %s",
++                        obuf, abuf, ibuf);
++    }
++    if (olayout.order == AV_CHANNEL_ORDER_UNSPEC)
++        return olayout;
++    if (altlayout.order == AV_CHANNEL_ORDER_UNSPEC)
++        return altlayout;
++    return (AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO;
++}
++#else
+ static uint64_t
+ _audio_context_channel_layout(TVHContext *self, AVDictionary **opts)
+ {
+@@ -113,6 +154,7 @@ _audio_context_channel_layout(TVHContext *self, AVDictionary **opts)
+     }
+     return olayout ? olayout : (altlayout ? altlayout : AV_CH_LAYOUT_STEREO);
+ }
++#endif
+ 
+ 
+ static int
+@@ -139,6 +181,15 @@ tvh_audio_context_open_encoder(TVHContext *self, AVDictionary **opts)
+     self->oavctx->time_base = av_make_q(1, self->oavctx->sample_rate);
+     self->sri = rate_to_sri(self->oavctx->sample_rate);
+     // channel_layout
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    self->oavctx->ch_layout = _audio_context_channel_layout(self, opts);
++    if (self->oavctx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC) {
++        tvh_context_log(self, LOG_ERR,
++                        "audio encoder has no suitable channel layout");
++        return -1;
++    }
++    self->oavctx->ch_layout.nb_channels = self->oavctx->ch_layout.nb_channels;
++#else
+     self->oavctx->channel_layout = _audio_context_channel_layout(self, opts);
+     if (!self->oavctx->channel_layout) {
+         tvh_context_log(self, LOG_ERR,
+@@ -147,6 +198,7 @@ tvh_audio_context_open_encoder(TVHContext *self, AVDictionary **opts)
+     }
+     self->oavctx->channels =
+         av_get_channel_layout_nb_channels(self->oavctx->channel_layout);
++#endif
+     return 0;
+ }
+ 
+@@ -161,7 +213,11 @@ tvh_audio_context_open_filters(TVHContext *self, AVDictionary **opts)
+ 
+     // source args
+     memset(source_args, 0, sizeof(source_args));
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    av_channel_layout_describe(&self->iavctx->ch_layout, layout, sizeof(layout));
++#else
+     av_get_channel_layout_string(layout, sizeof(layout), self->iavctx->channels, self->iavctx->channel_layout);
++#endif
+     if (str_snprintf(source_args, sizeof(source_args),
+             "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=%s",
+             self->iavctx->time_base.num,
+@@ -187,8 +243,13 @@ tvh_audio_context_open_filters(TVHContext *self, AVDictionary **opts)
+         "abuffer", source_args,                           // source
+         filters,                                          // filters
+         "abuffersink",                                    // sink
++#if LIBAVCODEC_VERSION_MAJOR > 59
++        "channel_layouts", &self->oavctx->ch_layout.u.mask, // sink option: channel_layout
++        sizeof(self->oavctx->ch_layout.u.mask),
++#else
+         "channel_layouts", &self->oavctx->channel_layout, // sink option: channel_layout
+         sizeof(self->oavctx->channel_layout),
++#endif
+         "sample_fmts", &self->oavctx->sample_fmt,         // sink option: sample_fmt
+         sizeof(self->oavctx->sample_fmt),
+         "sample_rates", &self->oavctx->sample_rate,       // sink option: sample_rate
+@@ -261,7 +322,11 @@ static int
+ tvh_audio_context_wrap(TVHContext *self, AVPacket *avpkt, th_pkt_t *pkt)
+ {
+     pkt->pkt_duration   = avpkt->duration;
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    pkt->a.pkt_channels = self->oavctx->ch_layout.nb_channels;
++#else
+     pkt->a.pkt_channels = self->oavctx->channels;
++#endif
+     pkt->a.pkt_sri      = self->sri;
+     return 0;
+ }
+diff --git a/src/transcoding/transcode/helpers.c b/src/transcoding/transcode/helpers.c
+index bd23c3e5e9..1d129c723a 100644
+--- a/src/transcoding/transcode/helpers.c
++++ b/src/transcoding/transcode/helpers.c
+@@ -338,7 +338,11 @@ static void
+ tvh_aac_pack_adts_header(TVHContext *self, pktbuf_t *pb)
+ {
+     // XXX: this really should happen in the muxer
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    int chan_conf = (self->oavctx->ch_layout.nb_channels == 8) ? 7 : self->oavctx->ch_layout.nb_channels;
++#else
+     int chan_conf = (self->oavctx->channels == 8) ? 7 : self->oavctx->channels;
++#endif
+     bitstream_t bs;
+ 
+     // https://wiki.multimedia.cx/index.php?title=ADTS
+@@ -371,12 +375,21 @@ tvh_aac_pack(TVHContext *self, AVPacket *avpkt)
+     // there be one in the first place?.
+     // originally there was a check for avpkt->size < 2, I don't get it.
+     // max aac frame size = 768 bytes per channel, max writable size 13 bits
++#if LIBAVCODEC_VERSION_MAJOR > 59
++    if (avpkt->size > (768 * self->oavctx->ch_layout.nb_channels)) {
++        tvh_context_log(self, LOG_WARNING,
++            "packet size (%d) > aac max frame size (%d for %d channels)",
++            avpkt->size, (768 * self->oavctx->ch_layout.nb_channels),
++            self->oavctx->ch_layout.nb_channels);
++    }
++#else
+     if (avpkt->size > (768 * self->oavctx->channels)) {
+         tvh_context_log(self, LOG_WARNING,
+             "packet size (%d) > aac max frame size (%d for %d channels)",
+             avpkt->size, (768 * self->oavctx->channels),
+             self->oavctx->channels);
+     }
++#endif
+     if ((pkt_size = avpkt->size + header_size) > max_size) {
+         tvh_context_log(self, LOG_ERR, "aac frame data too big");
+     }
