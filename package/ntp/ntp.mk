@@ -17,6 +17,7 @@ NTP_CPE_ID_VERSION = $(NTP_VERSION_MAJOR).$(NTP_VERSION_MINOR)
 NTP_CPE_ID_UPDATE = p$(NTP_VERSION_POINT)
 NTP_SELINUX_MODULES = ntp
 NTP_CONF_ENV = ac_cv_lib_md5_MD5Init=no POSIX_SHELL=/bin/sh
+NTP_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -Wno-incompatible-pointer-types"
 NTP_CONF_OPTS = \
 	--with-shared \
 	--program-transform-name=s,,, \
