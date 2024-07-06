@@ -1,9 +1,9 @@
 diff -purN linux-4.17.orig/drivers/net/phy/Kconfig linux-4.17/drivers/net/phy/Kconfig
 --- linux-4.17.orig/drivers/net/phy/Kconfig	2018-06-03 23:15:21.000000000 +0200
 +++ linux-4.17/drivers/net/phy/Kconfig	2018-06-08 15:05:29.511475846 +0200
-@@ -201,6 +201,16 @@ config LED_TRIGGER_PHY
- 		for any speed known to the PHY.
- 
+@@ -61,6 +61,16 @@
+ 	depends on HWMON || HWMON=n
+ 	select MDIO_I2C
  
 +config SWCONFIG
 +	tristate "Switch configuration API"
@@ -17,18 +17,18 @@ diff -purN linux-4.17.orig/drivers/net/phy/Kconfig linux-4.17/drivers/net/phy/Kc
 +
  comment "MII PHY device drivers"
  
- config SFP
+ config AMD_PHY
 diff -purN linux-4.17.orig/drivers/net/phy/Makefile linux-4.17/drivers/net/phy/Makefile
 --- linux-4.17.orig/drivers/net/phy/Makefile	2018-06-03 23:15:21.000000000 +0200
 +++ linux-4.17/drivers/net/phy/Makefile	2018-06-08 15:05:29.511475846 +0200
-@@ -21,6 +21,7 @@ libphy-$(CONFIG_LED_TRIGGER_PHY)	+= phy_
+@@ -23,6 +23,7 @@
  
  obj-$(CONFIG_PHYLINK)		+= phylink.o
  obj-$(CONFIG_PHYLIB)		+= libphy.o
 +obj-$(CONFIG_SWCONFIG)>>--+= swconfig.o
  
- obj-$(CONFIG_MDIO_BCM_IPROC)	+= mdio-bcm-iproc.o
- obj-$(CONFIG_MDIO_BCM_UNIMAC)	+= mdio-bcm-unimac.o
+ obj-$(CONFIG_NETWORK_PHY_TIMESTAMPING) += mii_timestamper.o
+ 
 diff -purN linux-4.17.orig/drivers/net/phy/swconfig.c linux-4.17/drivers/net/phy/swconfig.c
 --- linux-4.17.orig/drivers/net/phy/swconfig.c	1970-01-01 01:00:00.000000000 +0100
 +++ linux-4.17/drivers/net/phy/swconfig.c	2018-06-08 15:05:29.515475834 +0200

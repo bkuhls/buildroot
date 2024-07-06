@@ -1,6 +1,30 @@
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath5k/ath5k.h linux-4.20/drivers/net/wireless/ath/ath5k/ath5k.h
---- linux-4.20.orig/drivers/net/wireless/ath/ath5k/ath5k.h	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath5k/ath5k.h	2018-12-28 14:10:56.376903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/Kconfig linux-6.1.97/drivers/net/wireless/ath/Kconfig
+--- linux-6.1.97.orig/drivers/net/wireless/ath/Kconfig	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/Kconfig	2024-07-06 10:37:52.406164727 +0200
+@@ -23,6 +23,9 @@
+ 
+ if WLAN_VENDOR_ATH
+ 
++config ATH_USER_REGD
++	bool "Do not enforce EEPROM regulatory restrictions"
++
+ config ATH_DEBUG
+ 	bool "Atheros wireless debugging"
+ 	help
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath.h linux-6.1.97/drivers/net/wireless/ath/ath.h
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath.h	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath.h	2024-07-06 10:37:52.406164727 +0200
+@@ -151,6 +151,7 @@
+ 	int debug_mask;
+ 	enum ath_device_state state;
+ 	unsigned long op_flags;
++	u32 chan_bw;
+ 
+ 	struct ath_ani ani;
+ 
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath5k/ath5k.h linux-6.1.97/drivers/net/wireless/ath/ath5k/ath5k.h
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath5k/ath5k.h	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath5k/ath5k.h	2024-07-06 10:37:52.390164304 +0200
 @@ -1372,6 +1372,7 @@
  	u8			ah_coverage_class;
  	bool			ah_ack_bitrate_high;
@@ -9,10 +33,10 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath5k/ath5k.h linux-4.20/driv
  	bool			ah_short_slot;
  
  	/* Antenna Control */
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath5k/base.c linux-4.20/drivers/net/wireless/ath/ath5k/base.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath5k/base.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath5k/base.c	2018-12-28 14:10:56.376903000 +0100
-@@ -466,6 +466,9 @@
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath5k/base.c linux-6.1.97/drivers/net/wireless/ath/ath5k/base.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath5k/base.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath5k/base.c	2024-07-06 10:37:52.406164727 +0200
+@@ -465,6 +465,9 @@
  		return -EINVAL;
  	}
  
@@ -22,10 +46,10 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath5k/base.c linux-4.20/drive
  	/*
  	 * To switch channels clear any pending DMA operations;
  	 * wait long enough for the RX fifo to drain, reset the
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath5k/debug.c linux-4.20/drivers/net/wireless/ath/ath5k/debug.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath5k/debug.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath5k/debug.c	2018-12-28 14:10:56.376903000 +0100
-@@ -822,6 +822,97 @@
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath5k/debug.c linux-6.1.97/drivers/net/wireless/ath/ath5k/debug.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath5k/debug.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath5k/debug.c	2024-07-06 10:37:52.406164727 +0200
+@@ -803,6 +803,97 @@
  	.llseek = default_llseek,
  };
  
@@ -123,7 +147,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath5k/debug.c linux-4.20/driv
  
  /* debugfs: queues etc */
  
-@@ -1016,6 +1107,8 @@
+@@ -997,6 +1088,8 @@
  	debugfs_create_file("queue", 0600, phydir, ah, &fops_queue);
  	debugfs_create_bool("32khz_clock", 0600, phydir,
  			    &ah->ah_use_32khz_clock);
@@ -132,9 +156,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath5k/debug.c linux-4.20/driv
  }
  
  /* functions used in other places */
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ani.h linux-4.20/drivers/net/wireless/ath/ath9k/ani.h
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/ani.h	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/ani.h	2018-12-28 14:10:56.376903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ani.h linux-6.1.97/drivers/net/wireless/ath/ath9k/ani.h
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ani.h	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/ani.h	2024-07-06 10:37:52.406164727 +0200
 @@ -42,7 +42,7 @@
  #define ATH9K_ANI_PERIOD                  300
  
@@ -144,10 +168,10 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ani.h linux-4.20/driver
  
  #define ATH9K_SIG_FIRSTEP_SETTING_MIN     0
  #define ATH9K_SIG_FIRSTEP_SETTING_MAX     20
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar5008_phy.c linux-4.20/drivers/net/wireless/ath/ath9k/ar5008_phy.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar5008_phy.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/ar5008_phy.c	2018-12-28 14:10:56.376903000 +0100
-@@ -949,55 +949,6 @@
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ar5008_phy.c linux-6.1.97/drivers/net/wireless/ath/ath9k/ar5008_phy.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ar5008_phy.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/ar5008_phy.c	2024-07-06 10:37:52.406164727 +0200
+@@ -969,55 +969,6 @@
  		 * on == 0 means more noise imm
  		 */
  		u32 on = param ? 1 : 0;
@@ -203,9 +227,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar5008_phy.c linux-4.20
  
  		if (on)
  			REG_SET_BIT(ah, AR_PHY_SFCORR_LOW,
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar9003_phy.c linux-4.20/drivers/net/wireless/ath/ath9k/ar9003_phy.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar9003_phy.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/ar9003_phy.c	2018-12-28 14:10:56.376903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ar9003_phy.c linux-6.1.97/drivers/net/wireless/ath/ath9k/ar9003_phy.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ar9003_phy.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/ar9003_phy.c	2024-07-06 10:37:52.406164727 +0200
 @@ -42,20 +42,6 @@
  /* level:  0   1   2   3   4   5   6   7   8  */
  	{ -6, -4, -2,  0,  2,  4,  6,  8 };     /* lvl 0-7, default 3 */
@@ -227,7 +251,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar9003_phy.c linux-4.20
  static const u8 ofdm2pwr[] = {
  	ALL_TARGET_LEGACY_6_24,
  	ALL_TARGET_LEGACY_6_24,
-@@ -1095,11 +1081,6 @@
+@@ -1068,11 +1054,6 @@
  	struct ath_common *common = ath9k_hw_common(ah);
  	struct ath9k_channel *chan = ah->curchan;
  	struct ar5416AniState *aniState = &ah->ani;
@@ -239,7 +263,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar9003_phy.c linux-4.20
  	s32 value, value2;
  
  	switch (cmd & ah->ani_function) {
-@@ -1113,61 +1094,6 @@
+@@ -1086,61 +1067,6 @@
  		 */
  		u32 on = param ? 1 : 0;
  
@@ -301,9 +325,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ar9003_phy.c linux-4.20
  		if (on)
  			REG_SET_BIT(ah, AR_PHY_SFCORR_LOW,
  				    AR_PHY_SFCORR_LOW_USE_SELF_CORR_LOW);
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ath9k.h linux-4.20/drivers/net/wireless/ath/ath9k/ath9k.h
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/ath9k.h	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/ath9k.h	2018-12-28 14:10:56.376903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ath9k.h linux-6.1.97/drivers/net/wireless/ath/ath9k/ath9k.h
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/ath9k.h	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/ath9k.h	2024-07-06 10:37:52.406164727 +0200
 @@ -88,7 +88,7 @@
  		(_l) &= ((_sz) - 1);		\
  	} while (0)
@@ -313,9 +337,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/ath9k.h linux-4.20/driv
  #define ATH_TXBUF               512
  #define ATH_TXBUF_RESERVE       5
  #define ATH_TXMAXTRY            13
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/common.c linux-4.20/drivers/net/wireless/ath/ath9k/common.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/common.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/common.c	2018-12-28 14:10:56.380903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/common.c linux-6.1.97/drivers/net/wireless/ath/ath9k/common.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/common.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/common.c	2024-07-06 10:37:52.406164727 +0200
 @@ -297,11 +297,13 @@
  /*
   * Update internal channel flags.
@@ -365,10 +389,10 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/common.c linux-4.20/dri
  
  	return channel;
  }
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/debug.c linux-4.20/drivers/net/wireless/ath/ath9k/debug.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/debug.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/debug.c	2018-12-28 14:10:56.388903000 +0100
-@@ -1361,6 +1361,99 @@
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/debug.c linux-6.1.97/drivers/net/wireless/ath/ath9k/debug.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/debug.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/debug.c	2024-07-06 10:37:52.406164727 +0200
+@@ -1413,6 +1413,99 @@
  	ath9k_cmn_spectral_deinit_debug(&sc->spec_priv);
  }
  
@@ -468,7 +492,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/debug.c linux-4.20/driv
  int ath9k_init_debug(struct ath_hw *ah)
  {
  	struct ath_common *common = ath9k_hw_common(ah);
-@@ -1380,6 +1473,10 @@
+@@ -1432,6 +1525,10 @@
  	ath9k_tx99_init_debug(sc);
  	ath9k_cmn_spectral_init_debug(&sc->spec_priv, sc->debug.debugfs_phy);
  
@@ -479,10 +503,10 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/debug.c linux-4.20/driv
  	debugfs_create_devm_seqfile(sc->dev, "dma", sc->debug.debugfs_phy,
  				    read_file_dma);
  	debugfs_create_devm_seqfile(sc->dev, "interrupt", sc->debug.debugfs_phy,
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers/net/wireless/ath/ath9k/hw.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/hw.c	2018-12-28 14:10:56.388903000 +0100
-@@ -248,6 +248,19 @@
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/hw.c linux-6.1.97/drivers/net/wireless/ath/ath9k/hw.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/hw.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/hw.c	2024-07-06 10:37:52.406164727 +0200
+@@ -247,6 +247,19 @@
  		centers->synth_center + (extoff * HT40_CHANNEL_CENTER_SHIFT);
  }
  
@@ -502,7 +526,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  /******************/
  /* Chip Revisions */
  /******************/
-@@ -392,13 +405,8 @@
+@@ -402,13 +415,8 @@
  
  	ah->config.rx_intr_mitigation = true;
  
@@ -518,7 +542,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  
  	if (AR_SREV_9462(ah) || AR_SREV_9565(ah))
  		ah->config.pll_pwrsave = 7;
-@@ -654,6 +662,7 @@
+@@ -667,6 +675,7 @@
  
  	/* These are all the AR5008/AR9001/AR9002/AR9003 hardware family of chipsets */
  	switch (ah->hw_version.devid) {
@@ -526,7 +550,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  	case AR5416_DEVID_PCI:
  	case AR5416_DEVID_PCIE:
  	case AR5416_AR9100_DEVID:
-@@ -1298,39 +1307,56 @@
+@@ -1311,39 +1320,56 @@
  	*coef_exponent = coef_exp - 16;
  }
  
@@ -609,7 +633,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  	return true;
  }
  
-@@ -1383,24 +1409,24 @@
+@@ -1396,24 +1422,24 @@
  			rst_flags |= AR_RTC_RC_MAC_COLD;
  	}
  
@@ -642,7 +666,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  	REG_WRITE(ah, AR_RTC_RC, rst_flags);
  
  	REGWRITE_BUFFER_FLUSH(ah);
-@@ -1421,8 +1447,15 @@
+@@ -1434,8 +1460,15 @@
  	if (!AR_SREV_9100(ah))
  		REG_WRITE(ah, AR_RC, 0);
  
@@ -659,7 +683,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  
  	return true;
  }
-@@ -1523,6 +1556,9 @@
+@@ -1536,6 +1569,9 @@
  		ar9003_hw_internal_regulator_apply(ah);
  	ath9k_hw_init_pll(ah, chan);
  
@@ -669,7 +693,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  	return true;
  }
  
-@@ -1830,8 +1866,14 @@
+@@ -1842,8 +1878,14 @@
  	if (AR_SREV_9271(ah))
  		ar9002_hw_load_ani_reg(ah, chan);
  
@@ -684,7 +708,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  	return -EINVAL;
  }
  
-@@ -2070,6 +2112,9 @@
+@@ -2082,6 +2124,9 @@
  		ath9k_hw_set_radar_params(ah);
  	}
  
@@ -694,7 +718,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  	return 0;
  }
  EXPORT_SYMBOL(ath9k_hw_reset);
-@@ -2941,7 +2986,8 @@
+@@ -2956,7 +3001,8 @@
  {
  	struct ath_regulatory *reg = ath9k_hw_regulatory(ah);
  	struct ieee80211_channel *channel;
@@ -704,9 +728,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  	u16 ctl = NO_CTL;
  
  	if (!chan)
-@@ -2953,9 +2999,18 @@
+@@ -2968,9 +3014,18 @@
  	channel = chan->chan;
- 	chan_pwr = min_t(int, channel->max_power * 2, MAX_RATE_POWER);
+ 	chan_pwr = min_t(int, channel->max_power * 2, MAX_COMBINED_POWER);
  	new_pwr = min_t(int, chan_pwr, reg->power_limit);
 +	max_gain = chan_pwr - new_pwr + channel->max_antenna_gain * 2;
 +
@@ -724,9 +748,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.c linux-4.20/drivers
  }
  
  void ath9k_hw_set_txpowerlimit(struct ath_hw *ah, u32 limit, bool test)
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.h linux-4.20/drivers/net/wireless/ath/ath9k/hw.h
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.h	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/hw.h	2018-12-28 14:10:56.388903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/hw.h linux-6.1.97/drivers/net/wireless/ath/ath9k/hw.h
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/hw.h	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/hw.h	2024-07-06 10:37:52.406164727 +0200
 @@ -36,6 +36,7 @@
  
  #define ATHEROS_VENDOR_ID	0x168c
@@ -735,9 +759,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/hw.h linux-4.20/drivers
  #define AR5416_DEVID_PCI	0x0023
  #define AR5416_DEVID_PCIE	0x0024
  #define AR9160_DEVID_PCI	0x0027
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/init.c linux-4.20/drivers/net/wireless/ath/ath9k/init.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/init.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/init.c	2018-12-28 14:10:56.388903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/init.c linux-6.1.97/drivers/net/wireless/ath/ath9k/init.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/init.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/init.c	2024-07-06 10:37:52.406164727 +0200
 @@ -48,7 +48,7 @@
  module_param_named(nohwcrypt, ath9k_modparam_nohwcrypt, int, 0444);
  MODULE_PARM_DESC(nohwcrypt, "Disable hardware encryption");
@@ -747,7 +771,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/init.c linux-4.20/drive
  module_param_named(blink, ath9k_led_blink, int, 0444);
  MODULE_PARM_DESC(blink, "Enable LED blink on activity");
  
-@@ -627,6 +627,12 @@
+@@ -677,6 +677,12 @@
  
  	ath_dbg(common, CONFIG, "parsing configuration from OF node\n");
  
@@ -760,15 +784,15 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/init.c linux-4.20/drive
  	if (of_property_read_bool(np, "qca,no-eeprom")) {
  		/* ath9k-eeprom-<bus>-<id>.bin */
  		scnprintf(eeprom_name, sizeof(eeprom_name),
-@@ -833,6 +839,7 @@
+@@ -882,6 +888,7 @@
  				 BIT(NL80211_IFTYPE_AP) },
  	{ .max = 1,	.types = BIT(NL80211_IFTYPE_P2P_CLIENT) |
  				 BIT(NL80211_IFTYPE_P2P_GO) },
 +	{ .max = 1,	.types = BIT(NL80211_IFTYPE_ADHOC) },
  };
  
- #ifdef CONFIG_WIRELESS_WDS
-@@ -1143,25 +1150,25 @@
+ #ifdef CONFIG_ATH9K_CHANNEL_CONTEXT
+@@ -1179,25 +1186,25 @@
  {
  	int error;
  
@@ -800,9 +824,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/init.c linux-4.20/drive
   err_out:
  	return error;
  }
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/mac.c linux-4.20/drivers/net/wireless/ath/ath9k/mac.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/mac.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/mac.c	2018-12-28 14:10:56.388903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/mac.c linux-6.1.97/drivers/net/wireless/ath/ath9k/mac.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/mac.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/mac.c	2024-07-06 10:37:52.406164727 +0200
 @@ -678,13 +678,18 @@
  
  	ath9k_ani_reset(ah, is_scanning);
@@ -824,9 +848,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/mac.c linux-4.20/driver
  
  	ath9k_hw_disable_mib_counters(ah);
  }
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/pci.c linux-4.20/drivers/net/wireless/ath/ath9k/pci.c
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/pci.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/pci.c	2018-12-28 14:10:56.388903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/pci.c linux-6.1.97/drivers/net/wireless/ath/ath9k/pci.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/pci.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/pci.c	2024-07-06 10:37:52.406164727 +0200
 @@ -774,6 +774,7 @@
  	  .driver_data = ATH9K_PCI_BT_ANT_DIV },
  #endif
@@ -835,9 +859,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/pci.c linux-4.20/driver
  	{ 0 }
  };
  
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/phy.h linux-4.20/drivers/net/wireless/ath/ath9k/phy.h
---- linux-4.20.orig/drivers/net/wireless/ath/ath9k/phy.h	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath9k/phy.h	2018-12-28 14:10:56.392903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/phy.h linux-6.1.97/drivers/net/wireless/ath/ath9k/phy.h
+--- linux-6.1.97.orig/drivers/net/wireless/ath/ath9k/phy.h	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/ath9k/phy.h	2024-07-06 10:37:52.406164727 +0200
 @@ -48,6 +48,9 @@
  #define AR_PHY_PLL_CONTROL 0x16180
  #define AR_PHY_PLL_MODE 0x16184
@@ -848,33 +872,9 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath9k/phy.h linux-4.20/driver
  enum ath9k_ant_div_comb_lna_conf {
  	ATH_ANT_DIV_COMB_LNA1_MINUS_LNA2,
  	ATH_ANT_DIV_COMB_LNA2,
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/ath.h linux-4.20/drivers/net/wireless/ath/ath.h
---- linux-4.20.orig/drivers/net/wireless/ath/ath.h	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/ath.h	2018-12-28 14:10:56.396903000 +0100
-@@ -149,6 +149,7 @@
- 	int debug_mask;
- 	enum ath_device_state state;
- 	unsigned long op_flags;
-+	u32 chan_bw;
- 
- 	struct ath_ani ani;
- 
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/Kconfig linux-4.20/drivers/net/wireless/ath/Kconfig
---- linux-4.20.orig/drivers/net/wireless/ath/Kconfig	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/Kconfig	2018-12-28 14:10:56.396903000 +0100
-@@ -22,6 +22,9 @@
- 
- if WLAN_VENDOR_ATH
- 
-+config ATH_USER_REGD
-+	bool "Do not enforce EEPROM regulatory restrictions"
-+
- config ATH_DEBUG
- 	bool "Atheros wireless debugging"
- 	help
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd.c linux-4.20/drivers/net/wireless/ath/regd.c
---- linux-4.20.orig/drivers/net/wireless/ath/regd.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/regd.c	2018-12-28 14:10:56.400903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/regd.c linux-6.1.97/drivers/net/wireless/ath/regd.c
+--- linux-6.1.97.orig/drivers/net/wireless/ath/regd.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/regd.c	2024-07-06 10:37:52.406164727 +0200
 @@ -24,6 +24,7 @@
  #include "regd_common.h"
  
@@ -1019,7 +1019,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd.c linux-4.20/drivers/net
  	for (band = 0; band < NUM_NL80211_BANDS; band++) {
  		if (!wiphy->bands[band])
  			continue;
-@@ -378,6 +395,9 @@
+@@ -379,6 +396,9 @@
  {
  	struct ieee80211_supported_band *sband;
  
@@ -1029,7 +1029,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd.c linux-4.20/drivers/net
  	sband = wiphy->bands[NL80211_BAND_2GHZ];
  	if (!sband)
  		return;
-@@ -407,6 +427,9 @@
+@@ -408,6 +428,9 @@
  	struct ieee80211_channel *ch;
  	unsigned int i;
  
@@ -1039,7 +1039,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd.c linux-4.20/drivers/net
  	if (!wiphy->bands[NL80211_BAND_5GHZ])
  		return;
  
-@@ -639,6 +662,13 @@
+@@ -640,6 +663,13 @@
  	const struct ieee80211_regdomain *regd;
  
  	wiphy->reg_notifier = reg_notifier;
@@ -1053,18 +1053,18 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd.c linux-4.20/drivers/net
  	wiphy->regulatory_flags |= REGULATORY_STRICT_REG |
  				   REGULATORY_CUSTOM_REG;
  
-diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd_common.h linux-4.20/drivers/net/wireless/ath/regd_common.h
---- linux-4.20.orig/drivers/net/wireless/ath/regd_common.h	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/drivers/net/wireless/ath/regd_common.h	2018-12-28 14:10:56.400903000 +0100
+diff -uNr linux-6.1.97.orig/drivers/net/wireless/ath/regd_common.h linux-6.1.97/drivers/net/wireless/ath/regd_common.h
+--- linux-6.1.97.orig/drivers/net/wireless/ath/regd_common.h	2024-07-06 10:37:44.581957853 +0200
++++ linux-6.1.97/drivers/net/wireless/ath/regd_common.h	2024-07-06 10:37:52.406164727 +0200
 @@ -32,6 +32,7 @@
- 	FCC2_WORLD = 0x21,
+ 	ETSI1_WORLD = 0x21,
  	FCC2_ETSIC = 0x22,
  	FCC6_WORLD = 0x23,
 +	FCC3_FCCA_2 = 0x2A,
  	FRANCE_RES = 0x31,
  	FCC3_FCCA = 0x3A,
  	FCC3_WORLD = 0x3B,
-@@ -172,6 +173,7 @@
+@@ -173,6 +174,7 @@
  	{FCC2_WORLD, CTL_FCC, CTL_ETSI},
  	{FCC2_ETSIC, CTL_FCC, CTL_ETSI},
  	{FCC3_FCCA, CTL_FCC, CTL_FCC},
@@ -1072,7 +1072,7 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd_common.h linux-4.20/driv
  	{FCC3_WORLD, CTL_FCC, CTL_ETSI},
  	{FCC3_ETSIC, CTL_FCC, CTL_ETSI},
  	{FCC4_FCCA, CTL_FCC, CTL_FCC},
-@@ -483,6 +485,7 @@
+@@ -488,6 +490,7 @@
  	{CTRY_UNITED_STATES, FCC3_FCCA, "US"},
  	{CTRY_UNITED_STATES2, FCC3_FCCA, "US"},
  	{CTRY_UNITED_STATES3, FCC3_FCCA, "US"},
@@ -1080,10 +1080,10 @@ diff -uNr linux-4.20.orig/drivers/net/wireless/ath/regd_common.h linux-4.20/driv
  	/* This "PS" is for US public safety actually... to support this we
  	 * would need to assign new special alpha2 to CRDA db as with the world
  	 * regdomain and use another alpha2 */
-diff -uNr linux-4.20.orig/net/wireless/reg.c linux-4.20/net/wireless/reg.c
---- linux-4.20.orig/net/wireless/reg.c	2018-12-24 00:55:59.000000000 +0100
-+++ linux-4.20/net/wireless/reg.c	2018-12-28 14:11:46.760903000 +0100
-@@ -2988,6 +2988,8 @@
+diff -uNr linux-6.1.97.orig/net/wireless/reg.c linux-6.1.97/net/wireless/reg.c
+--- linux-6.1.97.orig/net/wireless/reg.c	2024-07-05 09:32:02.000000000 +0200
++++ linux-6.1.97/net/wireless/reg.c	2024-07-06 10:37:52.406164727 +0200
+@@ -3372,6 +3372,8 @@
  	enum environment_cap env = ENVIRON_ANY;
  	struct regulatory_request *request = NULL, *lr;
  
@@ -1092,11 +1092,11 @@ diff -uNr linux-4.20.orig/net/wireless/reg.c linux-4.20/net/wireless/reg.c
  	/* IE len must be evenly divisible by 2 */
  	if (country_ie_len & 0x01)
  		return;
-@@ -3240,6 +3242,7 @@
+@@ -3650,6 +3652,7 @@
  		return;
  	}
  
 +	return;
  	pr_debug("All devices are disconnected, going to restore regulatory settings\n");
- 	restore_regulatory_settings(false);
+ 	restore_regulatory_settings(false, true);
  }
