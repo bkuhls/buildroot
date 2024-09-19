@@ -1,0 +1,48 @@
+From f128f65b0a9b48e6477bf635a32c72c3183caff2 Mon Sep 17 00:00:00 2001
+From: James Hilliard <james.hilliard1@gmail.com>
+Date: Mon, 27 Jan 2025 21:42:44 +0200
+Subject: [PATCH] Fix __package_version__ attr literal evaluation.
+
+Dynamic metadata should be compatible with ast.literal_eval() so
+that import fallback is not needed. It's important to avoid the
+import fallback as that pulls in a number of unnecessary build
+dependencies.
+
+See:
+https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html#dynamic-metadata
+
+Upstream: https://github.com/simonrob/email-oauth2-proxy/pull/322
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+[Bernd: rebased for version 2024.11.11]
+---
+ emailproxy.py  | 4 ++--
+ pyproject.toml | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/emailproxy.py b/emailproxy.py
+index a61843d..2e9c450 100644
+--- a/emailproxy.py
++++ b/emailproxy.py
+@@ -6,8 +6,8 @@
+ __author__ = 'Simon Robinson'
+ __copyright__ = 'Copyright (c) 2024 Simon Robinson'
+ __license__ = 'Apache 2.0'
+-__version__ = '2024-11-11'  # ISO 8601 (YYYY-MM-DD)
+-__package_version__ = '.'.join([str(int(i)) for i in __version__.split('-')])  # for pyproject.toml usage only
++__package_version__ = '2024.11.11'  # for pyproject.toml usage only, needs to be ast.literal_eval() compatible
++__version__ = '-'.join(f"{int(part):02}" for part in __package_version__.split('.'))  # ISO 8601 (YYYY-MM-DD)
+ 
+ import abc
+ import argparse
+diff --git a/pyproject.toml b/pyproject.toml
+index 20362eb..992e6f4 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools>=61.0", "pyasyncore; python_version >= '3.12'", "cryptography"] # core requirements are needed for version detection when building for PyPI, which requires importing (but not running) the script on `ubuntu-latest`
++requires = ["setuptools>=62.6.0"]
+ build-backend = "setuptools.build_meta"
+ 
+ [project]
