@@ -10,7 +10,7 @@ applications such as motion to retrieve ffmpeg dependencies such as
 Signed-off-by: Fabrice Fontaine <fontaine.fabrice@gmail.com>
 [Upstream status: not upstreamable]
 Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
-[rebased for 6.0]
+[rebased for 6.0 & 7.1]
 ---
  configure | 18 +++++++++---------
  1 file changed, 9 insertions(+), 9 deletions(-)
