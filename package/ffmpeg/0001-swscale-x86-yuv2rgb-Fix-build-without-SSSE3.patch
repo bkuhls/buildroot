@@ -7,12 +7,11 @@ commit fc6a5883d6af8cae0e96af84dda0ad74b360a084 breaks build on
 x86_64 CPUs which do not have SSSE3, e.g. AMD Phenom-II
 
 Signed-off-by: Michael Niedermayer <michael@niedermayer.cc>
-[bernd@kuhls.net:
+[bernd.kuhls@t-online.de:
   - retrieved from upstream patchwork:
     https://patchwork.ffmpeg.org/project/ffmpeg/patch/20200223122256.23402-1-michael@niedermayer.cc/
 ]
-Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
-[rebased for 7.1]
+Signed-off-by: Bernd Kuhls <bernd.kuhls@t-online.de>
 [yann.morin.1998@free.fr: fix reference top patchwork and SoB order]
 Signed-off-by: Yann E. MORIN <yann.morin.1998@free.fr>
 ---
@@ -32,13 +31,13 @@ index c12e88cbb5..4791e5b93a 100644
          switch (c->dstFormat) {
          case AV_PIX_FMT_RGB32:
 @@ -98,6 +99,7 @@ av_cold SwsFunc ff_yuv2rgb_init_x86(SwsContext *c)
- #endif
+             return yuv420_rgb15_ssse3;
          }
      }
 +#endif
  
- #endif /* HAVE_X86ASM */
-     return NULL;
+     if (EXTERNAL_MMXEXT(cpu_flags)) {
+         switch (c->dstFormat) {
 -- 
 2.26.2
 
