@@ -45,7 +45,7 @@ diff -purN linux-4.17.orig/drivers/net/ppp/lzs_comp.c linux-4.17/drivers/net/ppp
 +#include <linux/ppp_defs.h>
 +#include <linux/ppp-comp.h>
 +
-+#include <asm/unaligned.h>
++#include <linux/unaligned.h>
 +
 +/*
 + * Values for debug:
