@@ -38,9 +38,7 @@ LIBCEC_DEPENDENCIES += xlib_libXrandr
 endif
 
 # Disable information about how libCEC is compiled.
-LIBCEC_CONF_OPTS += -DHAVE_GIT_BIN="" \
-	-DHAVE_WHOAMI_BIN="" \
-	-DHAVE_HOSTNAME_BIN="" \
-	-DHAVE_UNAME_BIN=""
+LIBCEC_CONF_OPTS += \
+	-DDISABLE_BUILDINFO=ON
 
 $(eval $(cmake-package))

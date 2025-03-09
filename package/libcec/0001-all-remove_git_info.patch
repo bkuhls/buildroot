@@ -1,0 +1,31 @@
+Add configure option DISABLE_BUILDINFO to disable most build infos.
+
+Fixes reproducible builds.
+
+Upstream: not applicable
+
+Downloaded from Kodi PR 26469 which updates an older Kodi-specific
+patch to disable git infos in libcec:
+https://github.com/xbmc/xbmc/pull/26469/files#diff-82014966bf69059c76c52a9a150c8763fef575a9395d820baafb047dbf57cfaa
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+
+--- a/src/libcec/cmake/SetBuildInfo.cmake
++++ b/src/libcec/cmake/SetBuildInfo.cmake
+@@ -12,7 +12,7 @@
+ else()
+   # not Windows
+   set(LIB_INFO "")
+-
++if(NOT DISABLE_BUILDINFO)
+   # add git revision to compile info
+   find_program(HAVE_GIT_BIN git /bin /usr/bin /usr/local/bin)
+   if(HAVE_GIT_BIN)
+@@ -69,6 +69,6 @@
+ 
+     set(LIB_INFO "${LIB_INFO} on ${BUILD_SYSNAME} ${BUILD_SYSVER} (${BUILD_SYSARCH})")
+   endif()
+-
+ endif()
++endif()
+ 
