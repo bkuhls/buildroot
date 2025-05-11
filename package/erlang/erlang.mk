@@ -42,7 +42,7 @@ HOST_ERLANG_PRE_CONFIGURE_HOOKS += ERLANG_RUN_AUTOCONF
 ERLANG_EI_VSN = 3.10.1
 
 # The configure checks for these functions fail incorrectly
-ERLANG_CONF_ENV = ac_cv_func_isnan=yes ac_cv_func_isinf=yes
+ERLANG_CONF_ENV = ac_cv_func_isnan=yes ac_cv_func_isinf=yes CFLAGS="$(TARGET_CFLAGS) -std=gnu17"
 
 # Set erl_xcomp variables. See xcomp/erl-xcomp.conf.template
 # for documentation.
