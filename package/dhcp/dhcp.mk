@@ -30,7 +30,7 @@ endef
 DHCP_CONF_ENV = \
 	CPPFLAGS='-D_PATH_DHCPD_CONF=\"/etc/dhcp/dhcpd.conf\" \
 		-D_PATH_DHCLIENT_CONF=\"/etc/dhcp/dhclient.conf\"' \
-	CFLAGS='$(TARGET_CFLAGS) -DISC_CHECK_NONE=1'
+	CFLAGS='$(TARGET_CFLAGS) -DISC_CHECK_NONE=1 -std=gnu17'
 
 DHCP_BIND_EXTRA_CONFIG = \
 	--build=$(GNU_HOST_NAME) \
