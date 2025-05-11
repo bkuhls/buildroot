@@ -12,6 +12,7 @@ UNIXODBC_LICENSE = LGPL-2.1+ (library), GPL-2.0+ (programs)
 UNIXODBC_LICENSE_FILES = COPYING exe/COPYING
 UNIXODBC_CPE_ID_VENDOR = unixodbc
 
+UNIXODBC_CONF_ENV += CFLAGS="$(TARGET_CFLAGS) -std=gnu17"
 UNIXODBC_CONF_OPTS = --enable-drivers --enable-driver-conf
 
 ifeq ($(BR2_PACKAGE_LIBEDIT),y)
