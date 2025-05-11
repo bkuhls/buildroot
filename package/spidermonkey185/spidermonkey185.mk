@@ -17,6 +17,7 @@ SPIDERMONKEY185_DEPENDENCIES = host-python3 host-perl
 # HOST_CFLAGS are forced to avoid problems when detecting host gcc
 # because configure would pass TARGET_CFLAGS to the host gcc.
 SPIDERMONKEY185_CONF_ENV = \
+	CFLAGS="$(TARGET_CFLAGS) -std=gnu17" \
 	HOST_CFLAGS="$(HOST_CFLAGS)" \
 	HOST_CXXFLAGS="$(HOST_CXXFLAGS) -DFORCE_$(BR2_ENDIAN)_ENDIAN" \
 	$(if $(BR2_powerpc)$(BR2_x86_64),ac_cv_va_val_copy=no)
