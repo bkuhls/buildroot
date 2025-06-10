@@ -1,0 +1,24 @@
+From a2c38bd84c908d95fed2abb3824d3b14bf6820f9 Mon Sep 17 00:00:00 2001
+From: fuzzard <fuzzard@kodi.tv>
+Date: Sat, 21 Jun 2025 14:28:37 +1000
+Subject: [PATCH] [cmake] FindZLIB limit ZLIB_USE_STATIC_LIBS to depends build
+ platforms
+
+---
+ cmake/modules/FindZLIB.cmake | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+
+diff --git a/cmake/modules/FindZLIB.cmake b/cmake/modules/FindZLIB.cmake
+index a8e0e011de36a..15850fd595b5f 100644
+--- a/cmake/modules/FindZLIB.cmake
++++ b/cmake/modules/FindZLIB.cmake
+@@ -26,8 +26,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+   # Darwin platforms link against toolchain provided zlib regardless
+   # They will fail when searching for static. All other platforms, prefer static
+   # if possible (requires cmake 3.24+ otherwise variable is a no-op)
+-  # Windows still uses dynamic lib for zlib for other purposes, dont mix
+-  if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT (WIN32 OR WINDOWS_STORE))
++  if(KODI_DEPENDSBUILD AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
+     set(ZLIB_USE_STATIC_LIBS ON)
+   endif()
+ 
