@@ -8,7 +8,7 @@
 # and kodi-texturepacker
 KODI_VERSION_MAJOR = 21.2
 KODI_VERSION_NAME = Omega
-KODI_VERSION = $(KODI_VERSION_MAJOR)-$(KODI_VERSION_NAME)
+KODI_VERSION = 93eeae9b860a6f0dff4942be0e714f5d10ce2fa4
 KODI_SITE = $(call github,xbmc,xbmc,$(KODI_VERSION))
 KODI_LICENSE = GPL-2.0
 KODI_LICENSE_FILES = LICENSE.md
@@ -19,6 +19,7 @@ KODI_INSTALL_STAGING = YES
 # kodi recommends building out-of-source
 KODI_SUPPORTS_IN_SOURCE_BUILD = NO
 KODI_DEPENDENCIES = \
+	exiv2 \
 	ffmpeg \
 	flatbuffers \
 	fmt \
@@ -36,6 +37,7 @@ KODI_DEPENDENCIES = \
 	host-swig \
 	host-xmlstarlet \
 	jpeg \
+	json-for-modern-cpp \
 	libass \
 	libcdio \
 	libcrossguid \
@@ -49,7 +51,6 @@ KODI_DEPENDENCIES = \
 	openssl \
 	pcre \
 	python3 \
-	rapidjson \
 	spdlog \
 	sqlite \
 	taglib \
@@ -87,7 +88,6 @@ KODI_CONF_OPTS += \
 	-DWITH_FFMPEG=$(STAGING_DIR)/usr \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DFLATBUFFERS_FLATC_EXECUTABLE=$(HOST_DIR)/bin/flatc \
-	-DENABLE_INTERNAL_RapidJSON=OFF \
 	-DENABLE_INTERNAL_SPDLOG=OFF \
 	-DKODI_DEPENDSBUILD=OFF \
 	-DENABLE_GOLD=OFF \

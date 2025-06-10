@@ -1,0 +1,165 @@
+From 254a79d5ab8a6f6184519829d7f66aabea3adc90 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Tue, 10 Jun 2025 23:49:44 +0200
+Subject: [PATCH 1/1] Revert "[cmake] Rename FindZlib to FindZLIB"
+
+This reverts commit f28c2c2e9721ade3dd98130ed0d7d647bc1e83eb.
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ cmake/modules/FindCurl.cmake                     | 6 +++---
+ cmake/modules/FindExiv2.cmake                    | 8 ++++----
+ cmake/modules/FindLibZip.cmake                   | 8 ++++----
+ cmake/modules/FindTagLib.cmake                   | 4 ++--
+ cmake/modules/{FindZLIB.cmake => FindZlib.cmake} | 4 ++--
+ 5 files changed, 15 insertions(+), 15 deletions(-)
+ rename cmake/modules/{FindZLIB.cmake => FindZlib.cmake} (92%)
+
+diff --git a/cmake/modules/FindCurl.cmake b/cmake/modules/FindCurl.cmake
+index 2280e47f04..495f7fa5f2 100644
+--- a/cmake/modules/FindCurl.cmake
++++ b/cmake/modules/FindCurl.cmake
+@@ -22,7 +22,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+     if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT (WIN32 OR WINDOWS_STORE))
+       set(ZLIB_USE_STATIC_LIBS ON)
+     endif()
+-    find_package(ZLIB REQUIRED ${SEARCH_QUIET})
++    find_package(Zlib REQUIRED ${SEARCH_QUIET})
+     unset(ZLIB_USE_STATIC_LIBS)
+ 
+     set(CURL_VERSION ${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_VER})
+@@ -60,14 +60,14 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+                                                                     LIBRARY::NGHttp2
+                                                                     OpenSSL::Crypto
+                                                                     OpenSSL::SSL
+-                                                                    LIBRARY::ZLIB)
++                                                                    LIBRARY::Zlib)
+ 
+     # Add dependencies to build target
+     add_dependencies(${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_BUILD_NAME} LIBRARY::Brotli
+                                                                         LIBRARY::NGHttp2
+                                                                         OpenSSL::SSL
+                                                                         OpenSSL::Crypto
+-                                                                        LIBRARY::ZLIB)
++                                                                        LIBRARY::Zlib)
+   endmacro()
+ 
+   # If there is a potential this library can be built internally
+diff --git a/cmake/modules/FindExiv2.cmake b/cmake/modules/FindExiv2.cmake
+index 93e1b509c3..fef70d1f1a 100644
+--- a/cmake/modules/FindExiv2.cmake
++++ b/cmake/modules/FindExiv2.cmake
+@@ -12,7 +12,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+   macro(buildmacroExiv2)
+     find_package(Brotli REQUIRED ${SEARCH_QUIET})
+     find_package(Iconv REQUIRED ${SEARCH_QUIET})
+-    find_package(ZLIB REQUIRED ${SEARCH_QUIET})
++    find_package(Zlib REQUIRED ${SEARCH_QUIET})
+ 
+     # Patch pending review upstream (https://github.com/Exiv2/exiv2/pull/3004)
+     set(patches "${CMAKE_SOURCE_DIR}/tools/depends/target/${${CMAKE_FIND_PACKAGE_NAME}_MODULE_LC}/0001-WIN-lib-postfix.patch")
+@@ -56,7 +56,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+     # Link libraries for target interface
+     set(${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_LINK_LIBRARIES LIBRARY::Brotli
+                                                             LIBRARY::Iconv
+-                                                            LIBRARY::ZLIB)
++                                                            LIBRARY::Zlib)
+ 
+     if(CORE_SYSTEM_NAME STREQUAL "freebsd")
+       list(APPEND ${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_LINK_LIBRARIES procstat)
+@@ -67,7 +67,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+     # Add dependencies to build target
+     add_dependencies(${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_BUILD_NAME} LIBRARY::Brotli
+                                                                         LIBRARY::Iconv
+-                                                                        LIBRARY::ZLIB)
++                                                                        LIBRARY::Zlib)
+   endmacro()
+ 
+   include(cmake/scripts/common/ModuleHelpers.cmake)
+@@ -79,7 +79,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+     # Dependency list of this find module for an INTERNAL build
+     set(${CMAKE_FIND_PACKAGE_NAME}_DEPLIST Brotli
+                                            Iconv
+-                                           ZLIB)
++                                           Zlib)
+ 
+     check_dependency_build(${CMAKE_FIND_PACKAGE_NAME} "${${CMAKE_FIND_PACKAGE_NAME}_DEPLIST}")
+   endif()
+diff --git a/cmake/modules/FindLibZip.cmake b/cmake/modules/FindLibZip.cmake
+index ff5c162b43..77e1a8826b 100644
+--- a/cmake/modules/FindLibZip.cmake
++++ b/cmake/modules/FindLibZip.cmake
+@@ -22,7 +22,7 @@ find_package(libzip ${CONFIG_${CMAKE_FIND_PACKAGE_NAME}_FIND_SPEC} CONFIG ${SEAR
+ if(libzip_VERSION VERSION_LESS ${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_VER})
+   # Check for dependencies
+   find_package(GnuTLS REQUIRED ${SEARCH_QUIET})
+-  find_package(ZLIB REQUIRED ${SEARCH_QUIET})
++  find_package(Zlib REQUIRED ${SEARCH_QUIET})
+ 
+   # Eventually we will want Find modules for the following deps
+   # bzip2 
+@@ -38,9 +38,9 @@ if(libzip_VERSION VERSION_LESS ${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_VER})
+   BUILD_DEP_TARGET()
+ 
+   # Todo: Gnutls dependency
+-  add_dependencies(${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_BUILD_NAME} LIBRARY::ZLIB)
++  add_dependencies(${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_BUILD_NAME} LIBRARY::Zlib)
+ 
+-  set(${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_LINK_LIBRARIES LIBRARY::ZLIB)
++  set(${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_LINK_LIBRARIES LIBRARY::Zlib)
+ else()
+   # we only do this because we use find_package_handle_standard_args for config time output
+   # and it isnt capable of handling TARGETS, so we have to extract the info
+@@ -87,7 +87,7 @@ if(LibZip_FOUND)
+     # BZip2::BZip2, LibLZMA::LibLZMA, GnuTLS::GnuTLS, Nettle::Nettle
+     # For now, we just override 
+     set_target_properties(libzip::zip PROPERTIES
+-                                      INTERFACE_LINK_LIBRARIES "LIBRARY::ZLIB")
++                                      INTERFACE_LINK_LIBRARIES "LIBRARY::Zlib")
+   else()
+     SETUP_BUILD_TARGET()
+ 
+diff --git a/cmake/modules/FindTagLib.cmake b/cmake/modules/FindTagLib.cmake
+index a86db9602d..b8709325a2 100644
+--- a/cmake/modules/FindTagLib.cmake
++++ b/cmake/modules/FindTagLib.cmake
+@@ -46,9 +46,9 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+   
+     BUILD_DEP_TARGET()
+   
+-    add_dependencies(${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_BUILD_NAME} LIBRARY::ZLIB
++    add_dependencies(${${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_BUILD_NAME} LIBRARY::Zlib
+                                                                         LIBRARY::Utfcpp)
+-    set(${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_LINK_LIBRARIES "LIBRARY::ZLIB")
++    set(${${CMAKE_FIND_PACKAGE_NAME}_MODULE}_LINK_LIBRARIES "LIBRARY::Zlib")
+   endmacro()
+ 
+   # If there is a potential this library can be built internally
+diff --git a/cmake/modules/FindZLIB.cmake b/cmake/modules/FindZlib.cmake
+similarity index 92%
+rename from cmake/modules/FindZLIB.cmake
+rename to cmake/modules/FindZlib.cmake
+index a8e0e011de..44b896aedb 100644
+--- a/cmake/modules/FindZLIB.cmake
++++ b/cmake/modules/FindZlib.cmake
+@@ -6,7 +6,7 @@
+ #
+ #   ${APP_NAME_LC}::ZLIB - Alias to ZLIB::ZLIB target
+ #   LIBRARY::ZLIB - Alias to ZLIB::ZLIB target
+-#   ZLIB::ZLIB - standard ZLIB target from system find package
++#   ZLIB::ZLIB - standard Zlib target from system find package
+ #
+ 
+ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+@@ -46,7 +46,7 @@ if(NOT TARGET ${APP_NAME_LC}::${CMAKE_FIND_PACKAGE_NAME})
+     mark_as_advanced(ZLIB_FOUND)
+   else()
+     if(ZLIB_FIND_REQUIRED)
+-      message(FATAL_ERROR "ZLIB libraries were not found.")
++      message(FATAL_ERROR "Zlib libraries were not found.")
+     endif()
+   endif()
+ endif()
+-- 
+2.39.5
+
