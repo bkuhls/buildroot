@@ -6,8 +6,8 @@
 
 # When updating the version, please also update kodi-jsonschemabuilder
 # and kodi-texturepacker
-KODI_VERSION_MAJOR = 21.3
-KODI_VERSION_NAME = Omega
+KODI_VERSION_MAJOR = 22.0b2
+KODI_VERSION_NAME = Piers
 KODI_VERSION = $(KODI_VERSION_MAJOR)-$(KODI_VERSION_NAME)
 KODI_SITE = $(call github,xbmc,xbmc,$(KODI_VERSION))
 KODI_LICENSE = GPL-2.0
@@ -19,6 +19,7 @@ KODI_INSTALL_STAGING = YES
 # kodi recommends building out-of-source
 KODI_SUPPORTS_IN_SOURCE_BUILD = NO
 KODI_DEPENDENCIES = \
+	exiv2 \
 	ffmpeg \
 	flatbuffers \
 	fmt \
@@ -37,8 +38,8 @@ KODI_DEPENDENCIES = \
 	host-swig \
 	host-xmlstarlet \
 	jpeg \
+	json-for-modern-cpp \
 	libass \
-	libcdio \
 	libcrossguid \
 	libcurl \
 	libdrm \
@@ -50,7 +51,6 @@ KODI_DEPENDENCIES = \
 	openssl \
 	pcre2 \
 	python3 \
-	rapidjson \
 	spdlog \
 	sqlite \
 	taglib \
@@ -59,19 +59,19 @@ KODI_DEPENDENCIES = \
 	zlib
 
 # taken from tools/depends/target/*/*-VERSION
-KODI_APACHE_GROOVY_VERSION = 4.0.26
-KODI_COMMONS_LANG3_VERSION = 3.17.0
-KODI_COMMONS_TEXT_VERSION = 1.13.0
-KODI_LIBDVDCSS_VERSION = 1.4.3-Next-Nexus-Alpha2-2
-KODI_LIBDVDNAV_VERSION = 6.1.1-Next-Nexus-Alpha2-2
-KODI_LIBDVDREAD_VERSION = 6.1.3-Next-Nexus-Alpha2-2
+KODI_APACHE_GROOVY_VERSION = 4.0.30
+KODI_COMMONS_LANG3_VERSION = 3.20.0
+KODI_COMMONS_TEXT_VERSION = 1.15.0
+KODI_LIBDVDCSS_VERSION = 1.5.0
+KODI_LIBDVDNAV_VERSION = 7.0.0
+KODI_LIBDVDREAD_VERSION = 7.0.1
 KODI_EXTRA_DOWNLOADS += \
 	https://groovy.jfrog.io/artifactory/dist-release-local/groovy-zips/apache-groovy-binary-$(KODI_APACHE_GROOVY_VERSION).zip \
 	https://archive.apache.org/dist/commons/lang/binaries/commons-lang3-$(KODI_COMMONS_LANG3_VERSION)-bin.tar.gz \
 	https://archive.apache.org/dist/commons/text/binaries/commons-text-$(KODI_COMMONS_TEXT_VERSION)-bin.tar.gz \
-	$(call github,xbmc,libdvdcss,$(KODI_LIBDVDCSS_VERSION))/kodi-libdvdcss-$(KODI_LIBDVDCSS_VERSION).tar.gz \
-	$(call github,xbmc,libdvdnav,$(KODI_LIBDVDNAV_VERSION))/kodi-libdvdnav-$(KODI_LIBDVDNAV_VERSION).tar.gz \
-	$(call github,xbmc,libdvdread,$(KODI_LIBDVDREAD_VERSION))/kodi-libdvdread-$(KODI_LIBDVDREAD_VERSION).tar.gz
+	https://mirrors.kodi.tv/build-deps/sources/libdvdcss-$(KODI_LIBDVDCSS_VERSION).tar.bz2 \
+	https://mirrors.kodi.tv/build-deps/sources/libdvdread-$(KODI_LIBDVDREAD_VERSION).tar.bz2 \
+	https://mirrors.kodi.tv/build-deps/sources/libdvdnav-$(KODI_LIBDVDNAV_VERSION).tar.bz2
 
 define KODI_PROVIDE_JAVA_TARBALLS
 	mkdir -p $(@D)/buildroot-build/build/download
@@ -88,10 +88,9 @@ KODI_CONF_OPTS += \
 	-DENABLE_CCACHE=OFF \
 	-DENABLE_DVDCSS=ON \
 	-DENABLE_INTERNAL_CROSSGUID=OFF \
-	-DWITH_FFMPEG=$(STAGING_DIR)/usr \
+	-DFFMPEG_PATH=$(STAGING_DIR)/usr \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DFLATBUFFERS_FLATC_EXECUTABLE=$(HOST_DIR)/bin/flatc \
-	-DENABLE_INTERNAL_RapidJSON=OFF \
 	-DENABLE_INTERNAL_SPDLOG=OFF \
 	-DKODI_DEPENDSBUILD=OFF \
 	-DENABLE_GOLD=OFF \
@@ -100,17 +99,16 @@ KODI_CONF_OPTS += \
 	-DNATIVEPREFIX=$(HOST_DIR) \
 	-DDEPENDS_PATH=$(STAGING_DIR)/usr \
 	-DENABLE_TESTING=OFF \
-	-DENABLE_DEBUGFISSION=OFF \
 	-DJAVA_HOME=$(HOST_OPENJDK_BIN_ROOT_DIR) \
 	-DPYTHON_EXECUTABLE=$(HOST_DIR)/bin/python \
-	-DPYTHON_INCLUDE_DIRS=$(STAGING_DIR)/usr/include/python$(PYTHON3_VERSION_MAJOR) \
 	-DPYTHON_PATH=$(STAGING_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR) \
 	-DPYTHON_VER=$(PYTHON3_VERSION_MAJOR) \
+	-DVERBOSE_FIND=ON \
 	-DWITH_JSONSCHEMABUILDER=$(HOST_DIR)/bin/ \
 	-DWITH_TEXTUREPACKER=$(HOST_DIR)/bin/ \
-	-DLIBDVDCSS_URL=$(KODI_DL_DIR)/kodi-libdvdcss-$(KODI_LIBDVDCSS_VERSION).tar.gz \
-	-DLIBDVDNAV_URL=$(KODI_DL_DIR)/kodi-libdvdnav-$(KODI_LIBDVDNAV_VERSION).tar.gz \
-	-DLIBDVDREAD_URL=$(KODI_DL_DIR)/kodi-libdvdread-$(KODI_LIBDVDREAD_VERSION).tar.gz
+	-DLIBDVDCSS_URL=$(KODI_DL_DIR)/libdvdcss-$(KODI_LIBDVDCSS_VERSION).tar.bz2 \
+	-DLIBDVDNAV_URL=$(KODI_DL_DIR)/libdvdnav-$(KODI_LIBDVDNAV_VERSION).tar.bz2 \
+	-DLIBDVDREAD_URL=$(KODI_DL_DIR)/libdvdread-$(KODI_LIBDVDREAD_VERSION).tar.bz2
 
 ifeq ($(BR2_PACKAGE_KODI_RENDER_SYSTEM_GL),y)
 KODI_CONF_OPTS += -DAPP_RENDER_SYSTEM=gl
@@ -371,6 +369,7 @@ KODI_CONF_OPTS += -DENABLE_UPNP=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_KODI_OPTICALDRIVE),y)
+KODI_DEPENDENCIES += libcdio
 KODI_CONF_OPTS += -DENABLE_OPTICAL=ON
 else
 KODI_CONF_OPTS += -DENABLE_OPTICAL=OFF
