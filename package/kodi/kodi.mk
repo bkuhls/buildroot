@@ -6,8 +6,8 @@
 
 # When updating the version, please also update kodi-jsonschemabuilder
 # and kodi-texturepacker
-KODI_VERSION_MAJOR = 21.3
-KODI_VERSION_NAME = Omega
+KODI_VERSION_MAJOR = 22.0a2
+KODI_VERSION_NAME = Piers
 KODI_VERSION = $(KODI_VERSION_MAJOR)-$(KODI_VERSION_NAME)
 KODI_SITE = $(call github,xbmc,xbmc,$(KODI_VERSION))
 KODI_LICENSE = GPL-2.0
@@ -19,6 +19,7 @@ KODI_INSTALL_STAGING = YES
 # kodi recommends building out-of-source
 KODI_SUPPORTS_IN_SOURCE_BUILD = NO
 KODI_DEPENDENCIES = \
+	exiv2 \
 	ffmpeg \
 	flatbuffers \
 	fmt \
@@ -36,8 +37,8 @@ KODI_DEPENDENCIES = \
 	host-swig \
 	host-xmlstarlet \
 	jpeg \
+	json-for-modern-cpp \
 	libass \
-	libcdio \
 	libcrossguid \
 	libcurl \
 	libdrm \
@@ -47,9 +48,8 @@ KODI_DEPENDENCIES = \
 	libpng \
 	lzo \
 	openssl \
-	pcre \
+	pcre2 \
 	python3 \
-	rapidjson \
 	spdlog \
 	sqlite \
 	taglib \
@@ -90,7 +90,6 @@ KODI_CONF_OPTS += \
 	-DWITH_FFMPEG=$(STAGING_DIR)/usr \
 	-DENABLE_INTERNAL_FLATBUFFERS=OFF \
 	-DFLATBUFFERS_FLATC_EXECUTABLE=$(HOST_DIR)/bin/flatc \
-	-DENABLE_INTERNAL_RapidJSON=OFF \
 	-DENABLE_INTERNAL_SPDLOG=OFF \
 	-DKODI_DEPENDSBUILD=OFF \
 	-DENABLE_GOLD=OFF \
@@ -99,11 +98,10 @@ KODI_CONF_OPTS += \
 	-DNATIVEPREFIX=$(HOST_DIR) \
 	-DDEPENDS_PATH=$(STAGING_DIR)/usr \
 	-DENABLE_TESTING=OFF \
-	-DENABLE_DEBUGFISSION=OFF \
 	-DPYTHON_EXECUTABLE=$(HOST_DIR)/bin/python \
-	-DPYTHON_INCLUDE_DIRS=$(STAGING_DIR)/usr/include/python$(PYTHON3_VERSION_MAJOR) \
 	-DPYTHON_PATH=$(STAGING_DIR)/usr/lib/python$(PYTHON3_VERSION_MAJOR) \
 	-DPYTHON_VER=$(PYTHON3_VERSION_MAJOR) \
+	-DVERBOSE_FIND=ON \
 	-DWITH_JSONSCHEMABUILDER=$(HOST_DIR)/bin/ \
 	-DWITH_TEXTUREPACKER=$(HOST_DIR)/bin/ \
 	-DLIBDVDCSS_URL=$(KODI_DL_DIR)/kodi-libdvdcss-$(KODI_LIBDVDCSS_VERSION).tar.gz \
@@ -368,6 +366,7 @@ KODI_CONF_OPTS += -DENABLE_UPNP=OFF
 endif
 
 ifeq ($(BR2_PACKAGE_KODI_OPTICALDRIVE),y)
+KODI_DEPENDENCIES += libcdio
 KODI_CONF_OPTS += -DENABLE_OPTICAL=ON
 else
 KODI_CONF_OPTS += -DENABLE_OPTICAL=OFF
