@@ -35,6 +35,10 @@ else
 NTP_CONF_OPTS += --without-crypto --disable-openssl-random
 endif
 
+ifeq ($(BR2_TOOLCHAIN_HAS_LIBATOMIC),y)
+NTP_CONF_OPTS += --enable-libatomic
+endif
+
 ifeq ($(BR2_TOOLCHAIN_HAS_SSP),y)
 NTP_CONF_OPTS += --with-hardenfile=linux
 else

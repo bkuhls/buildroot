@@ -1,0 +1,33 @@
+Add support for libatomic
+
+Upstream: https://bugs.ntp.org/show_bug.cgi?id=3985
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+
+diff -uNr ntp-4.2.8p18.orig/sntp/m4/ntp_libntp.m4 ntp-4.2.8p18/sntp/m4/ntp_libntp.m4
+--- ntp-4.2.8p18.orig/sntp/m4/ntp_libntp.m4	2024-05-07 13:21:13.000000000 +0200
++++ ntp-4.2.8p18/sntp/m4/ntp_libntp.m4	2025-06-21 10:14:58.090815230 +0200
+@@ -656,6 +656,23 @@
+     ;;
+ esac
+ 
++AC_ARG_ENABLE(
++    [libatomic],
++    [AS_HELP_STRING(
++	[--enable-libatomic],
++	[+ Compiler needs libatomic]
++    )],
++    [ntp_have_libatomic=$enableval]
++)
++
++AC_MSG_RESULT([$ntp_have_libatomic])
++
++case "$ntp_have_libatomic" in
++ yes)
++    LIBS="$LIBS -latomic"
++    ;;
++esac
++
+ 
+ AC_CHECK_HEADERS([priv.h])
+ case "$ac_cv_header_priv_h" in
