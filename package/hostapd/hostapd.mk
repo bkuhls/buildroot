@@ -4,8 +4,9 @@
 #
 ################################################################################
 
-HOSTAPD_VERSION = 2.11
-HOSTAPD_SITE = http://w1.fi/releases
+HOSTAPD_VERSION = ea08700a762f13c415e319993720bed83ad9aa2c
+HOSTAPD_SITE = https://w1.fi/hostap.git
+HOSTAPD_SITE_METHOD = git
 HOSTAPD_SUBDIR = hostapd
 HOSTAPD_CONFIG = $(HOSTAPD_DIR)/$(HOSTAPD_SUBDIR)/.config
 HOSTAPD_DEPENDENCIES = host-pkgconf
@@ -57,7 +58,6 @@ endif
 ifeq ($(BR2_PACKAGE_HOSTAPD_HAS_WIFI_DRIVERS),y)
 HOSTAPD_CONFIG_ENABLE += \
 	CONFIG_HS20 \
-	CONFIG_IEEE80211BE \
 	CONFIG_IEEE80211AX \
 	CONFIG_IEEE80211AC \
 	CONFIG_IEEE80211N \
