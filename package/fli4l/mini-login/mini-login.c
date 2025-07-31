@@ -23,15 +23,15 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/utsname.h>
-#include <termio.h>
+#include <termios.h>
 #include <fcntl.h>
 
 #include <crypt.h>
 
 #define LINE_LEN 80
 
-static struct termio    oldmode;
-static struct termio    newmode;
+static struct termios    oldmode;
+static struct termios    newmode;
 static char linebuf[LINE_LEN + 1];
 static int centred = 0;
 
