@@ -1,0 +1,11 @@
+--- a/sapi/apache2handler/config.m4	2025-08-11 19:38:32.371113101 +0200
++++ a/sapi/apache2handler/config.m4	2025-08-11 19:52:34.563110580 +0200
+@@ -32,7 +32,7 @@
+   fi
+ 
+   APXS_INCLUDEDIR=$($APXS -q INCLUDEDIR)
+-  APXS_HTTPD=$($APXS -q SBINDIR)/$($APXS -q TARGET)
++  APXS_HTTPD=$($APXS -q APU_BINDIR)/$($APXS -q TARGET)
+   AS_IF([test ! -x "$APXS_HTTPD"], [AC_MSG_ERROR(m4_text_wrap([
+     $APXS_HTTPD executable not found. Please, install Apache HTTP Server
+     command-line utility.
