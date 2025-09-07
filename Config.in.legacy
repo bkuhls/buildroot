@@ -351,6 +351,14 @@ config BR2_LINUX_KERNEL_EXT_EV3DEV_LINUX_DRIVERS
 
 comment "Legacy options removed in 2025.08"
 
+config BR2_PACKAGE_BELLE_SIP
+	bool "belle-sip has been removed"
+	select BR2_LEGACY
+	help
+	  This package has been removed as part of the linphone
+	  removal. In addition, newer version of linphone directly
+	  bundle belle-sip making a separate package unnecessary.
+
 config BR2_PACKAGE_LINPHONE
 	bool "linphone has been removed"
 	select BR2_LEGACY
