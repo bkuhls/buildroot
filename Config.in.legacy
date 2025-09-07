@@ -351,6 +351,14 @@ config BR2_LINUX_KERNEL_EXT_EV3DEV_LINUX_DRIVERS
 
 comment "Legacy options removed in 2025.08"
 
+config BR2_PACKAGE_LINPHONE
+	bool "linphone has been removed"
+	select BR2_LEGACY
+	help
+	  This package was no longer maintained in Buildroot and was
+	  no longer building. It can be re-added if someone volunteers
+	  to fix the issues, update the package and maintain it.
+
 config BR2_PACKAGE_NETSTAT_NAT
 	bool "netstat-nat has been removed"
 	select BR2_LEGACY
