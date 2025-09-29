@@ -1,0 +1,4 @@
+# From https://ftp.postgresql.org/pub/source/v16.10/postgresql-16.10.tar.bz2.sha256
+sha256  de8485f4ce9c32e3ddfeef0b7c261eed1cecb54c9bcd170e437ff454cb292b42  postgresql-16.10.tar.bz2
+# License file, Locally calculated
+sha256  5ed3ce5c9373dff7f98b1fae7a6c7ccd98df7d734d46d24c1bcebf1240be8307  COPYRIGHT
