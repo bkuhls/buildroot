@@ -57,6 +57,7 @@ DOVECOT_CONF_OPTS += --without-bzlib
 endif
 
 ifeq ($(BR2_PACKAGE_ICU),y)
+DOVECOT_CONF_ENV += LDFLAGS="$(TARGET_LDFLAGS) -licuuc"
 DOVECOT_CONF_OPTS += --with-icu
 DOVECOT_DEPENDENCIES += icu
 else
