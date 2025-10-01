@@ -1,0 +1,62 @@
+From c066c118e03d31ed579be8d3e6de75cc8ae6c77b Mon Sep 17 00:00:00 2001
+From: Stephan Sundermann <stephansundermann@gmail.com>
+Date: Sat, 4 Oct 2025 21:04:43 +0200
+Subject: [PATCH 1/2] [ffmpeg] Fix compilation without libpostproc
+
+---
+ xbmc/cores/FFmpeg.h                                            | 1 -
+ xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp | 3 ++-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/xbmc/cores/FFmpeg.h b/xbmc/cores/FFmpeg.h
+index d0d1cd27b4336..79c9df40253cf 100644
+--- a/xbmc/cores/FFmpeg.h
++++ b/xbmc/cores/FFmpeg.h
+@@ -18,7 +18,6 @@ extern "C" {
+ #include <libavutil/log.h>
+ #include <libavutil/ffversion.h>
+ #include <libavfilter/avfilter.h>
+-#include <libpostproc/postprocess.h>
+ }
+ 
+ #include <tuple>
+diff --git a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
+index a351b7150562b..737ce43d36764 100644
+--- a/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
++++ b/xbmc/cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodecFFmpeg.cpp
+@@ -311,8 +311,9 @@ enum AVPixelFormat CDVDVideoCodecFFmpeg::GetFormat(struct AVCodecContext * avctx
+ 
+ CDVDVideoCodecFFmpeg::CDVDVideoCodecFFmpeg(CProcessInfo& processInfo)
+   : CDVDVideoCodec(processInfo),
+-    m_videoBufferPool(std::make_shared<CVideoBufferPoolFFmpeg>()),
++    m_videoBufferPool(std::make_shared<CVideoBufferPoolFFmpeg>())
+ #ifdef HAVE_LIBPOSTPROC
++    ,
+     m_postProc(std::make_unique<CDVDVideoPPFFmpeg>(processInfo))
+ #endif
+ {
+
+From 71dae53b63eb2c19b6226db0fcfa00af999a2698 Mon Sep 17 00:00:00 2001
+From: Stephan Sundermann <stephansundermann@gmail.com>
+Date: Sat, 4 Oct 2025 21:05:07 +0200
+Subject: [PATCH 2/2] [ffmpeg] Disable gui options without libpostproc
+
+---
+ xbmc/cores/VideoPlayer/VideoPlayer.cpp | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/xbmc/cores/VideoPlayer/VideoPlayer.cpp b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+index ebbe72445131a..322ac40e1e333 100644
+--- a/xbmc/cores/VideoPlayer/VideoPlayer.cpp
++++ b/xbmc/cores/VideoPlayer/VideoPlayer.cpp
+@@ -5268,6 +5268,10 @@ bool CVideoPlayer::Supports(ESCALINGMETHOD method) const
+ 
+ bool CVideoPlayer::Supports(ERENDERFEATURE feature) const
+ {
++#ifndef HAVE_LIBPOSTPROC
++  if (feature == RENDERFEATURE_POSTPROCESS)
++    return false;
++#endif
+   return m_renderManager.Supports(feature);
+ }
+ 
