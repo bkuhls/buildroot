@@ -1,0 +1,46 @@
+From 13dd1847fc690dde05ded6595057c67e5183f3af Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Thu, 2 Oct 2025 23:18:34 +0200
+Subject: [PATCH] libav: fix build with ffmpeg 8.0
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ encoder/libav_encoder.cpp | 8 ++++----
+ 1 file changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/encoder/libav_encoder.cpp b/encoder/libav_encoder.cpp
+index 10c00e0..bc708e9 100644
+--- a/encoder/libav_encoder.cpp
++++ b/encoder/libav_encoder.cpp
+@@ -24,12 +24,12 @@ namespace {
+ void encoderOptionsGeneral(VideoOptions const *options, AVCodecContext *codec)
+ {
+ 	codec->framerate = { (int)(options->Get().framerate.value_or(DEFAULT_FRAMERATE) * 1000), 1000 };
+-	codec->profile = FF_PROFILE_UNKNOWN;
++	codec->profile = AV_PROFILE_UNKNOWN;
+ 
+ 	if (!options->Get().profile.empty())
+ 	{
+ 		const AVCodecDescriptor *desc = avcodec_descriptor_get(codec->codec_id);
+-		for (const AVProfile *profile = desc->profiles; profile && profile->profile != FF_PROFILE_UNKNOWN; profile++)
++		for (const AVProfile *profile = desc->profiles; profile && profile->profile != AV_PROFILE_UNKNOWN; profile++)
+ 		{
+ 			if (!strncasecmp(options->Get().profile.c_str(), profile->name, options->Get().profile.size()))
+ 			{
+@@ -37,11 +37,11 @@ void encoderOptionsGeneral(VideoOptions const *options, AVCodecContext *codec)
+ 				break;
+ 			}
+ 		}
+-		if (codec->profile == FF_PROFILE_UNKNOWN)
++		if (codec->profile == AV_PROFILE_UNKNOWN)
+ 			throw std::runtime_error("libav: no such profile " + options->Get().profile);
+ 	}
+ 
+-	codec->level = options->Get().level.empty() ? FF_LEVEL_UNKNOWN : std::stof(options->Get().level) * 10;
++	codec->level = options->Get().level.empty() ? AV_LEVEL_UNKNOWN : std::stof(options->Get().level) * 10;
+ 	codec->gop_size = options->Get().intra ? options->Get().intra
+ 										   : (int)(options->Get().framerate.value_or(DEFAULT_FRAMERATE));
+ 
+-- 
+2.47.3
+
