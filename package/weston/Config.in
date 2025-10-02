@@ -43,15 +43,6 @@ config BR2_PACKAGE_WESTON_DEFAULT_HEADLESS
 	bool "headless"
 	select BR2_PACKAGE_WESTON_HEADLESS
 
-config BR2_PACKAGE_WESTON_DEFAULT_RDP
-	bool "rdp"
-	depends on BR2_USE_MMU # freerdp, libglib2
-	depends on BR2_TOOLCHAIN_HAS_SYNC_4
-	depends on BR2_USE_WCHAR # freerdp
-	depends on BR2_INSTALL_LIBSTDCPP # freerdp
-	depends on BR2_PACKAGE_XORG7 # freerdp-server
-	select BR2_PACKAGE_WESTON_RDP
-
 config BR2_PACKAGE_WESTON_DEFAULT_WAYLAND
 	bool "wayland (nested)"
 	select BR2_PACKAGE_WESTON_WAYLAND
@@ -70,41 +61,11 @@ config BR2_PACKAGE_WESTON_DEFAULT_COMPOSITOR
 	string
 	default "drm"      if BR2_PACKAGE_WESTON_DEFAULT_DRM
 	default "headless" if BR2_PACKAGE_WESTON_DEFAULT_HEADLESS
-	default "rdp"      if BR2_PACKAGE_WESTON_DEFAULT_RDP
 	default "wayland"  if BR2_PACKAGE_WESTON_DEFAULT_WAYLAND
 	default "x11"      if BR2_PACKAGE_WESTON_DEFAULT_X11
 
 config BR2_PACKAGE_WESTON_DRM
 	bool "DRM compositor"
-
-# FreeRDP needs threads and !static, already the case for weston
-config BR2_PACKAGE_WESTON_RDP
-	bool "RDP compositor"
-	depends on BR2_USE_MMU # freerdp, libglib2
-	depends on BR2_TOOLCHAIN_HAS_SYNC_4
-	depends on BR2_USE_WCHAR # freerdp
-	depends on BR2_INSTALL_LIBSTDCPP # freerdp
-	depends on BR2_PACKAGE_XORG7 # freerdp-server
-	select BR2_PACKAGE_FREERDP
-	select BR2_PACKAGE_FREERDP_SERVER
-	help
-	  This enables the RDP backend, which allows accessing weston
-	  through the network with any RDP-compliant client.
-
-	  Please note that one must pass those options to weston for RDP
-	  to be functional:
-	    --rdp-tls-cert=/path/to/server.crt
-	    --rdp-tls-key=/path/to/server.key
-
-	  By default, Buildroot installs such files in
-	  /etc/freerdp/server/ so you may want to change them in a
-	  post-build script or a rootfs overlay.
-
-comment "RDP compositor needs a toolchain w/ wchar, C++, X.org"
-	depends on BR2_USE_MMU
-	depends on BR2_TOOLCHAIN_HAS_SYNC_4
-	depends on !BR2_USE_WCHAR || !BR2_INSTALL_LIBSTDCPP || \
-		!BR2_PACKAGE_XORG7
 
 config BR2_PACKAGE_WESTON_HEADLESS
 	bool "headless (testing) compositor"
