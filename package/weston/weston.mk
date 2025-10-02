@@ -19,6 +19,7 @@ WESTON_DEPENDENCIES = host-pkgconf wayland wayland-protocols \
 WESTON_CONF_OPTS = \
 	-Ddoc=false \
 	-Dremoting=false \
+	-Dbackend-rdp=false \
 	-Dbackend-vnc=false \
 	-Dtools=calibrator,debug,info,terminal,touch-calibrator
 
@@ -71,13 +72,6 @@ WESTON_CONF_OPTS += \
 endif
 
 WESTON_CONF_OPTS += -Dsimple-clients=$(subst $(space),$(comma),$(strip $(WESTON_SIMPLE_CLIENTS)))
-
-ifeq ($(BR2_PACKAGE_WESTON_RDP),y)
-WESTON_DEPENDENCIES += freerdp
-WESTON_CONF_OPTS += -Dbackend-rdp=true
-else
-WESTON_CONF_OPTS += -Dbackend-rdp=false
-endif
 
 ifeq ($(BR2_PACKAGE_WESTON_DRM),y)
 WESTON_CONF_OPTS += -Dbackend-drm=true
