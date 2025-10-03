@@ -3404,7 +3404,6 @@ F:	configs/stm32f746_disco_sd_defconfig
 F:	package/asterisk/
 F:	package/evilwm/
 F:	package/fbv/
-F:	package/libjwt/
 F:	package/mksh/
 F:	package/ruby/
 F:	package/uclibc/
