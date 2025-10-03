@@ -173,6 +173,14 @@ config BR2_PACKAGE_LIBBSON
 	help
 	  libbson is officially deprecated upstream and has been removed
 
+config BR2_PACKAGE_LIBJWT
+	bool "libjwt has been removed"
+	select BR2_LEGACY
+	help
+	  The only dependee of libjwt, asterisk, is incompatible with
+	  version 3 so the version bundled with asterisk is used and
+	  this package can be removed.
+
 config BR2_TARGET_ROOTFS_AXFS
 	bool "AXFS root filesystem has been removed"
 	select BR2_LEGACY
