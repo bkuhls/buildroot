@@ -54,6 +54,10 @@ ifeq ($(BR2_HOST_GCC_AT_LEAST_14),)
 APR_CONF_ENV += ac_cv_prog_cc_c23=no
 endif
 
+ifeq ($(BR2_PACKAGE_GLIBC),y)
+APR_CONF_ENV += LIBS=-lm
+endif
+
 # Doesn't even try to guess when cross compiling
 ifeq ($(BR2_TOOLCHAIN_HAS_THREADS),y)
 APR_CONF_ENV += apr_cv_pthreads_lib="-lpthread"
