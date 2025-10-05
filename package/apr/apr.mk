@@ -50,6 +50,10 @@ APR_CONF_ENV = \
 	apr_preload_done=yes
 APR_CONFIG_SCRIPTS = apr-1-config
 
+ifeq ($(BR2_PACKAGE_GLIBC),y)
+APR_CONF_ENV += LIBS=-lm
+endif
+
 # Doesn't even try to guess when cross compiling
 ifeq ($(BR2_TOOLCHAIN_HAS_THREADS),y)
 APR_CONF_ENV += apr_cv_pthreads_lib="-lpthread"
