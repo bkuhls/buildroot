@@ -5,8 +5,8 @@
 ################################################################################
 
 # Generate version string using:
-#   git describe --tags --match 'v20*' --abbrev=40 origin/llvm_release_200
-SPIRV_LLVM_TRANSLATOR_VERSION = v20.1.2-7-g834db1a1985ac36d5a3e1b4b34dc1ca3f919ad5b
+#   git describe --tags --match 'v21*' --abbrev=40 origin/llvm_release_210
+SPIRV_LLVM_TRANSLATOR_VERSION = v21.1.1-1-g085f2d9b94759b01c79da57616b35a77a7b8e90f
 SPIRV_LLVM_TRANSLATOR_SITE = $(call github,KhronosGroup,SPIRV-LLVM-Translator,$(SPIRV_LLVM_TRANSLATOR_VERSION))
 SPIRV_LLVM_TRANSLATOR_LICENSE = NCSA
 SPIRV_LLVM_TRANSLATOR_LICENSE_FILES = LICENSE.TXT
