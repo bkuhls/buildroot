@@ -1,6 +1,6 @@
-# From https://lists.freedesktop.org/archives/mesa-announce/2025-October/000826.html
-sha256  361c97e8afa5fe20141c5362c5b489040751e12861c186a16c621a2fb182fc42  mesa-25.2.6.tar.xz
-sha512  c34f55132ee9097a7c4961745bf07a08fc612bf0f7c570c023fedb16c8eafbefdc1cc022f722c345780bb14ec4ce25d9a206a9196d9d51c97b389db5160de9cc  mesa-25.2.6.tar.xz
+# From https://lists.freedesktop.org/archives/mesa-announce/2025-October/000825.html
+sha256  6e5f398a63912676aad9b8b71f8afa08f0855cf17e4130e9d632574d76fd9aa4  mesa-25.3.0-rc2.tar.xz
+sha512  1b3971d4f60d982fa58712678f3cc8d3f6a96340c5e5b0da3d0d7c15f45e3f5a7f235efc0e3cae8a6cfa91534d6974b077a9b98324de0e1ae7f302b9c33be3fd  mesa-25.3.0-rc2.tar.xz
 # License
 sha256  0d1a0472ecc81830e75c20d59b0ea02841e3db21255e0ebad97ab682c54d6615  docs/license.rst
 sha256  323c587d0ccf10e376f8bf9a7f31fb4ca6078105194b42e0b1e0ee2bc9bde71f  licenses/MIT
