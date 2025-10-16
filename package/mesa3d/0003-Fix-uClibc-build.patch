@@ -59,10 +59,10 @@ diff --git a/src/util/macros.h b/src/util/macros.h
 index 22b18303826..8f73ee72693 100644
 --- a/src/util/macros.h
 +++ b/src/util/macros.h
-@@ -31,6 +31,7 @@
- #include <stddef.h>
+@@ -32,6 +32,7 @@
  #include <stdint.h>
  #include <stdio.h>
+ #include <string.h>
 +#include "util/compiler.h"
  
  #ifdef _GAMING_XBOX
