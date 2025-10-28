@@ -3,27 +3,45 @@ set -e
 
 TOOLCHAINS_CSV='support/config-fragments/autobuild/toolchain-configs.csv'
 TEMP_CONF=""
-abort=0
+
+# associative array tracking running build jobs by PID
+declare -a running
+
+# offet for end of output
+end_offs=0
+
+restore_cursor() {
+    tput cnorm
+    tput rc
+    tput cud "$((end_offs + 1))"
+    printf '\n'
+}
 
 do_abort() {
-    abort=1
+    restore_cursor
+    do_clean
 }
 
 do_clean() {
     if [ -n "${TEMP_CONF}" ]; then
         rm -f "${TEMP_CONF}"
     fi
+
+    # Terminate any running jobs
+    pkill -TERM --parent $$ 2>/dev/null || true
+    wait
 }
 
 main() {
     local o O opts
-    local cfg dir pkg random toolchains_csv toolchain all number mode prepare_only
+    local cfg dir pkg random toolchains_csv toolchain all number mode prepare_only \
+	    concurrency
     local ret nb nb_skip nb_fail nb_legal nb_show nb_tc build_dir keep
     local -a toolchains
     local pkg_br_name
 
-    o='hakc:d:n:p:r:t:T:'
-    O='help,all,keep,prepare-only,config-snippet:,build-dir:,number:,package:,random:,toolchains-csv:,toolchain-name:'
+    o='hakc:d:n:p:r:t:T:C:'
+    O='help,all,keep,prepare-only,config-snippet:,build-dir:,number:,package:,random:,toolchains-csv:,toolchain-name:,concurrency:'
     opts="$(getopt -n "${my_name}" -o "${o}" -l "${O}" -- "${@}")"
     eval set -- "${opts}"
 
@@ -33,6 +51,7 @@ main() {
     number=0
     mode=0
     prepare_only=0
+    concurrency=1
     toolchains_csv="${TOOLCHAINS_CSV}"
     while [ ${#} -gt 0 ]; do
         case "${1}" in
@@ -69,6 +88,9 @@ main() {
         (-T|--toolchain-name)
             toolchain_name="${2}"; shift 2
             ;;
+        (-C|--concurrency)
+            concurrency="${2}"; shift 2
+            ;;
         (--)
             shift; break
             ;;
@@ -87,6 +109,13 @@ main() {
     fi
     if [ ! -e "${cfg}" ]; then
         printf "error: %s: no such file\n" "${cfg}" >&2; exit 1
+    fi
+    if [ "${concurrency}" -eq 0 ] 2>/dev/null; then
+        concurrency=$(nproc)
+    fi
+
+    if ! [ "${concurrency}" -gt 0 ] 2>/dev/null; then
+        printf "error: concurrency must be an integer\n" >&2; exit 1
     fi
     if [ -z "${dir}" ]; then
         dir="${HOME}/br-test-pkg"
@@ -137,29 +166,97 @@ main() {
     nb_fail=0
     nb_legal=0
     nb_show=0
-    for toolchainconfig in "${toolchains[@]}"; do
-        : $((nb++))
-        toolchain="$(basename "${toolchainconfig}" .config)"
-        build_dir="${dir}/${toolchain}"
-        printf "%40s [%*d/%d]: " "${toolchain}" ${#nb_tc} "${nb}" "${nb_tc}"
-        build_one "${build_dir}" "${toolchainconfig}" "${cfg}" "${pkg}" "${prepare_only}" && ret=0 || ret=${?}
-        case ${ret} in
-        (0) printf "OK\n";;
-        (1) : $((nb_skip++)); printf "SKIPPED\n";;
-        (2) : $((nb_fail++)); printf "FAILED\n";;
-        (3) : $((nb_legal++)); printf "FAILED\n";;
-        (4) : $((nb_show++)); printf "FAILED\n";;
-        esac
 
-        if [ "${abort}" -eq 1 ]; then
-            return 1
-        fi
+    tput civis
+
+    # Allocate lines for all toolchains up front to avoid scroll-invalidating
+    # the saved cursor
+    for ((i = 0; i < nb_tc; i++)); do printf '\n'; done
+    tput cuu "$((nb_tc + 1))"
+    tput sc
+
+    declare -A pid_to_idx
+    declare -a display_order
+
+    spinc='/-\|'
+    spini=0
+    while (( nb < nb_tc || ${#running[@]} > 0)); do
+        while (( nb < nb_tc && ${#running[@]} < concurrency )); do
+            toolchainconfig=${toolchains[$nb]}
+            toolchain="$(basename "${toolchainconfig}" .config)"
+            build_dir="${dir}/${toolchain}"
+
+            build_one \
+                "${build_dir}" \
+                "${toolchainconfig}" \
+                "${cfg}" \
+                "${pkg}" \
+                "${prepare_only}" &
+
+            pid=$!; pid_to_idx[${pid}]=${nb}
+            running+=( "$pid" )
+            slot=${#display_order[@]}
+            display_order+=( "$nb" )
+            end_offs=${#display_order[@]}
+            nb=$((nb + 1))
+        done
+
+        for i in "${!running[@]}"; do
+            pid="${running[${i}]}"
+            idx="${pid_to_idx[$pid]}"
+            toolchainconfig=${toolchains[$idx]}
+            toolchain="$(basename "${toolchainconfig}" .config)"
+
+            if ! kill -0 "${pid}" 2>/dev/null; then
+                wait "${pid}" && ret=0 || ret=${?}
+                case "${ret}" in
+                (0) stat="OK";;
+                (1) : $((nb_skip++)); stat="SKIPPED";;
+                (2) : $((nb_fail++)); stat="FAILED";;
+                (3) : $((nb_legal++)); stat="FAILED";;
+                (4) : $((nb_show++)); stat="FAILED";;
+                esac
+
+                unset 'running[i]'
+            else
+                stat="${spinc:$spini:1}"
+            fi
+
+            # Find the line to print the status on for this PID
+            for slot in "${!display_order[@]}"; do
+                if [[ ${display_order[$slot]} -eq ${idx} ]]; then
+                    break
+                fi
+            done
+
+            update_line "$slot" "%40s [%*d/%d]: %s" \
+                "${toolchain}" \
+                "${#nb_tc}" \
+                "$((idx + 1))" \
+                "${nb_tc}" \
+                "${stat}"
+        done
+
+        running=( "${running[@]}" )
+        spini=$(((spini+1) % ${#spinc}))
+        sleep 0.1
     done
 
+    restore_cursor
     printf "%d builds, %d skipped, %d build failed, %d legal-info failed, %d show-info failed\n" \
         "${nb}" "${nb_skip}" "${nb_fail}" "${nb_legal}" "${nb_show}"
 
     return $((nb_fail + nb_legal))
+}
+
+update_line() {
+    local slot=$1; shift
+    tput rc
+    tput cud "$((slot + 1))"
+    fmt=$1; shift
+
+    # shellcheck disable=SC2059
+    printf -- "\033[K${fmt}" "$@"
 }
 
 build_one() {
@@ -287,6 +384,9 @@ Options:
 
     -r N, --random N
         Limit the tests to the N randomly selected toolchains.
+
+    -C N, --concurrency N
+        Run N builds concurrently. If N is 0, match the number of logical CPUs.
 
     -t CSVFILE, --toolchains-csv CSVFILE
         CSV file containing the paths to config fragments of toolchains to
