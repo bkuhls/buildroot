@@ -35,8 +35,10 @@ ASTERISK_SELINUX_MODULES = asterisk
 ASTERISK_AUTORECONF = YES
 ASTERISK_AUTORECONF_OPTS = -Iautoconf -Ithird-party -Ithird-party/pjproject -Ithird-party/jansson -Ithird-party/libjwt
 
+
+#	host-asterisk \
+
 ASTERISK_DEPENDENCIES = \
-	host-asterisk \
 	host-pkgconf \
 	jansson \
 	libcurl \
@@ -53,7 +55,14 @@ define ASTERISK_COPY_MENUSELECT
 	rm -rf $(@D)/menuselect
 	cp -a $(HOST_ASTERISK_DIR)/menuselect $(@D)/menuselect
 endef
-ASTERISK_PRE_CONFIGURE_HOOKS += ASTERISK_COPY_MENUSELECT
+#ASTERISK_PRE_CONFIGURE_HOOKS += ASTERISK_COPY_MENUSELECT
+
+define ASTERISK_TOUCH_MENUSELECT
+	touch $(@D)/menuselect
+	touch $(@D)/menuselect/*
+	touch $(@D)/menuselect/menuselect
+endef
+#ASTERISK_POST_CONFIGURE_HOOKS += ASTERISK_TOUCH_MENUSELECT
 
 ASTERISK_CONF_OPTS = \
 	--disable-xmldoc \
@@ -112,6 +121,7 @@ ASTERISK_CONF_OPTS += --without-avcodec
 ASTERISK_CONF_OPTS += --without-spandsp
 
 ASTERISK_CONF_ENV = \
+	BUILD_CC="$(HOSTCC)" \
 	ac_cv_file_bridges_bridge_softmix_include_hrirs_h=true
 
 # Uses __atomic_fetch_add_4
@@ -283,6 +293,7 @@ endif
 
 # Remove default -O3 optimization flag
 ASTERISK_MAKE_OPTS += OPTIMIZE=""
+ASTERISK_MAKE_ENV += BUILD_CC="$(HOSTCC)" BUILD_LDFLAGS="$(HOST_LDFLAGS)"
 
 ASTERISK_CFLAGS = $(TARGET_CFLAGS)
 
