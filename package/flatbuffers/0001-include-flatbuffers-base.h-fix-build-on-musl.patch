@@ -31,7 +31,7 @@ Signed-off-by: Fabrice Fontaine <fontaine.fabrice@gmail.com>
 [Upstream status: Rejected:
  https://github.com/google/flatbuffers/pull/6773]
 Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
-(rebased and added fix for uClibc-build, rebased again for 24.3.25)
+(rebased and added fix for uClibc-build, rebased again for 25.12.19)
 ---
  include/flatbuffers/base.h | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -41,13 +41,13 @@ index de7898dc..101c7598 100644
 --- a/include/flatbuffers/base.h
 +++ b/include/flatbuffers/base.h
 @@ -270,7 +270,8 @@ namespace flatbuffers {
-   // strtoull_l}.
+   // strtoull_l} on platforms that support them.
    #if (defined(_MSC_VER) && _MSC_VER >= 1800) || \
-       (defined(__ANDROID_API__) && __ANDROID_API__>= 21) || \
+       (defined(__ANDROID__) && defined(__ANDROID_API__) && __ANDROID_API__>= 26) || \
 -      (defined(_XOPEN_VERSION) && (_XOPEN_VERSION >= 700)) && \
 +      (defined(_XOPEN_VERSION) && (_XOPEN_VERSION >= 700) && \
 +        defined(__GLIBC__) && !defined(__UCLIBC__)) && \
-         (!defined(__Fuchsia__) && !defined(__ANDROID_API__))
+       !defined(__Fuchsia__)
      #define FLATBUFFERS_LOCALE_INDEPENDENT 1
    #else
 -- 
