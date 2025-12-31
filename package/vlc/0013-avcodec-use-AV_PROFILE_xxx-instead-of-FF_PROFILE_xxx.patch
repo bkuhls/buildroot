@@ -1,0 +1,202 @@
+From daf3f3cd52879c2ca380b9a87cb385e97bfed4bf Mon Sep 17 00:00:00 2001
+From: Steve Lhomme <robux4@ycbcr.xyz>
+Date: Mon, 8 Sep 2025 13:51:43 +0200
+Subject: [PATCH] avcodec: use AV_PROFILE_xxx instead of FF_PROFILE_xxx
+
+This was added in libavcodec 60.26.100 [^1]. We require 58.54.100.
+
+[^1]:  https://code.ffmpeg.org/FFmpeg/FFmpeg/commit/8238bc0b5e3dba271217b1223a901b3f9713dc6e
+
+(cherry picked from commit ff292b650ea0b10c67c9e4ff16327486afe0d8ad) (edited)
+- the vaapi had less profiles
+- the direct_va doesn't have HEVC EXT
+- FF_PROFILE_UNKNOWN was used in more places
+
+Upstream: https://code.videolan.org/videolan/vlc/-/merge_requests/8168
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ modules/codec/avcodec/audio.c           |  2 +-
+ modules/codec/avcodec/avcommon_compat.h |  6 ++++
+ modules/codec/avcodec/directx_va.c      | 40 ++++++++++++-------------
+ modules/codec/avcodec/encoder.c         | 20 ++++++-------
+ modules/codec/avcodec/vaapi.c           |  8 ++---
+ modules/codec/avcodec/video.c           |  2 +-
+ 6 files changed, 42 insertions(+), 36 deletions(-)
+
+diff --git a/modules/codec/avcodec/audio.c b/modules/codec/avcodec/audio.c
+index b6186d6ec5..46f9a2a899 100644
+--- a/modules/codec/avcodec/audio.c
++++ b/modules/codec/avcodec/audio.c
+@@ -271,7 +271,7 @@ int InitAudioDec( vlc_object_t *obj )
+     p_dec->pf_flush  = Flush;
+ 
+     /* XXX: Writing input format makes little sense. */
+-    if( avctx->profile != FF_PROFILE_UNKNOWN )
++    if( avctx->profile != AVPROFILE(UNKNOWN) )
+         p_dec->fmt_in.i_profile = avctx->profile;
+     if( avctx->level != FF_LEVEL_UNKNOWN )
+         p_dec->fmt_in.i_level = avctx->level;
+diff --git a/modules/codec/avcodec/avcommon_compat.h b/modules/codec/avcodec/avcommon_compat.h
+index 14aa62c9be..01e622347e 100644
+--- a/modules/codec/avcodec/avcommon_compat.h
++++ b/modules/codec/avcodec/avcommon_compat.h
+@@ -144,4 +144,10 @@
+ 
+ #endif
+ 
++#if LIBAVCODEC_VERSION_CHECK(60,26,100)
++# define AVPROFILE(prof) (AV_PROFILE_##prof)
++#else
++# define AVPROFILE(prof) (FF_PROFILE_##prof)
++#endif
++
+ #endif
+diff --git a/modules/codec/avcodec/directx_va.c b/modules/codec/avcodec/directx_va.c
+index 36a5d61a55..f6e252fb56 100644
+--- a/modules/codec/avcodec/directx_va.c
++++ b/modules/codec/avcodec/directx_va.c
+@@ -48,25 +48,25 @@ struct picture_sys_t {
+ #include "../../packetizer/h264_nal.h"
+ #include "../../packetizer/hevc_nal.h"
+ 
+-static const int PROF_MPEG2_MAIN[]   = { FF_PROFILE_MPEG2_SIMPLE,
+-                                         FF_PROFILE_MPEG2_MAIN,
+-                                         FF_PROFILE_UNKNOWN };
+-static const int PROF_H264_HIGH[]    = { FF_PROFILE_H264_BASELINE,
+-                                         FF_PROFILE_H264_CONSTRAINED_BASELINE,
+-                                         FF_PROFILE_H264_MAIN,
+-                                         FF_PROFILE_H264_HIGH,
+-                                         FF_PROFILE_UNKNOWN };
+-static const int PROF_HEVC_MAIN[]    = { FF_PROFILE_HEVC_MAIN,
+-                                         FF_PROFILE_UNKNOWN };
+-static const int PROF_HEVC_MAIN10[]  = { FF_PROFILE_HEVC_MAIN,
+-                                         FF_PROFILE_HEVC_MAIN_10,
+-                                         FF_PROFILE_UNKNOWN };
+-
+-static const int PROF_VP9_MAIN[]    = { FF_PROFILE_VP9_0, FF_PROFILE_UNKNOWN };
+-static const int PROF_VP9_10[]      = { FF_PROFILE_VP9_2, FF_PROFILE_UNKNOWN };
+-
+-static const int PROF_AV1_MAIN[]    = { FF_PROFILE_AV1_MAIN, FF_PROFILE_UNKNOWN };
+-static const int PROF_AV1_HIGH[]    = { FF_PROFILE_AV1_HIGH, FF_PROFILE_AV1_MAIN, FF_PROFILE_UNKNOWN };
++static const int PROF_MPEG2_MAIN[]   = { AVPROFILE(MPEG2_SIMPLE),
++                                         AVPROFILE(MPEG2_MAIN),
++                                         AVPROFILE(UNKNOWN) };
++static const int PROF_H264_HIGH[]    = { AVPROFILE(H264_BASELINE),
++                                         AVPROFILE(H264_CONSTRAINED_BASELINE),
++                                         AVPROFILE(H264_MAIN),
++                                         AVPROFILE(H264_HIGH),
++                                         AVPROFILE(UNKNOWN) };
++static const int PROF_HEVC_MAIN[]    = { AVPROFILE(HEVC_MAIN),
++                                         AVPROFILE(UNKNOWN) };
++static const int PROF_HEVC_MAIN10[]  = { AVPROFILE(HEVC_MAIN),
++                                         AVPROFILE(HEVC_MAIN_10),
++                                         AVPROFILE(UNKNOWN) };
++
++static const int PROF_VP9_MAIN[]    = { AVPROFILE(VP9_0), AVPROFILE(UNKNOWN) };
++static const int PROF_VP9_10[]      = { AVPROFILE(VP9_2), AVPROFILE(UNKNOWN) };
++
++static const int PROF_AV1_MAIN[]    = { AVPROFILE(AV1_MAIN), AVPROFILE(UNKNOWN) };
++static const int PROF_AV1_HIGH[]    = { AVPROFILE(AV1_HIGH), AVPROFILE(AV1_MAIN), AVPROFILE(UNKNOWN) };
+ 
+ #include <winapifamily.h>
+ #if defined(WINAPI_FAMILY)
+@@ -436,7 +436,7 @@ static bool profile_supported(const directx_va_mode_t *mode, const es_format_t *
+     bool is_supported = false;
+     if (profile <= 0)
+         is_supported = true;
+-    else for (const int *p_profile = &mode->p_profiles[0]; *p_profile != FF_PROFILE_UNKNOWN; ++p_profile)
++    else for (const int *p_profile = &mode->p_profiles[0]; *p_profile != AVPROFILE(UNKNOWN); ++p_profile)
+     {
+         if (*p_profile == profile)
+         {
+diff --git a/modules/codec/avcodec/encoder.c b/modules/codec/avcodec/encoder.c
+index deb61eb519..1f3dd8fbf5 100644
+--- a/modules/codec/avcodec/encoder.c
++++ b/modules/codec/avcodec/encoder.c
+@@ -484,30 +484,30 @@ int InitVideoEnc( vlc_object_t *p_this )
+     psz_val = var_GetString( p_enc, ENC_CFG_PREFIX "aac-profile" );
+     /* libavcodec uses faac encoder atm, and it has issues with
+      * other than low-complexity profile, so default to that */
+-    p_sys->i_aac_profile = FF_PROFILE_AAC_LOW;
++    p_sys->i_aac_profile = AVPROFILE(AAC_LOW);
+     if( psz_val && *psz_val )
+     {
+         if( !strncmp( psz_val, "main", 4 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_MAIN;
++            p_sys->i_aac_profile = AVPROFILE(AAC_MAIN);
+         else if( !strncmp( psz_val, "low", 3 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_LOW;
++            p_sys->i_aac_profile = AVPROFILE(AAC_LOW);
+         else if( !strncmp( psz_val, "ssr", 3 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_SSR;
++            p_sys->i_aac_profile = AVPROFILE(AAC_SSR);
+         else if( !strncmp( psz_val, "ltp", 3 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_LTP;
++            p_sys->i_aac_profile = AVPROFILE(AAC_LTP);
+ /* These require libavcodec with libfdk-aac */
+         else if( !strncmp( psz_val, "hev2", 4 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_HE_V2;
++            p_sys->i_aac_profile = AVPROFILE(AAC_HE_V2);
+         else if( !strncmp( psz_val, "hev1", 4 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_HE;
++            p_sys->i_aac_profile = AVPROFILE(AAC_HE);
+         else if( !strncmp( psz_val, "ld", 2 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_LD;
++            p_sys->i_aac_profile = AVPROFILE(AAC_LD);
+         else if( !strncmp( psz_val, "eld", 3 ) )
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_ELD;
++            p_sys->i_aac_profile = AVPROFILE(AAC_ELD);
+         else
+         {
+             msg_Warn( p_enc, "unknown AAC profile requested, setting it to low" );
+-            p_sys->i_aac_profile = FF_PROFILE_AAC_LOW;
++            p_sys->i_aac_profile = AVPROFILE(AAC_LOW);
+         }
+     }
+     free( psz_val );
+diff --git a/modules/codec/avcodec/vaapi.c b/modules/codec/avcodec/vaapi.c
+index e203baaf9e..5380099ea4 100644
+--- a/modules/codec/avcodec/vaapi.c
++++ b/modules/codec/avcodec/vaapi.c
+@@ -100,9 +100,9 @@ static int GetVaProfile(AVCodecContext *ctx, const es_format_t *fmt,
+         count = 18;
+         break;
+     case AV_CODEC_ID_HEVC:
+-        if (ctx->profile == FF_PROFILE_HEVC_MAIN)
++        if (ctx->profile == AVPROFILE(HEVC_MAIN))
+             i_profile = VAProfileHEVCMain;
+-        else if (ctx->profile == FF_PROFILE_HEVC_MAIN_10)
++        else if (ctx->profile == AVPROFILE(HEVC_MAIN_10))
+         {
+             i_profile = VAProfileHEVCMain10;
+             i_vlc_chroma = VLC_CODEC_VAAPI_420_10BPP;
+@@ -116,10 +116,10 @@ static int GetVaProfile(AVCodecContext *ctx, const es_format_t *fmt,
+         count = 5;
+         break;
+     case AV_CODEC_ID_VP9:
+-        if (ctx->profile == FF_PROFILE_VP9_0)
++        if (ctx->profile == AVPROFILE(VP9_0))
+             i_profile = VAProfileVP9Profile0;
+ #if VA_CHECK_VERSION( 0, 39, 0 )
+-        else if (ctx->profile == FF_PROFILE_VP9_2)
++        else if (ctx->profile == AVPROFILE(VP9_2))
+         {
+             i_profile = VAProfileVP9Profile2;
+             i_vlc_chroma = VLC_CODEC_VAAPI_420_10BPP;
+diff --git a/modules/codec/avcodec/video.c b/modules/codec/avcodec/video.c
+index dfd359cfcd..2448e073dc 100644
+--- a/modules/codec/avcodec/video.c
++++ b/modules/codec/avcodec/video.c
+@@ -624,7 +624,7 @@ static int InitVideoDecCommon( decoder_t *p_dec )
+     p_dec->pf_flush  = Flush;
+ 
+     /* XXX: Writing input format makes little sense. */
+-    if( p_context->profile != FF_PROFILE_UNKNOWN )
++    if( p_context->profile != AVPROFILE(UNKNOWN) )
+         p_dec->fmt_in.i_profile = p_context->profile;
+     if( p_context->level != FF_LEVEL_UNKNOWN )
+         p_dec->fmt_in.i_level = p_context->level;
+-- 
+2.47.3
+

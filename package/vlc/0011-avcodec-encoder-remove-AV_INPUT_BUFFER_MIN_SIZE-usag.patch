@@ -1,0 +1,54 @@
+From 8ff22a5621cf32b160b05541d1876bea7fc14ccb Mon Sep 17 00:00:00 2001
+From: Steve Lhomme <robux4@ycbcr.xyz>
+Date: Mon, 8 Sep 2025 13:55:28 +0200
+Subject: [PATCH] avcodec: encoder: remove AV_INPUT_BUFFER_MIN_SIZE usage
+
+It's not supported in FFMpeg 8.0 since 60.40.100.
+
+It used to be used with preallocated packet buffers with
+the old encode API, but said API is no more and therefore
+there is no reason for this to be public any more.
+So deprecate it and use an internal replacement
+for the encoders using it as an upper bound for the
+size of their headers.
+
+(cherry picked from commit dae7faa0757ee094681c5e7100baca74c007c67c)
+
+Upstream: https://code.videolan.org/videolan/vlc/-/merge_requests/8168
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ modules/codec/avcodec/avcommon_compat.h | 3 ---
+ modules/codec/avcodec/encoder.c         | 2 +-
+ 2 files changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/modules/codec/avcodec/avcommon_compat.h b/modules/codec/avcodec/avcommon_compat.h
+index 8ab6910f32..14aa62c9be 100644
+--- a/modules/codec/avcodec/avcommon_compat.h
++++ b/modules/codec/avcodec/avcommon_compat.h
+@@ -75,9 +75,6 @@
+ #ifndef AV_CODEC_CAP_SMALL_LAST_FRAME
+ # define AV_CODEC_CAP_SMALL_LAST_FRAME CODEC_CAP_SMALL_LAST_FRAME
+ #endif
+-#ifndef AV_INPUT_BUFFER_MIN_SIZE
+-# define AV_INPUT_BUFFER_MIN_SIZE FF_MIN_BUFFER_SIZE
+-#endif
+ #ifndef  FF_MAX_B_FRAMES
+ # define  FF_MAX_B_FRAMES 16 // FIXME: remove this
+ #endif
+diff --git a/modules/codec/avcodec/encoder.c b/modules/codec/avcodec/encoder.c
+index be53cec219..deb61eb519 100644
+--- a/modules/codec/avcodec/encoder.c
++++ b/modules/codec/avcodec/encoder.c
+@@ -1052,7 +1052,7 @@ errmsg:
+         p_sys->i_sample_bytes = (p_enc->fmt_in.audio.i_bitspersample / 8);
+         p_sys->i_frame_size = p_context->frame_size > 1 ?
+                                     p_context->frame_size :
+-                                    AV_INPUT_BUFFER_MIN_SIZE;
++                                    16384; // AV_INPUT_BUFFER_MIN_SIZE
+         p_sys->i_buffer_out = av_samples_get_buffer_size(NULL,
+                 p_enc->fmt_out.audio.i_channels, p_sys->i_frame_size,
+                 p_sys->p_context->sample_fmt, DEFAULT_ALIGN);
+-- 
+2.47.3
+
