@@ -4,8 +4,8 @@
 #
 ################################################################################
 
-SPANDSP_VERSION = 3.0.0-6ec23e5a7e
-SPANDSP_SITE = https://files.freeswitch.org/downloads/libs
+SPANDSP_VERSION = 797760168945c96e91af55bde9d4edaea2e654f9
+SPANDSP_SITE = $(call github,freeswitch,spandsp,$(SPANDSP_VERSION))
 SPANDSP_LICENSE = LGPL-2.1 (library), GPL-2.0 (test suite)
 SPANDSP_LICENSE_FILES = COPYING
 # We're patching configure.ac
