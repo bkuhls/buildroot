@@ -45,7 +45,8 @@ HOST_ICU_CONF_OPTS = \
 	--disable-tests \
 	--disable-extras \
 	--disable-icuio \
-	--disable-layout
+	--disable-layout \
+	--disable-icu-config
 ICU_SUBDIR = source
 HOST_ICU_SUBDIR = source
 
