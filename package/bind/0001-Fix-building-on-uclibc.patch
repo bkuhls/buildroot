@@ -1,0 +1,39 @@
+From 9c197d4cf09214806d5d9ca68a40327cc06b5bfe Mon Sep 17 00:00:00 2001
+From: Giulio Benetti <giulio.benetti@benettiengineering.com>
+Date: Sat, 3 Jan 2026 22:59:39 +0100
+Subject: [PATCH] Fix building on uclibc
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+While building on uclibc this error is thrown:
+In file included from ./include/dns/log.h:20,
+                 from callbacks.c:19:
+../../lib/isc/include/isc/log.h:141:9: error: unknown type name ‘off_t’
+  141 |         off_t maximum_size;
+      |         ^~~~~
+
+This is due to missing include unistd.h, so let's add it on top of
+isc/log.h
+
+Upstream: https://gitlab.isc.org/isc-projects/bind9/-/merge_requests/11421
+Signed-off-by: Giulio Benetti <giulio.benetti@benettiengineering.com>
+---
+ lib/isc/include/isc/log.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/lib/isc/include/isc/log.h b/lib/isc/include/isc/log.h
+index 5a9a7a1bb3..e2bec5355d 100644
+--- a/lib/isc/include/isc/log.h
++++ b/lib/isc/include/isc/log.h
+@@ -19,6 +19,7 @@
+ #include <stdbool.h>
+ #include <stdio.h>
+ #include <syslog.h> /* XXXDCL NT */
++#include <unistd.h>
+ 
+ #include <isc/formatcheck.h>
+ #include <isc/lang.h>
+-- 
+2.47.3
+
