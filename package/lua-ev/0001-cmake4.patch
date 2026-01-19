@@ -1,0 +1,28 @@
+From f8a49c3a306d182b1a9e6e7db2381ab5483bcf88 Mon Sep 17 00:00:00 2001
+From: Francois Perrad <francois.perrad@gadz.org>
+Date: Mon, 19 Jan 2026 15:15:14 +0100
+Subject: [PATCH] cmake4
+
+Signed-off-by: Francois Perrad <francois.perrad@gadz.org>
+Upstream: minimal part of https://github.com/brimworks/lua-ev/pull/31/files
+---
+ CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 413bb6c..2a994d0 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -7,8 +7,8 @@
+ # Please note that the package source code is licensed under its own
+ # license.
+ 
++CMAKE_MINIMUM_REQUIRED (VERSION 3.10)
+ PROJECT(lua-ev C)
+-CMAKE_MINIMUM_REQUIRED (VERSION 2.6)
+ 
+ # Basic configurations
+   SET(INSTALL_CMOD share/lua/cmod CACHE PATH "Directory to install Lua binary modules (configure lua via LUA_CPATH)")
+-- 
+2.43.0
+
