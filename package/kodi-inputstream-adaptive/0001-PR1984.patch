@@ -1,0 +1,33 @@
+From 1263a87f7f119fd359cbda15968b106e9395082f Mon Sep 17 00:00:00 2001
+From: CastagnaIT <gottardo.stefano.83@gmail.com>
+Date: Thu, 15 Jan 2026 16:54:07 +0100
+Subject: [PATCH] [AdaptiveStream] Fix wrong end pts on SIDX segments
+
+---
+ src/common/AdaptiveStream.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/common/AdaptiveStream.cpp b/src/common/AdaptiveStream.cpp
+index e083756dc..1074325da 100644
+--- a/src/common/AdaptiveStream.cpp
++++ b/src/common/AdaptiveStream.cpp
+@@ -500,6 +500,7 @@ bool AdaptiveStream::parseIndexRange(PLAYLIST::CRepresentation* rep,
+ 
+     CSegment seg;
+     seg.startPTS_ = 0;
++    seg.m_time = 0;
+ 
+     // Iterate each atom in the stream
+     AP4_DefaultAtomFactory atomFactory;
+@@ -542,10 +543,10 @@ bool AdaptiveStream::parseIndexRange(PLAYLIST::CRepresentation* rep,
+         {
+           seg.range_begin_ = seg.range_end_ + 1;
+           seg.range_end_ = seg.range_begin_ + refs[i].m_ReferencedSize - 1;
++          seg.m_endPts = seg.startPTS_ + refs[i].m_SubsegmentDuration;
+           rep->Timeline().Add(seg);
+ 
+           seg.startPTS_ += refs[i].m_SubsegmentDuration;
+-          seg.m_endPts = seg.startPTS_ + refs[i].m_SubsegmentDuration;
+           seg.m_time += refs[i].m_SubsegmentDuration;
+         }
+ 
