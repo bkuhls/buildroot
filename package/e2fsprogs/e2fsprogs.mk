@@ -20,8 +20,9 @@ HOST_E2FSPROGS_DEPENDENCIES = host-pkgconf host-util-linux
 
 # 0001-configure.ac-check-for-FS_IOC_READ_VERITY_METADATA-a.patch
 # the additional dependencies are only needed for autoreconf
+E2FSPROGS_AUTOPOINT = YES
 E2FSPROGS_AUTORECONF = YES
-E2FSPROGS_AUTORECONF_OPTS = --include=$(HOST_DIR)/share/autoconf-archive
+E2FSPROGS_AUTORECONF_OPTS = --include=$(HOST_DIR)/share/autoconf-archive --include=$(HOST_DIR)/share/gettext/m4
 E2FSPROGS_DEPENDENCIES += host-gettext host-autoconf-archive
 HOST_E2FSPROGS_DEPENDENCIES += host-gettext host-autoconf-archive
 
