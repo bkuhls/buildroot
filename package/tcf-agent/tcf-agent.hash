@@ -1,5 +1,5 @@
 # Locally computed:
-sha256  64131790c7d4636d4abff8516d5b4b6329e4d3e691f44dc604e2c30f55edb0dd  org.eclipse.tcf.agent-1.8.0.tar.xz
+sha256  8993a467b80f407d3fdfcacd6ed6dca55e4ba075c986b60874c1a2cba373545a  tcf.agent-1.8.0.tar.bz2
 
 # Hash for license files:
 sha256  f82d01b74a513bd3504d08136026a5ac2a7e6ff62ebcde391fa74aa222d11ce0  agent/edl-v10.html
