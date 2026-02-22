@@ -5,8 +5,8 @@
 ################################################################################
 
 TCF_AGENT_VERSION = 1.8.0
-TCF_AGENT_SOURCE = org.eclipse.tcf.agent-$(TCF_AGENT_VERSION).tar.xz
-TCF_AGENT_SITE = http://git.eclipse.org/c/tcf/org.eclipse.tcf.agent.git/snapshot
+TCF_AGENT_SOURCE = tcf.agent-$(TCF_AGENT_VERSION).tar.bz2
+TCF_AGENT_SITE = https://gitlab.eclipse.org/eclipse/tcf/tcf.agent/-/archive/$(TCF_AGENT_VERSION)
 # see https://wiki.spdx.org/view/Legal_Team/License_List/Licenses_Under_Consideration
 TCF_AGENT_LICENSE = BSD-3-Clause
 TCF_AGENT_LICENSE_FILES = agent/edl-v10.html
