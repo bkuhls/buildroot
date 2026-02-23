@@ -44,6 +44,16 @@ WPEWEBKIT_DEPENDENCIES += fontconfig freetype
 WPEWEBKIT_CONF_OPTS += -DUSE_SKIA=ON
 endif
 
+# To prevent OOM when building several webkit packages in parallel we
+# force a build order:
+# 1. webkitgtk
+# 2. wpewebkit
+# 3. qt5webkit
+# 4. qt5webengine
+ifeq ($(BR2_PER_PACKAGE_DIRECTORIES)$(BR2_PACKAGE_WEBKITGTK),yy)
+WPEWEBKIT_DEPENDENCIES += webkitgtk
+endif
+
 ifeq ($(BR2_PACKAGE_WPEWEBKIT_SANDBOX),y)
 WPEWEBKIT_CONF_OPTS += \
 	-DENABLE_BUBBLEWRAP_SANDBOX=ON \
