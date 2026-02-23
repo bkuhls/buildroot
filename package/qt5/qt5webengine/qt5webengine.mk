@@ -19,6 +19,24 @@ QT5WEBENGINE_LICENSE_FILES = LICENSE.GPL2 LICENSE.GPL3 LICENSE.GPL3-EXCEPT \
 # command line argument separator
 QT5WEBENGINE_CONF_OPTS = --
 
+# To prevent OOM when building several webkit packages in parallel we
+# force a build order:
+# 1. webkitgtk
+# 2. wpewebkit
+# 3. qt5webkit
+# 4. qt5webengine
+ifeq ($(BR2_PER_PACKAGE_DIRECTORIES),y)
+ifeq ($(BR2_PACKAGE_WEBKITGTK),y)
+QT5WEBENGINE_DEPENDENCIES += webkitgtk
+endif
+ifeq ($(BR2_PACKAGE_WPEWEBKIT),y)
+QT5WEBENGINE_DEPENDENCIES += wpewebkit
+endif
+ifeq ($(BR2_PACKAGE_QT5WEBKIT),y)
+QT5WEBENGINE_DEPENDENCIES += qt5webkit
+endif
+endif
+
 ifeq ($(BR2_PACKAGE_QT5BASE_EXAMPLES),y)
 QT5WEBENGINE_DEPENDENCIES += qt5svg
 endif
