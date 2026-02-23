@@ -24,6 +24,21 @@ ifeq ($(BR2_MIPS_CPU_MIPS32R6),y)
 QT5WEBKIT_CONF_OPTS += -DENABLE_JIT=OFF
 endif
 
+# To prevent OOM when building several webkit packages in parallel we
+# force a build order:
+# 1. webkitgtk
+# 2. wpewebkit
+# 3. qt5webkit
+# 4. qt5webengine
+ifeq ($(BR2_PER_PACKAGE_DIRECTORIES),y)
+ifeq ($(BR2_PACKAGE_WEBKITGTK),y)
+QT5WEBKIT_DEPENDENCIES += webkitgtk
+endif
+ifeq ($(BR2_PACKAGE_WPEWEBKIT),y)
+QT5WEBKIT_DEPENDENCIES += wpewebkit
+endif
+endif
+
 ifeq ($(BR2_PACKAGE_QT5BASE_OPENGL),y)
 QT5WEBKIT_CONF_OPTS += \
 	-DENABLE_OPENGL=ON \
