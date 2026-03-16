@@ -40,7 +40,7 @@ HOST_RUST_BIN_INSTALL_COMMON_OPTS = \
 
 HOST_RUST_BIN_INSTALL_OPTS = \
 	$(HOST_RUST_BIN_INSTALL_COMMON_OPTS) \
-	--components=rustc,cargo,rust-std-$(RUSTC_HOST_NAME)
+	--components=rustc,cargo,rust-std-$(RUSTC_HOST_NAME),rustfmt-preview
 
 define HOST_RUST_BIN_INSTALL_RUSTC
 	(cd $(@D); \

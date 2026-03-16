@@ -36,7 +36,7 @@ define HOST_RUST_CONFIGURE_CMDS
 		echo 'submodules = false'; \
 		echo 'vendor = true'; \
 		echo 'extended = true'; \
-		echo 'tools = ["cargo"]'; \
+		echo 'tools = ["cargo", "rustfmt"]'; \
 		echo 'compiler-docs = false'; \
 		echo 'docs = false'; \
 		echo 'verbose = $(HOST_RUST_VERBOSITY)'; \
@@ -77,10 +77,16 @@ define HOST_RUST_INSTALL_LIBSTD_TARGET
 endef
 endif
 
+define HOST_RUST_INSTALL_RUSTFMT
+	cd $(@D)/build/tmp/tarball/rustfmt/$(RUSTC_HOST_NAME)/rustfmt-$(RUST_VERSION)-$(RUSTC_HOST_NAME); \
+		./install.sh $(HOST_RUST_INSTALL_OPTS)
+endef
+
 define HOST_RUST_INSTALL_CMDS
 	cd $(@D); $(HOST_MAKE_ENV) $(HOST_DIR)/bin/python$(PYTHON3_VERSION_MAJOR) x.py dist
 	$(HOST_RUST_INSTALL_RUSTC)
 	$(HOST_RUST_INSTALL_LIBSTD_TARGET)
+	$(HOST_RUST_INSTALL_RUSTFMT)
 endef
 
 $(eval $(host-generic-package))
