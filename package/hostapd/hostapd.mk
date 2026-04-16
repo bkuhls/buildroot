@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-HOSTAPD_VERSION = ea08700a762f13c415e319993720bed83ad9aa2c
+HOSTAPD_VERSION = 80b280f74255a6269645462dde12b9bbd34927c1
 HOSTAPD_SITE = https://w1.fi/hostap.git
 HOSTAPD_SITE_METHOD = git
 HOSTAPD_SUBDIR = hostapd
@@ -58,6 +58,7 @@ endif
 ifeq ($(BR2_PACKAGE_HOSTAPD_HAS_WIFI_DRIVERS),y)
 HOSTAPD_CONFIG_ENABLE += \
 	CONFIG_HS20 \
+	CONFIG_IEEE80211BE \
 	CONFIG_IEEE80211AX \
 	CONFIG_IEEE80211AC \
 	CONFIG_IEEE80211N \
