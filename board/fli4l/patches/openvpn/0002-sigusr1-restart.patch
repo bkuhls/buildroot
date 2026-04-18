@@ -1,23 +1,23 @@
 diff -purN openvpn-2.4.0.orig/src/openvpn/init.c openvpn-2.4.0/src/openvpn/init.c
 --- openvpn-2.4.0.orig/src/openvpn/init.c	2016-12-26 12:51:00.000000000 +0100
 +++ openvpn-2.4.0/src/openvpn/init.c	2017-08-30 21:33:44.671816445 +0200
-@@ -4883,7 +4883,7 @@ inherit_context_child(struct context *de
-      */
-     dest->c1.tuntap = src->c1.tuntap;
+@@ -4896,7 +4896,7 @@ inherit_context_child(struct context *de
+         dest->c2.link_socket_infos[0]->connection_established = false;
+     }
  
 -    init_instance(dest, src->c2.es, CC_NO_CLOSE | CC_USR1_TO_HUP);
 +    init_instance(dest, src->c2.es, CC_NO_CLOSE);
      if (IS_SIG(dest))
      {
          return;
-diff -purN openvpn-2.4.0.orig/src/openvpn/openvpn.c openvpn-2.4.0/src/openvpn/openvpn.c
---- openvpn-2.4.0.orig/src/openvpn/openvpn.c	2016-12-26 12:51:00.000000000 +0100
-+++ openvpn-2.4.0/src/openvpn/openvpn.c	2017-08-30 21:34:01.896583598 +0200
-@@ -64,7 +64,7 @@ tunnel_point_to_point(struct context *c)
-     c->mode = CM_P2P;
- 
-     /* initialize tunnel instance */
--    init_instance_handle_signals(c, c->es, CC_HARD_USR1_TO_HUP);
+diff -uNr openvpn-2.7.1.orig/src/openvpn/openvpn.c openvpn-2.7.1/src/openvpn/openvpn.c
+--- openvpn-2.7.1.orig/src/openvpn/openvpn.c	2026-03-30 18:49:56.000000000 +0200
++++ openvpn-2.7.1/src/openvpn/openvpn.c	2026-04-18 11:41:40.569816049 +0200
+@@ -63,7 +63,7 @@
+     /* initialize tunnel instance, avoid SIGHUP when config is stdin since
+      * re-reading the config from stdin will not work */
+     bool stdin_config = c->options.config && (strcmp(c->options.config, "stdin") == 0);
+-    init_instance_handle_signals(c, c->es, stdin_config ? 0 : CC_HARD_USR1_TO_HUP);
 +    init_instance_handle_signals(c, c->es, 0);
      if (IS_SIG(c))
      {
