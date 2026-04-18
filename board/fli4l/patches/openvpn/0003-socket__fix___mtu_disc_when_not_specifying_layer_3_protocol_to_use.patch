@@ -19,7 +19,7 @@ link_socket_info just before returning to the caller.
 diff --git a/src/openvpn/socket.c b/src/openvpn/socket.c
 --- a/src/openvpn/socket.c
 +++ b/src/openvpn/socket.c
-@@ -1156,6 +1156,9 @@
+@@ -721,6 +721,9 @@
      }
  #endif
  

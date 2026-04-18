@@ -1,20 +1,19 @@
-diff -uNr openvpn-2.6.4.orig/src/openvpn/init.c openvpn-2.6.4/src/openvpn/init.c
---- openvpn-2.6.4.orig/src/openvpn/init.c	2023-05-11 08:09:21.000000000 +0200
-+++ openvpn-2.6.4/src/openvpn/init.c	2023-06-09 17:31:37.414454202 +0200
-@@ -4348,6 +4348,7 @@
-             if (management_open(management,
-                                 c->options.management_addr,
-                                 c->options.management_port,
-+                                c->options.management_writeport,
-                                 c->options.management_user_pass,
-                                 c->options.management_client_user,
-                                 c->options.management_client_group,
+--- openvpn-2.7.1.orig/src/openvpn/init.c	2026-03-30 18:49:56.000000000 +0200
++++ openvpn-2.7.1/src/openvpn/init.c	2026-04-18 11:02:07.284405991 +0200
+@@ -4369,6 +4369,7 @@
+             }
+             if (management_open(
+                     management, c->options.management_addr, c->options.management_port,
++                    c->options.management_writeport,
+                     c->options.management_user_pass, c->options.management_client_user,
+                     c->options.management_client_group, c->options.management_log_history_cache,
+                     c->options.management_echo_buffer_size, c->options.management_state_buffer_size,
 diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.c openvpn-2.6.4/src/openvpn/manage.c
 --- openvpn-2.6.4.orig/src/openvpn/manage.c	2023-05-11 08:09:21.000000000 +0200
 +++ openvpn-2.6.4/src/openvpn/manage.c	2023-06-09 17:28:50.804257074 +0200
-@@ -1909,8 +1909,49 @@
-                 msg(M_WARN|M_ERRNO,
-                     "Failed to get the management socket address");
+@@ -2003,8 +2003,49 @@
+             {
+                 msg(M_WARN | M_ERRNO, "Failed to get the management socket address");
              }
 -            msg(D_MANAGEMENT, "MANAGEMENT: TCP Socket listening on %s",
 -                print_sockaddr(man_addr, &gc));
@@ -64,16 +63,16 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.c openvpn-2.6.4/src/openvpn/mana
          }
      }
  
-@@ -2454,6 +2495,7 @@
- man_settings_init(struct man_settings *ms,
-                   const char *addr,
-                   const char *port,
+@@ -2547,6 +2547,7 @@
+ 
+ static void
+ man_settings_init(struct man_settings *ms, const char *addr, const char *port,
 +                  const char *writeport_file,
-                   const char *pass_file,
-                   const char *client_user,
-                   const char *client_group,
-@@ -2472,6 +2514,19 @@
-         ms->client_gid = -1;
+                   const char *pass_file, const char *client_user, const char *client_group,
+                   const int log_history_cache, const int echo_buffer_size,
+                   const int state_buffer_size, const int remap_sigusr1, const unsigned int flags)
+@@ -2558,6 +2600,19 @@
+         ms->flags = flags;
  
          /*
 +         * Save writeport filename
@@ -92,7 +91,7 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.c openvpn-2.6.4/src/openvpn/mana
           * Get username/password
           */
          if (pass_file)
-@@ -2562,6 +2617,13 @@
+@@ -2641,6 +2696,13 @@
      {
          freeaddrinfo(ms->local);
      }
@@ -106,28 +105,32 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.c openvpn-2.6.4/src/openvpn/mana
      CLEAR(*ms);
  }
  
-@@ -2660,6 +2722,7 @@
- management_open(struct management *man,
-                 const char *addr,
-                 const char *port,
-+                const char *writeport_file,
-                 const char *pass_file,
-                 const char *client_user,
-                 const char *client_group,
-@@ -2678,6 +2741,7 @@
-     man_settings_init(&man->settings,
-                       addr,
-                       port,
-+                      writeport_file,
-                       pass_file,
-                       client_user,
-                       client_group,
+@@ -2734,7 +2734,8 @@
+ }
+ 
+ bool
+-management_open(struct management *man, const char *addr, const char *port, const char *pass_file,
++management_open(struct management *man, const char *addr, const char *port,
++                const char *writeport_file, const char *pass_file,
+                 const char *client_user, const char *client_group, const int log_history_cache,
+                 const int echo_buffer_size, const int state_buffer_size, const int remap_sigusr1,
+                 const unsigned int flags)
+@@ -2745,7 +2746,8 @@
+      * Save the settings only if they have not
+      * been saved before.
+      */
+-    man_settings_init(&man->settings, addr, port, pass_file, client_user, client_group,
++    man_settings_init(&man->settings, addr, port, writeport_file,
++                      pass_file, client_user, client_group,
+                       log_history_cache, echo_buffer_size, state_buffer_size, remap_sigusr1, flags);
+ 
+     /*
 diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.h openvpn-2.6.4/src/openvpn/manage.h
 --- openvpn-2.6.4.orig/src/openvpn/manage.h	2023-05-11 08:09:21.000000000 +0200
 +++ openvpn-2.6.4/src/openvpn/manage.h	2023-06-09 17:31:37.414454202 +0200
-@@ -261,6 +261,9 @@
- #define MANSIG_MAP_USR1_TO_HUP  (1<<1)
- #define MANSIG_MAP_USR1_TO_TERM (1<<2)
+@@ -256,6 +256,9 @@
+ #define MANSIG_MAP_USR1_TO_HUP  (1u << 1)
+ #define MANSIG_MAP_USR1_TO_TERM (1u << 2)
      unsigned int mansig;
 +    char *writeport_file_name;
 +    int writeport_file_fd;
@@ -135,18 +138,18 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/manage.h openvpn-2.6.4/src/openvpn/mana
  };
  
  /* up_query modes */
-@@ -348,6 +351,7 @@
- bool management_open(struct management *man,
-                      const char *addr,
-                      const char *port,
+@@ -343,6 +343,7 @@
+ struct management *management_init(void);
+ 
+ bool management_open(struct management *man, const char *addr, const char *port,
 +                     const char *writeport_file,
-                      const char *pass_file,
-                      const char *client_user,
-                      const char *client_group,
+                      const char *pass_file, const char *client_user, const char *client_group,
+                      const int log_history_cache, const int echo_buffer_size,
+                      const int state_buffer_size, const int remap_sigusr1,
 diff -uNr openvpn-2.6.4.orig/src/openvpn/options.c openvpn-2.6.4/src/openvpn/options.c
 --- openvpn-2.6.4.orig/src/openvpn/options.c	2023-05-11 08:09:21.000000000 +0200
 +++ openvpn-2.6.4/src/openvpn/options.c	2023-06-09 17:31:37.414454202 +0200
-@@ -395,6 +395,8 @@
+@@ -407,6 +407,8 @@
      "--management-up-down : Report tunnel up/down events to management interface.\n"
      "--management-log-cache n : Cache n lines of log file history for usage\n"
      "                  by the management channel.\n"
@@ -155,7 +158,7 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/options.c openvpn-2.6.4/src/openvpn/opt
  #if UNIX_SOCK_SUPPORT
      "--management-client-user u  : When management interface is a unix socket, only\n"
      "                              allow connections from user u.\n"
-@@ -1936,6 +1938,7 @@
+@@ -1808,6 +1810,7 @@
  #ifdef ENABLE_MANAGEMENT
      SHOW_STR(management_addr);
      SHOW_STR(management_port);
@@ -163,7 +166,7 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/options.c openvpn-2.6.4/src/openvpn/opt
      SHOW_STR(management_user_pass);
      SHOW_INT(management_log_history_cache);
      SHOW_INT(management_echo_buffer_size);
-@@ -2450,6 +2453,11 @@
+@@ -2384,6 +2387,11 @@
          msg(M_USAGE, "--management-client-(user|group) can only be used on unix domain sockets");
      }
  
@@ -172,10 +175,10 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/options.c openvpn-2.6.4/src/openvpn/opt
 +        msg (M_USAGE, "--management ip port [pass] uses port=0 to auto-select the management port but there is no --management-writeport option to record the used port");
 +    }
 +
-     if (options->management_addr
-         && !(options->management_flags & MF_UNIX_SOCK)
+     if (options->management_addr && !(options->management_flags & MF_UNIX_SOCK)
          && (!options->management_user_pass))
-@@ -5891,6 +5899,11 @@
+     {
+@@ -5779,6 +5787,11 @@
          VERIFY_PERMISSION(OPT_P_GENERAL);
          options->management_flags |= MF_CONNECT_AS_CLIENT;
      }
@@ -190,7 +193,7 @@ diff -uNr openvpn-2.6.4.orig/src/openvpn/options.c openvpn-2.6.4/src/openvpn/opt
 diff -uNr openvpn-2.6.4.orig/src/openvpn/options.h openvpn-2.6.4/src/openvpn/options.h
 --- openvpn-2.6.4.orig/src/openvpn/options.h	2023-05-11 08:09:21.000000000 +0200
 +++ openvpn-2.6.4/src/openvpn/options.h	2023-06-09 17:31:37.414454202 +0200
-@@ -430,6 +430,7 @@
+@@ -443,6 +443,7 @@
  #ifdef ENABLE_MANAGEMENT
      const char *management_addr;
      const char *management_port;
