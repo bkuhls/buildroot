@@ -121,9 +121,9 @@ index 67383c41a319..ccc5d0a794c8 100644
 +		return;
 +	}
 +
- 	if (!test_and_clear_bit(MT76_STATE_ROC, &phy->mt76->state))
- 		return;
- 
+	mt792x_mutex_acquire(phy->dev);
+ 	if (!test_and_clear_bit(MT76_STATE_ROC, &phy->mt76->state)) {
+ 		mt792x_mutex_release(phy->dev);
 @@ -619,6 +640,7 @@ void mt7921_set_runtime_pm(struct mt792x_dev *dev)
  	bool monitor = !!(hw->conf.flags & IEEE80211_CONF_MONITOR);
  
