@@ -1,5 +1,6 @@
 config BR2_PACKAGE_XLIB_LIBXFT
 	bool "libXft"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_FONTCONFIG
 	select BR2_PACKAGE_FREETYPE
 	select BR2_PACKAGE_XLIB_LIBX11
@@ -8,3 +9,6 @@ config BR2_PACKAGE_XLIB_LIBXFT
 	select BR2_PACKAGE_XORGPROTO
 	help
 	  X.Org Xft library
+
+comment "libXft needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE

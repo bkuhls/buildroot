@@ -1,6 +1,7 @@
 config BR2_PACKAGE_GHOSTSCRIPT
 	bool "ghostscript"
 	depends on BR2_USE_MMU # fork()
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_FONTCONFIG
 	select BR2_PACKAGE_GHOSTSCRIPT_FONTS
 	select BR2_PACKAGE_JPEG
@@ -12,3 +13,6 @@ config BR2_PACKAGE_GHOSTSCRIPT
 	  Document Format (PDF) files.
 
 	  http://ghostscript.com
+
+comment "ghostscript needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE

@@ -3,6 +3,7 @@ config BR2_PACKAGE_SWAYBG
 	default y if BR2_PACKAGE_SWAY
 	depends on !BR2_STATIC_LIBS # wayland -> dlfcn.h
 	depends on BR2_TOOLCHAIN_HAS_THREADS # wayland
+	depends on BR2_ENABLE_LOCALE # cairo -> fontconfig
 	select BR2_PACKAGE_CAIRO
 	select BR2_PACKAGE_CAIRO_PNG
 	select BR2_PACKAGE_WAYLAND
@@ -11,3 +12,6 @@ config BR2_PACKAGE_SWAYBG
 	  Wallpaper tool for Wayland compositors.
 
 	  https://github.com/swaywm/swaybg
+
+comment "swaybg needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE

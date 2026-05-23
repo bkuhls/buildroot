@@ -1,7 +1,11 @@
 config BR2_PACKAGE_XAPP_XLOGO
 	bool "xlogo"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_XLIB_LIBXAW
 	select BR2_PACKAGE_XLIB_LIBXRENDER
 	select BR2_PACKAGE_XLIB_LIBXFT
 	help
 	  X Window System logo
+
+comment "xlogo needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE

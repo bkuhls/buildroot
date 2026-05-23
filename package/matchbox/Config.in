@@ -1,5 +1,6 @@
 menuconfig BR2_PACKAGE_MATCHBOX
 	bool "matchbox"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	depends on BR2_PACKAGE_XORG7
 	depends on BR2_USE_MMU # fork()
 	select BR2_PACKAGE_FONTCONFIG
@@ -33,3 +34,6 @@ source "package/matchbox-panel/Config.in"
 source "package/matchbox-startup-monitor/Config.in"
 
 endif
+
+comment "matchbox needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE
