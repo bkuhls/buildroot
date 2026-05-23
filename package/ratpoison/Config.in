@@ -2,6 +2,7 @@ config BR2_PACKAGE_RATPOISON
 	bool "ratpoison"
 	depends on BR2_USE_MMU
 	depends on BR2_PACKAGE_XORG7
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_FONTCONFIG
 	select BR2_PACKAGE_LIBERATION
 	select BR2_PACKAGE_XLIB_LIBX11
@@ -15,3 +16,6 @@ config BR2_PACKAGE_RATPOISON
 	  advantage of your precious screen real estate.
 
 	  http://www.nongnu.org/ratpoison/
+
+comment "ratpoison needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE

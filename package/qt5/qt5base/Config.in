@@ -238,10 +238,14 @@ config BR2_PACKAGE_QT5BASE_PRINTSUPPORT
 
 config BR2_PACKAGE_QT5BASE_FONTCONFIG
 	bool "fontconfig support"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_FONTCONFIG
 	help
 	  This option enables Fontconfig and Freetype support using
 	  the system fontconfig and freetype2 libraries.
+
+comment "fontconfig support needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE
 
 config BR2_PACKAGE_QT5BASE_HARFBUZZ
 	bool "harfbuzz support"

@@ -6,6 +6,7 @@ config BR2_PACKAGE_PANGOMM2_46
 	depends on BR2_TOOLCHAIN_HAS_THREADS # *mm/pango -> libglib2
 	depends on BR2_USE_MMU # *mm/pango -> libglib2
 	depends on BR2_USE_WCHAR # *mm/pango -> libglib2
+	depends on BR2_ENABLE_LOCALE # cairomm -> cairo -> fontconfig
 	select BR2_PACKAGE_CAIROMM1_14
 	select BR2_PACKAGE_GLIBMM2_66
 	select BR2_PACKAGE_PANGO
@@ -18,8 +19,9 @@ config BR2_PACKAGE_PANGOMM2_46
 
 	  http://www.gtkmm.org/
 
-comment "pangomm (2.46.x) needs a toolchain w/ C++, wchar, threads, gcc >= 4.9"
+comment "pangomm (2.46.x) needs a toolchain w/ C++, wchar, locale, threads, gcc >= 4.9"
 	depends on BR2_USE_MMU
 	depends on BR2_TOOLCHAIN_HAS_SYNC_4
 	depends on !BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 || !BR2_USE_WCHAR \
+		|| !BR2_ENABLE_LOCALE \
 		|| !BR2_INSTALL_LIBSTDCPP || !BR2_TOOLCHAIN_HAS_THREADS

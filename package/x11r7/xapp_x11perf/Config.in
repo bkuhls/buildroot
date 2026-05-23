@@ -1,7 +1,11 @@
 config BR2_PACKAGE_XAPP_X11PERF
 	bool "x11perf"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_XLIB_LIBX11
 	select BR2_PACKAGE_XLIB_LIBXMU
 	select BR2_PACKAGE_XLIB_LIBXFT
 	help
 	  summarize x11perf results
+
+comment "x11perf needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE
