@@ -125,10 +125,14 @@ endif
 
 config BR2_PACKAGE_QT6BASE_FONTCONFIG
 	bool "fontconfig support"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_FONTCONFIG
 	help
 	  This option enables Fontconfig support using the system
 	  fontconfig library.
+
+comment "fontconfig support needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE
 
 config BR2_PACKAGE_QT6BASE_HARFBUZZ
 	bool "harfbuzz support"

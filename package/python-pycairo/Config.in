@@ -1,7 +1,11 @@
 config BR2_PACKAGE_PYTHON_PYCAIRO
 	bool "python-pycairo"
+	depends on BR2_ENABLE_LOCALE # cairo -> fontconfig
 	select BR2_PACKAGE_CAIRO
 	help
 	  Python interface for cairo.
 
 	  https://pycairo.readthedocs.io
+
+comment "python-pycairo needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE

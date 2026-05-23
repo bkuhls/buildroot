@@ -1,5 +1,6 @@
 config BR2_PACKAGE_FOOT
 	bool "foot"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	depends on BR2_TOOLCHAIN_USES_GLIBC || BR2_TOOLCHAIN_USES_MUSL # fcft
 	depends on !BR2_STATIC_LIBS # wayland
 	select BR2_PACKAGE_FCFT
@@ -32,6 +33,7 @@ config BR2_PACKAGE_FOOT_THEMES
 
 endif # BR2_PACKAGE_FOOT
 
-comment "foot needs a glibc or musl toolchain w/ dynamic library"
+comment "foot needs a glibc or musl toolchain w/ dynamic library, locale"
 	depends on !(BR2_TOOLCHAIN_USES_GLIBC || BR2_TOOLCHAIN_USES_MUSL) || \
-		BR2_STATIC_LIBS
+		BR2_STATIC_LIBS || \
+		!BR2_ENABLE_LOCALE

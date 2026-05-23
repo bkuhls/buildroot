@@ -1,5 +1,6 @@
 config BR2_PACKAGE_CAIRO
 	bool "cairo"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_PIXMAN
 	select BR2_PACKAGE_FONTCONFIG
 	select BR2_PACKAGE_XLIB_LIBX11 if BR2_PACKAGE_XORG7
@@ -28,3 +29,6 @@ config BR2_PACKAGE_CAIRO_ZLIB
 	select BR2_PACKAGE_ZLIB
 
 endif
+
+comment "cairo needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE

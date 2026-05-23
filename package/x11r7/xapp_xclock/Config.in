@@ -1,5 +1,6 @@
 config BR2_PACKAGE_XAPP_XCLOCK
 	bool "xclock"
+	depends on BR2_ENABLE_LOCALE # fontconfig
 	select BR2_PACKAGE_XLIB_LIBX11
 	select BR2_PACKAGE_XLIB_LIBXAW
 	select BR2_PACKAGE_XLIB_LIBXFT
@@ -7,3 +8,6 @@ config BR2_PACKAGE_XAPP_XCLOCK
 	select BR2_PACKAGE_XLIB_LIBXKBFILE
 	help
 	  analog / digital clock for X
+
+comment "xclock needs a toolchain w/ locale"
+	depends on !BR2_ENABLE_LOCALE
