@@ -1,0 +1,32 @@
+From 38e96676cda9e555b4c55102a57e29c2073c30c2 Mon Sep 17 00:00:00 2001
+From: Paul Louvel <paul.louvel@bootlin.com>
+Date: Fri, 22 May 2026 15:47:43 +0200
+Subject: [PATCH] remove conditional on CMAKE_INSTALL_PREFIX.
+
+Remove a conditional on CMAKE_INSTALL_PREFIX, since Buildroot sets it to "/usr"
+by default. Prevent setting KDE_INSTALL_USE_QT_SYS_PATHS to OFF, which would
+cause the project to ignore QMake installation properties and install the module
+mkspecs in the wrong location with wrong values.
+
+Upstream: N/A QtWebkit is not maintained anymore, and this patch is only
+relevant for Buildroot.
+Signed-off-by: Paul Louvel <paul.louvel@bootlin.com>
+---
+ Source/cmake/OptionsQt.cmake | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/Source/cmake/OptionsQt.cmake b/Source/cmake/OptionsQt.cmake
+index 71f9afa01..fd52e8eab 100644
+--- a/Source/cmake/OptionsQt.cmake
++++ b/Source/cmake/OptionsQt.cmake
+@@ -1008,10 +1008,6 @@ endif ()
+
+ include(KDEInstallDirs)
+
+-if (NOT qt_install_prefix_dir STREQUAL "${CMAKE_INSTALL_PREFIX}")
+-    set(KDE_INSTALL_USE_QT_SYS_PATHS OFF)
+-endif ()
+-
+ # We split all installed files into 2 components: Code and Data. This is different from
+ # traditional approach with Runtime and Devel, but we need it to fix concurrent installation of
+ # debug and release builds in qmake-based build

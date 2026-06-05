@@ -66,10 +66,29 @@ QT5WEBKIT_CONF_OPTS += -DENABLE_SAMPLING_PROFILER=OFF
 endif
 
 QT5WEBKIT_CONF_OPTS += \
+	-DKDE_INSTALL_USE_QT_SYS_PATHS=ON \
 	-DENABLE_TOOLS=OFF \
 	-DPORT=Qt \
 	-DPYTHON_EXECUTABLE=$(HOST_DIR)/bin/python3 \
 	-DSHARED_CORE=ON \
 	-DUSE_LIBHYPHEN=OFF
+
+# Remove the DESTDIR from the install command install so that the .pri files in
+# the correct location: $(HOST_DIR)/mkspecs/modules instead of
+# $(STAGING_DIR)$(HOST_DIR)/usr/mkspecs/modules.
+define QT5WEBKIT_INSTALL_STAGING_CMDS
+	$(TARGET_MAKE_ENV) $(QT5WEBKIT_BUILD_ENV) \
+		$(BR2_CMAKE) --install $(QT5WEBKIT_BUILDDIR) \
+		--prefix $(STAGING_DIR)/usr
+endef
+
+# Remove the DESTDIR from the install command install so that the .pri files in
+# the correct location: $(HOST_DIR)/mkspecs/modules instead of
+# $(TARGET_DIR)$(HOST_DIR)/usr/mkspecs/modules.
+define QT5WEBKIT_INSTALL_TARGET_CMDS
+	$(TARGET_MAKE_ENV) $(QT5WEBKIT_BUILD_ENV) \
+		$(BR2_CMAKE) --install $(QT5WEBKIT_BUILDDIR) \
+		--prefix $(TARGET_DIR)/usr
+endef
 
 $(eval $(cmake-package))
