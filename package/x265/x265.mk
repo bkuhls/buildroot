@@ -29,6 +29,15 @@ X265_CONF_OPTS += -DENABLE_NEON=OFF
 endif
 endif
 
+# x265 uses vst1q_s16_x2 on aarch64 which was implemented in gcc 9
+ifeq ($(BR2_aarch64):$(BR2_TOOLCHAIN_GCC_AT_LEAST_9),y:)
+X265_CONF_OPTS += -DENABLE_ASSEMBLY=0
+endif
+
+ifeq ($(BR2_i386),y)
+X265_CONF_OPTS += -DEXTRA_LINK_FLAGS=-Wl,-z,notext
+endif
+
 ifeq ($(BR2_i386)$(BR2_x86_64),y)
 X265_DEPENDENCIES += host-nasm
 endif
