@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-X265_VERSION = 4.1
+X265_VERSION = 4.2
 X265_SOURCE = x265_$(X265_VERSION).tar.gz
 X265_SITE = https://bitbucket.org/multicoreware/x265_git/downloads
 X265_LICENSE = GPL-2.0+
@@ -29,8 +29,17 @@ X265_CONF_OPTS += -DENABLE_NEON=OFF
 endif
 endif
 
+# x265 uses vst1q_s16_x2 on aarch64 which was implemented in gcc 9
+ifeq ($(BR2_aarch64):$(BR2_TOOLCHAIN_GCC_AT_LEAST_9),y:)
+X265_CONF_OPTS += -DENABLE_ASSEMBLY=0
+endif
+
 ifeq ($(BR2_i386)$(BR2_x86_64),y)
+ifeq ($(BR2_i386)$(BR2_TOOLCHAIN_USES_MUSL),yy)
+X265_CONF_OPTS += -DENABLE_ASSEMBLY=0
+else
 X265_DEPENDENCIES += host-nasm
+endif
 endif
 
 # disable altivec, it has build issues

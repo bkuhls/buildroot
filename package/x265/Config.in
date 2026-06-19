@@ -17,6 +17,7 @@ if BR2_PACKAGE_X265
 
 config BR2_PACKAGE_X265_CLI
 	bool "CLI"
+	depends on BR2_TOOLCHAIN_HAS_SYNC_8
 	help
 	  Command-line tool to encode video streams into the
 	  H.265/HEVC compression format.
