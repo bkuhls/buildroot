@@ -106,6 +106,17 @@ config BR2_PACKAGE_UTIL_LINUX_CHMEM
 	help
 	  Sets a particular size or range of memory online or offline
 
+config BR2_PACKAGE_UTIL_LINUX_COPYFILERANGE
+	bool "copyfilerange"
+	depends on BR2_USE_MMU # fork()
+	depends on !BR2_TOOLCHAIN_USES_UCLIBC # copy_file_range
+	help
+	  Copy file ranges using the copy_file_range() syscall
+
+comment "copyfilerange needs a musl or glibc toolchain"
+	depends on BR2_USE_MMU
+	depends on BR2_TOOLCHAIN_USES_UCLIBC
+
 config BR2_PACKAGE_UTIL_LINUX_CRAMFS
 	bool "cramfs utilities"
 	depends on BR2_USE_MMU # fork()
@@ -143,6 +154,20 @@ config BR2_PACKAGE_UTIL_LINUX_FSCK
 	select BR2_PACKAGE_UTIL_LINUX_LIBUUID
 	help
 	  Check and repair a linux filesystem
+
+config BR2_PACKAGE_UTIL_LINUX_GETINO
+	bool "getino"
+	depends on BR2_USE_MMU # fork()
+	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3 # pidfd_open
+	depends on !BR2_TOOLCHAIN_USES_UCLIBC # statx
+	help
+	  Print the unique inode number associated with a process
+	  file descriptor or namespace for a given PID.
+
+comment "getino needs a musl or glibc toolchain w/ headers >= 5.3"
+	depends on BR2_USE_MMU
+	depends on !BR2_TOOLCHAIN_HEADERS_AT_LEAST_5_3 \
+		|| BR2_TOOLCHAIN_USES_UCLIBC
 
 config BR2_PACKAGE_UTIL_LINUX_HARDLINK
 	bool "hardlink"
