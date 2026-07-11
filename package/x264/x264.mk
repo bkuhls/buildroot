@@ -13,7 +13,7 @@ X264_LICENSE_FILES = COPYING
 X264_INSTALL_STAGING = YES
 X264_CONF_OPTS = --disable-avs --disable-lavf --disable-swscale
 
-ifeq ($(BR2_i386)$(BR2_x86_64),y)
+ifeq ($(BR2_x86_64),y)
 ifeq ($(BR2_TOOLCHAIN_USES_MUSL)$(BR2_PIC_PIE),yy)
 # libx264 uses large amounts of non-pic assembly code, resulting in text
 # section relocations, which are not supported on musl-libc's ld.so.
