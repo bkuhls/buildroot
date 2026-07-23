@@ -183,6 +183,13 @@ config BR2_PACKAGE_WESTON_SHELL_FULLSCREEN
 
 comment "Legacy options removed in 2026.08"
 
+config BR2_PACKAGE_LIBPLATFORM
+	bool "libplatform removed"
+	select BR2_LEGACY
+	help
+	  libplatform was no longer maintained upstream, so it has
+	  been dropped.
+
 config BR2_PACKAGE_FLUIDSYNTH_SDL2
 	bool "fluidsynth sdl2 audio support removed"
 	select BR2_LEGACY
