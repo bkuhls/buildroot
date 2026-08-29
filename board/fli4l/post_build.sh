@@ -30,15 +30,13 @@ for i in \
     lib10_quota_plugin.so \
     lib15_notify_plugin.so \
     lib20_fts_plugin.so \
-    lib90_old_stats_plugin.so \
-    lib95_imap_old_stats_plugin.so \
+    libssl_iostream_openssl.so \
     ; \
 do
     if [ ! -L $1/usr/lib/$i ]; then \
         ln -svf dovecot/$i $1/usr/lib/$i
     fi
 done
-ln -svf dovecot/old-stats/libstats_auth.so $1/usr/lib/libstats_auth.so
 
 # remove link to dovecot binary
 rm -fv $1/usr/libexec/deliver
