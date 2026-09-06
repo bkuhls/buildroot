@@ -1,0 +1,13 @@
+config BR2_PACKAGE_MESA_LIBCLC
+	bool "mesa-libclc"
+	depends on BR2_PACKAGE_LLVM
+	select BR2_PACKAGE_LLVM_AMDGPU
+	select BR2_PACKAGE_LLVM_RTTI
+	help
+	  This is a fork of LLVM's libclc applying some fixes of a
+	  known good state to be used by Mesa3D.
+
+	  https://gitlab.freedesktop.org/karolherbst/mesa-libclc
+
+comment "mesa-libclc needs llvm"
+	depends on !BR2_PACKAGE_LLVM

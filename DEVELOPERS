@@ -469,6 +469,7 @@ F:	package/libzippp/
 F:	package/linux-firmware/
 F:	package/mc/
 F:	package/mesa3d/
+F:	package/mesa-libclc/
 F:	package/minidlna/
 F:	package/mjpg-streamer/
 F:	package/monero/
