@@ -1,0 +1,30 @@
+From ea71ce1995ca861b1bbfacf01ed0d2e5fea50237 Mon Sep 17 00:00:00 2001
+From: John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>
+Date: Tue, 17 Feb 2026 09:35:57 +0100
+Subject: [PATCH] Add check for duplicate definition of SIGLOST
+
+Closes #545
+
+Upstream: https://github.com/boostorg/process/commit/ea71ce1995ca861b1bbfacf01ed0d2e5fea50237
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ libs/process/src/error.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libs/process/src/error.cpp b/libs/process/src/error.cpp
+index 3427072..0c93fb3 100644
+--- a/libs/process/src/error.cpp
++++ b/libs/process/src/error.cpp
+@@ -112,7 +112,7 @@ struct exit_code_category final : public error_category
+ #            if defined(SIGKILL)
+                     case SIGKILL: return "SIGKILL:   Kill signal";
+ #            endif
+-#            if defined(SIGLOST)
++#            if defined(SIGLOST) && SIGLOST != SIGPWR
+                     case SIGLOST: return "SIGLOST:   File lock lost (unused)";
+ #            endif
+ #            if defined(SIGPIPE)
+-- 
+2.47.3
+
