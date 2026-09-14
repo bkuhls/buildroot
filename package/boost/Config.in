@@ -41,9 +41,11 @@ config BR2_PACKAGE_BOOST_CONTEXT_ARCH_SUPPORTS
 	default y if ((BR2_arm || BR2_armeb) && BR2_ARM_CPU_HAS_ARM)
 	default y if (BR2_aarch64 || BR2_aarch64_be)
 	default y if BR2_i386
+	default y if BR2_loongarch64
 	default y if BR2_mips
 	default y if BR2_mipsel
 	default y if BR2_powerpc
+	default y if BR2_sparc64
 	default y if BR2_x86_64
 
 config BR2_PACKAGE_BOOST_CONTEXT
@@ -73,9 +75,7 @@ config BR2_PACKAGE_BOOST_COROUTINE
 	depends on BR2_TOOLCHAIN_SUPPORTS_ALWAYS_LOCKFREE_ATOMIC_INTS # boost-thread
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_8 # boost-context
 	depends on !BR2_TOOLCHAIN_HAS_GCC_BUG_64735 # boost-context, boost-thread
-	select BR2_PACKAGE_BOOST_CHRONO
 	select BR2_PACKAGE_BOOST_CONTEXT
-	select BR2_PACKAGE_BOOST_THREAD
 	help
 	  deprecated coroutine library, the non-deprecated coroutine2
 	  library is a header-only library and does not need to be
@@ -154,6 +154,8 @@ config BR2_PACKAGE_BOOST_IOSTREAMS
 	bool "boost-iostreams"
 	select BR2_PACKAGE_BZIP2
 	select BR2_PACKAGE_ZLIB
+	select BR2_PACKAGE_BOOST_RANDOM
+	select BR2_PACKAGE_BOOST_REGEX
 	help
 	  Boost.IOStreams provides a framework for defining streams,
 	  stream buffers and i/o filters.
@@ -219,6 +221,7 @@ comment "boost-log needs a toolchain not affected by GCC bug 64735"
 config BR2_PACKAGE_BOOST_MATH
 	bool "boost-math"
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_5 # C++14
+	select BR2_PACKAGE_BOOST_RANDOM
 	help
 	  Boost.Math includes several contributions in the domain of
 	  mathematics:
@@ -266,6 +269,7 @@ config BR2_PACKAGE_BOOST_PROGRAM_OPTIONS
 config BR2_PACKAGE_BOOST_PYTHON
 	bool "boost-python"
 	depends on BR2_PACKAGE_PYTHON3
+	select BR2_PACKAGE_BOOST_GRAPH
 	help
 	  The Boost Python Library is a framework for interfacing Python
 	  and C++. It allows you to quickly and seamlessly expose C++
@@ -308,7 +312,6 @@ config BR2_PACKAGE_BOOST_SYSTEM
 config BR2_PACKAGE_BOOST_TEST
 	bool "boost-test"
 	depends on BR2_USE_MMU # fork()
-	select BR2_PACKAGE_BOOST_TIMER
 	help
 	  Support for simple program testing, full unit testing, and for
 	  program execution monitoring.
@@ -326,7 +329,6 @@ comment "boost-thread needs a toolchain not affected by GCC bug 64735"
 
 config BR2_PACKAGE_BOOST_TIMER
 	bool "boost-timer"
-	select BR2_PACKAGE_BOOST_CHRONO
 	help
 	  Event timer, progress timer, and progress display classes.
 
@@ -362,7 +364,7 @@ config BR2_PACKAGE_BOOST_WAVE
 	depends on BR2_TOOLCHAIN_SUPPORTS_ALWAYS_LOCKFREE_ATOMIC_INTS # boost-thread
 	depends on !BR2_TOOLCHAIN_HAS_GCC_BUG_64735 # boost-thread
 	select BR2_PACKAGE_BOOST_FILESYSTEM
-	select BR2_PACKAGE_BOOST_THREAD
+	select BR2_PACKAGE_BOOST_SERIALIZATION
 	help
 	  The Boost.Wave library is a Standards conformant, and highly
 	  configurable implementation of the mandated C99/C++

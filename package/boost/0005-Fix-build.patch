@@ -1,0 +1,64 @@
+From d51809b279440cd681f8adc4c03e954775fcdf50 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Mon, 14 Sep 2026 00:13:03 +0200
+Subject: [PATCH] Fix build
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In file included from ./boost/json/src.hpp:46,
+                 from output/build/boost-1.92.0/libs/json/src/src.cpp:10:
+./boost/json/impl/value_stack.ipp:435:1: error: no declaration matches ‘void boost::json::value_stack::push_int64(boost::int64_t)’
+  435 | value_stack::
+      | ^~~~~~~~~~~
+In file included from ./boost/json/detail/handler.hpp:18,
+                 from ./boost/json/parser.hpp:17,
+                 from ./boost/json.hpp:28,
+                 from ./boost/json/src.hpp:27:
+./boost/json/value_stack.hpp:397:5: note: candidate is: ‘void boost::json::value_stack::push_int64(int64_t)’
+  397 |     push_int64(
+      |     ^~~~~~~~~~
+./boost/json/value_stack.hpp:101:7: note: ‘class boost::json::value_stack’ defined here
+  101 | class value_stack
+      |       ^~~~~~~~~~~
+./boost/json/impl/value_stack.ipp:443:1: error: no declaration matches ‘void boost::json::value_stack::push_uint64(boost::uint64_t)’
+  443 | value_stack::
+      | ^~~~~~~~~~~
+./boost/json/value_stack.hpp:411:5: note: candidate is: ‘void boost::json::value_stack::push_uint64(uint64_t)’
+  411 |     push_uint64(
+      |     ^~~~~~~~~~~
+./boost/json/value_stack.hpp:101:7: note: ‘class boost::json::value_stack’ defined here
+  101 | class value_stack
+
+Upstream: https://github.com/boostorg/json/pull/1197
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ boost/json/impl/value_stack.ipp | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/boost/json/impl/value_stack.ipp b/boost/json/impl/value_stack.ipp
+index af1b107..4c3dbac 100644
+--- a/boost/json/impl/value_stack.ipp
++++ b/boost/json/impl/value_stack.ipp
+@@ -434,7 +434,7 @@ push_string(
+ void
+ value_stack::
+ push_int64(
+-    int64_t i)
++    std::int64_t i)
+ {
+     st_.push(i, sp_);
+ }
+@@ -442,7 +442,7 @@ push_int64(
+ void
+ value_stack::
+ push_uint64(
+-    uint64_t u)
++    std::uint64_t u)
+ {
+     st_.push(u, sp_);
+ }
+-- 
+2.47.3
+
