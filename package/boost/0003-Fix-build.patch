@@ -1,0 +1,39 @@
+From 22d487b7c02fab4e9633b8d9d3fada15c9ca70d0 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Sun, 13 Sep 2026 23:53:34 +0200
+Subject: [PATCH] Fix build
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In file included from ./boost/charconv/detail/fast_float/fast_float.hpp:11,
+ from output/build/boost-1.92.0/libs/charconv/build/../src/from_chars.cpp:16:
+./boost/charconv/detail/fast_float/float_common.hpp:349:20: error: conflicting declaration ‘constexpr const boost::uint64_t boost::charconv::detail::fast_float::binary_format_lookup_tables<double, U>::max_mantissa []’ [-Wtemplate-body]
+  349 | constexpr uint64_t binary_format_lookup_tables<double, U>::max_mantissa[];
+
+./boost/charconv/detail/fast_float/float_common.hpp:318:34: note: previous declaration as ‘constexpr const uint64_t boost::charconv::detail::fast_float::binary_format_lookup_tables<double, U>::max_mantissa [24]’
+  318 |   static constexpr std::uint64_t max_mantissa[] = {
+
+Upstream: https://github.com/boostorg/charconv/pull/307
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ boost/charconv/detail/fast_float/float_common.hpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/boost/charconv/detail/fast_float/float_common.hpp b/boost/charconv/detail/fast_float/float_common.hpp
+index 0b9d3ae..627f97f 100644
+--- a/boost/charconv/detail/fast_float/float_common.hpp
++++ b/boost/charconv/detail/fast_float/float_common.hpp
+@@ -315,7 +315,7 @@ struct binary_format_lookup_tables<double, U> {
+ 
+   // Largest integer value v so that (5**index * v) <= 1<<53.
+   // 0x10000000000000 == 1 << 53
+-  static constexpr std::uint64_t max_mantissa[] = {
++  static constexpr uint64_t max_mantissa[] = {
+     UINT64_C(0x10000000000000),
+     UINT64_C(0x10000000000000) / UINT64_C(5),
+     UINT64_C(0x10000000000000) / (UINT64_C(5) * UINT64_C(5)),
+-- 
+2.47.3
+
