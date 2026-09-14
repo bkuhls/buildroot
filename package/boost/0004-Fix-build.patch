@@ -1,0 +1,40 @@
+From 3d5659f0a06b68864a2daed145c0897a4b18c893 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Mon, 14 Sep 2026 00:02:41 +0200
+Subject: [PATCH] Fix build
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+In file included from ./boost/json/detail/charconv/detail/fast_float/fast_float.hpp:11,
+                 from ./boost/json/detail/charconv/impl/from_chars.ipp:14,
+                 from ./boost/json/src.hpp:59:
+./boost/json/detail/charconv/detail/fast_float/float_common.hpp:307:20: error: conflicting declaration ‘constexpr const boost::uint64_t boost::json::detail::charconv::detail::fast_float::binary_format_lookup_tables<double, U>::max_mantissa []’ [-Wtemplate-body]
+  307 | constexpr uint64_t binary_format_lookup_tables<double, U>::max_mantissa[];
+
+./boost/json/detail/charconv/detail/fast_float/float_common.hpp:276:34: note: previous declaration as ‘constexpr const uint64_t boost::json::detail::charconv::detail::fast_float::binary_format_lookup_tables<double, U>::max_mantissa [24]’
+  276 |   static constexpr std::uint64_t max_mantissa[] = {
+
+Upstream: https://github.com/boostorg/json/pull/1197
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ boost/json/detail/charconv/detail/fast_float/float_common.hpp     | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/boost/json/detail/charconv/detail/fast_float/float_common.hpp b/boost/json/detail/charconv/detail/fast_float/float_common.hpp
+index ef31140..a280095 100644
+--- a/boost/json/detail/charconv/detail/fast_float/float_common.hpp
++++ b/boost/json/detail/charconv/detail/fast_float/float_common.hpp
+@@ -273,7 +273,7 @@ struct binary_format_lookup_tables<double, U> {
+ 
+   // Largest integer value v so that (5**index * v) <= 1<<53.
+   // 0x10000000000000 == 1 << 53
+-  static constexpr std::uint64_t max_mantissa[] = {
++  static constexpr uint64_t max_mantissa[] = {
+     UINT64_C(0x10000000000000),
+     UINT64_C(0x10000000000000) / UINT64_C(5),
+     UINT64_C(0x10000000000000) / (UINT64_C(5) * UINT64_C(5)),
+-- 
+2.47.3
+
