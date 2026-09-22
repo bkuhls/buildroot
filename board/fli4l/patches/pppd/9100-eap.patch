@@ -17,18 +17,3 @@
  
  									if (esp->es_rechallenge != 0) {
  										TIMEOUT(eap_rechallenge, esp, esp->es_rechallenge);
-@@ -2770,8 +2777,13 @@
- 				break;
- 			}
- 			esp->es_server.ea_type = EAPT_SRP;
--			eap_send_success(esp);
-+			/*
-+			 * see the EAPT_MD5CHAP case why the calls to
-+			 * eap_figure_next_state() and eap_send_success() are
-+			 * reversed
-+			 */
- 			eap_figure_next_state(esp, 0);
-+			eap_send_success(esp);
- 			if (esp->es_rechallenge != 0)
- 				TIMEOUT(eap_rechallenge, esp,
- 				    esp->es_rechallenge);
