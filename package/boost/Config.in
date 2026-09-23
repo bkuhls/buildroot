@@ -90,8 +90,9 @@ comment "boost-context needs a toolchain w/ C++11, gcc>=4.8"
 
 config BR2_PACKAGE_BOOST_CONTRACT
 	bool "boost-contract"
-	# pthread_condattr_setclock
-	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL
+	depends on BR2_TOOLCHAIN_HAS_THREADS_NPTL # pthread_condattr_setclock
+	depends on BR2_TOOLCHAIN_SUPPORTS_ALWAYS_LOCKFREE_ATOMIC_INTS # boost-thread -> atomic
+	select BR2_PACKAGE_BOOST_THREAD
 	help
 	  Contract programming for C++.
 
