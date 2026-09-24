@@ -32,6 +32,7 @@ config BR2_PACKAGE_RESIPROCATE_DTLS_SUPPORT
 
 config BR2_PACKAGE_RESIPROCATE_REND
 	bool "resiprocate-rend"
+	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_8 # boost-system
 	select BR2_PACKAGE_BOOST
 	select BR2_PACKAGE_BOOST_SYSTEM
 	select BR2_PACKAGE_OPENSSL
@@ -39,5 +40,8 @@ config BR2_PACKAGE_RESIPROCATE_REND
 	help
 	  Rend is tool that is was created specifically to load test
 	  gtSIP based presence servers.
+
+comment "resiprocate-rend needs a toolchain w/ C++11, gcc>=4.8"
+	depends on !BR2_TOOLCHAIN_GCC_AT_LEAST_4_8
 
 endif # BR2_PACKAGE_RESIPROCATE
