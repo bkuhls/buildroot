@@ -1,0 +1,38 @@
+From c59c076ae47fd13ed1990a0fa0ca3d97c246b1b3 Mon Sep 17 00:00:00 2001
+From: LiBe-net <boern99@gmail.com>
+Date: Thu, 30 Jul 2026 22:29:25 +0200
+Subject: [PATCH] mpegts: keep teletext stream indexes unique
+
+When a virtual teletext stream moves to a different parent PID, keep scanning the complete stream list before allocating its replacement. This ensures the new component index is greater than every existing index and prevents H264 and subtitle streams from being routed through the same component.
+
+Upstream: https://github.com/tvheadend/tvheadend/pull/2206
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ src/esstream.c | 7 ++-----
+ 1 file changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/src/esstream.c b/src/esstream.c
+index 7f432da36..43875705c 100644
+--- a/src/esstream.c
++++ b/src/esstream.c
+@@ -458,14 +458,11 @@ elementary_stream_create_parent
+   TAILQ_FOREACH(st, &set->set_all, es_link) {
+     if(st->es_index > idx)
+       idx = st->es_index;
+-    if(pid != -1 && st->es_pid == pid) {
+-      if (parent_pid >= 0 && st->es_parent_pid != parent_pid)
+-        goto create;
++    if(pid != -1 && st->es_pid == pid &&
++       (parent_pid < 0 || st->es_parent_pid == parent_pid))
+       return st;
+-    }
+   }
+ 
+-create:
+   st = calloc(1, sizeof(elementary_stream_t));
+   st->es_index = idx + 1;
+ 
+-- 
+2.47.3
+

@@ -1,0 +1,355 @@
+From 7a58f767b4c492a41c0f0cc30aa5c6ac19cef0f5 Mon Sep 17 00:00:00 2001
+From: LiBe-net <boern99@gmail.com>
+Date: Thu, 30 Jul 2026 22:30:17 +0200
+Subject: [PATCH] timeshift: restore stream map after seek
+
+Track streaming-start messages at their timeshift buffer positions and restore the stream layout selected by a seek.
+
+When the effective component layout changes, notify downstream consumers with SOURCE_RECONFIGURED before replaying START. Send the skip response first so HTSP and pvr.hts queue flushing cannot discard the restored stream map.
+
+Keep the buffered packet timeline monotonic when a source reconfiguration resets PTS, DTS, and PCR.
+
+Upstream: https://github.com/tvheadend/tvheadend/pull/2206
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ src/timeshift.c                  | 89 +++++++++++++++++++++++++++-----
+ src/timeshift/private.h          |  5 +-
+ src/timeshift/timeshift_reader.c | 82 +++++++++++++++++++++++++++--
+ src/timeshift/timeshift_writer.c |  6 ++-
+ 4 files changed, 163 insertions(+), 19 deletions(-)
+
+diff --git a/src/timeshift.c b/src/timeshift.c
+index be5655318..7ce8873b6 100644
+--- a/src/timeshift.c
++++ b/src/timeshift.c
+@@ -41,6 +41,18 @@ struct timeshift_conf timeshift_conf;
+ memoryinfo_t timeshift_memoryinfo = { .my_name = "Timeshift" };
+ memoryinfo_t timeshift_memoryinfo_ram = { .my_name = "Timeshift RAM buffer" };
+ 
++void
++timeshift_play_start_set(timeshift_t *ts, streaming_start_t *ss)
++{
++  if (ss == ts->smt_play)
++    return;
++  if (ss)
++    streaming_start_ref(ss);
++  if (ts->smt_play)
++    streaming_start_unref(ts->smt_play);
++  ts->smt_play = ss;
++}
++
+ /*
+  * Packet log
+  */
+@@ -327,6 +339,60 @@ timeshift_packet( timeshift_t *ts, streaming_message_t *sm )
+   return 0;
+ }
+ 
++static int64_t
++timeshift_packet_rebase_target(int64_t last_pts, int64_t adjusted_pts)
++{
++  int64_t delta;
++
++  if (adjusted_pts >= last_pts - 90000)
++    return adjusted_pts;
++
++  /* Keep a normal 33-bit wrap unwrapped on the monotonic timeshift axis.
++   * The two-second window matches the discontinuity handling in tsfix. */
++  delta = pts_diff(last_pts, adjusted_pts);
++  if (delta >= 0 && delta <= 2 * 90000)
++    return last_pts + delta;
++
++  return last_pts + 1;
++}
++
++static void
++timeshift_packet_rebase( timeshift_t *ts, streaming_message_t *sm )
++{
++  th_pkt_t *pkt = sm->sm_data;
++  th_pkt_t *pkt2;
++
++  if (ts->pts_rebase_pending &&
++      pkt->pkt_pts != PTS_UNSET &&
++      pkt->pkt_type != SCT_TELETEXT) {
++    int64_t adjusted_pts = pkt->pkt_pts + ts->start_pts;
++    int64_t last_pts = ts_rescale_inv(ts->last_wr_time, 1000000);
++    int64_t target_pts =
++      timeshift_packet_rebase_target(last_pts, adjusted_pts);
++
++    if (target_pts != adjusted_pts) {
++      ts->start_pts = target_pts - pkt->pkt_pts;
++      tvhdebug(LS_TIMESHIFT,
++               "ts %d rebase packet clock after source reconfiguration:"
++               " offset=%"PRId64,
++               ts->id, ts->start_pts);
++    }
++    ts->pts_rebase_pending = 0;
++  }
++
++  if (ts->start_pts) {
++    pkt2 = pkt_copy_shallow(pkt);
++    pkt_ref_dec(pkt);
++    sm->sm_data = pkt2;
++    if (pkt2->pkt_pts != PTS_UNSET)
++      pkt2->pkt_pts += ts->start_pts;
++    if (pkt2->pkt_dts != PTS_UNSET)
++      pkt2->pkt_dts += ts->start_pts;
++    if (pkt2->pkt_pcr != PTS_UNSET)
++      pkt2->pkt_pcr += ts->start_pts;
++  }
++}
++
+ /*
+  * Receive data
+  */
+@@ -335,7 +401,6 @@ static void timeshift_input
+ {
+   int type = sm->sm_type;
+   timeshift_t *ts = opaque;
+-  th_pkt_t *pkt, *pkt2;
+ 
+   if (ts->exit)
+     return;
+@@ -349,19 +414,16 @@ static void timeshift_input
+     streaming_msg_free(sm);
+   } else {
+ 
+-    /* Change PTS/DTS offsets */
+-    if (ts->packet_mode && ts->start_pts && type == SMT_PACKET) {
+-      pkt = sm->sm_data;
+-      pkt2 = pkt_copy_shallow(pkt);
+-      pkt_ref_dec(pkt);
+-      sm->sm_data = pkt2;
+-      if (pkt2->pkt_pts != PTS_UNSET) pkt2->pkt_pts += ts->start_pts;
+-      if (pkt2->pkt_dts != PTS_UNSET) pkt2->pkt_dts += ts->start_pts;
+-    }
++    /* Keep the packet clock monotonic across a source reconfiguration. */
++    if (ts->packet_mode && type == SMT_PACKET)
++      timeshift_packet_rebase(ts, sm);
+ 
+-    /* Check for exit */
++    /* Check for exit / source reconfiguration. */
++    if (type == SMT_STOP && sm->sm_code == SM_CODE_SOURCE_RECONFIGURED)
++      ts->pts_rebase_pending = 1;
+     else if (type == SMT_EXIT ||
+-        (type == SMT_STOP && sm->sm_code != SM_CODE_SOURCE_RECONFIGURED))
++             (type == SMT_STOP &&
++              sm->sm_code != SM_CODE_SOURCE_RECONFIGURED))
+       ts->exit = 1;
+ 
+     else if (type == SMT_MPEGTS)
+@@ -439,6 +501,8 @@ timeshift_destroy(streaming_target_t *pad)
+ 
+   if (ts->smt_start)
+     streaming_start_unref(ts->smt_start);
++  if (ts->smt_play)
++    streaming_start_unref(ts->smt_play);
+ 
+   if (ts->path)
+     free(ts->path);
+@@ -479,6 +543,7 @@ streaming_target_t *timeshift_create
+   ts->last_wr_time = 0;
+   ts->buf_time   = 0;
+   ts->start_pts  = 0;
++  ts->pts_rebase_pending = 0;
+   ts->ref_time   = 0;
+   ts->seek.file  = NULL;
+   ts->seek.frame = NULL;
+diff --git a/src/timeshift/private.h b/src/timeshift/private.h
+index c6a5609f2..af2d0affb 100644
+--- a/src/timeshift/private.h
++++ b/src/timeshift/private.h
+@@ -102,7 +102,8 @@ typedef struct timeshift {
+   int                         packet_mode;///< Packet mode (otherwise MPEG-TS data mode)
+   int                         dobuf;      ///< Buffer packets (store)
+   int64_t                     last_wr_time;///< Last write time in us (PTS conversion)
+-  int64_t                     start_pts;  ///< Start time for packets (PTS)
++  int64_t                     start_pts;  ///< PTS offset after source reconfiguration
++  uint8_t                     pts_rebase_pending; ///< Check next packet for PTS reset
+   int64_t                     ref_time;   ///< Start time in us (monoclock)
+   int64_t                     buf_time;   ///< Last buffered time in us (PTS conversion)
+   int                         backlog_max;///< Maximum component index in backlog
+@@ -136,6 +137,7 @@ typedef struct timeshift {
+   uint8_t                         audio_packet_counter; ///< Counter for audio packets in audio-only streams
+ 
+   streaming_start_t          *smt_start;  ///< Streaming start info
++  streaming_start_t          *smt_play;   ///< Stream info currently sent to the client
+ 
+ } timeshift_t;
+ 
+@@ -173,6 +175,7 @@ ssize_t timeshift_write_eof     ( timeshift_file_t *tsf );
+  */
+ void *timeshift_reader ( void *p );
+ void *timeshift_writer ( void *p );
++void timeshift_play_start_set ( timeshift_t *ts, streaming_start_t *ss );
+ 
+ /*
+  * File management
+diff --git a/src/timeshift/timeshift_reader.c b/src/timeshift/timeshift_reader.c
+index 6339a9485..4bf46e67b 100644
+--- a/src/timeshift/timeshift_reader.c
++++ b/src/timeshift/timeshift_reader.c
+@@ -252,6 +252,70 @@ static ssize_t _read_msg ( timeshift_file_t *tsf, int fd, streaming_message_t **
+   return cnt;
+ }
+ 
++static streaming_message_t *
++_timeshift_find_sstart(timeshift_file_t *tsf, off_t pos)
++{
++  timeshift_index_data_t *ti;
++
++  ti = TAILQ_LAST(&tsf->sstart, timeshift_index_data_list);
++  while (ti && ti->pos > pos)
++    ti = TAILQ_PREV(ti, timeshift_index_data_list, link);
++
++  return ti ? ti->data : NULL;
++}
++
++static int
++_timeshift_sstart_layout_differs(const streaming_start_t *a,
++                                 const streaming_start_t *b)
++{
++  int i;
++
++  if (a == b)
++    return 0;
++  if (a == NULL || b == NULL)
++    return 1;
++  if (a->ss_service_id != b->ss_service_id ||
++      a->ss_pmt_pid != b->ss_pmt_pid ||
++      a->ss_pcr_pid != b->ss_pcr_pid ||
++      a->ss_num_components != b->ss_num_components)
++    return 1;
++
++  for (i = 0; i < a->ss_num_components; i++)
++    if (a->ss_components[i].es_index != b->ss_components[i].es_index ||
++        a->ss_components[i].es_type != b->ss_components[i].es_type)
++      return 1;
++
++  return 0;
++}
++
++static void
++_timeshift_apply_sstart(timeshift_t *ts, timeshift_file_t *tsf, off_t pos)
++{
++  streaming_message_t *sm = _timeshift_find_sstart(tsf, pos);
++  streaming_start_t *ss;
++  int reconfigured;
++
++  if (sm == NULL || sm->sm_data == NULL)
++    return;
++
++  ss = sm->sm_data;
++  if (ss == ts->smt_play)
++    return;
++
++  reconfigured =
++    ts->smt_play && _timeshift_sstart_layout_differs(ts->smt_play, ss);
++  tvhdebug(LS_TIMESHIFT,
++           "ts %d replay stream start at buffer position %"PRId64
++           " (source reconfigured: %d)",
++           ts->id, (int64_t)pos, reconfigured);
++
++  if (reconfigured)
++    streaming_target_deliver2(ts->output, streaming_msg_create_code(
++      SMT_STOP, SM_CODE_SOURCE_RECONFIGURED));
++  streaming_target_deliver2(ts->output, streaming_msg_clone(sm));
++  timeshift_play_start_set(ts, ss);
++}
++
+ /* **************************************************************************
+  * Utilities
+  * *************************************************************************/
+@@ -407,15 +471,16 @@ static int _timeshift_do_skip
+  */
+ static int _timeshift_read
+   ( timeshift_t *ts, timeshift_seek_t *seek,
+-    streaming_message_t **sm, int *wait )
++    streaming_message_t **sm, int *wait, int apply_sstart )
+ {
+   timeshift_file_t *tsf = seek->file;
+   ssize_t r;
+-  off_t off = 0;
++  off_t off;
+ 
+   *sm = NULL;
+ 
+   if (tsf) {
++    off = tsf->roff;
+ 
+     /* Open file */
+     if (tsf->rfd < 0 && !tsf->ram) {
+@@ -441,6 +506,9 @@ static int _timeshift_read
+     tvhtrace(LS_TIMESHIFT, "ts %d seek to %jd (fd %i) read msg %p/%"PRId64" (%"PRId64")",
+              ts->id, (intmax_t)off, tsf->rfd, *sm, *sm ? (*sm)->sm_time : -1, (int64_t)r);
+ 
++    if (*sm && apply_sstart)
++      _timeshift_apply_sstart(ts, tsf, off);
++
+     /* Special case - EOF */
+     if (r <= sizeof(size_t) || tsf->roff > tsf->size || *sm == NULL) {
+       timeshift_file_get(seek->file); /* _read_close decreases file reference */
+@@ -463,7 +531,7 @@ static int _timeshift_flush_to_live
+   streaming_message_t *sm;
+ 
+   while (seek->file) {
+-    if (_timeshift_read(ts, seek, &sm, wait) == -1)
++    if (_timeshift_read(ts, seek, &sm, wait, 1) == -1)
+       return -1;
+     if (!sm) break;
+     timeshift_packet_log("ouf", ts, sm);
+@@ -535,6 +603,7 @@ void *timeshift_reader ( void *p )
+   int64_t mono_now, mono_play_time = 0, mono_last_status = 0;
+   int64_t deliver, deliver0, pause_time = 0, last_time = 0, skip_time = 0;
+   int64_t i64;
++  off_t read_pos = 0;
+   streaming_message_t *sm = NULL, *ctrl = NULL;
+   streaming_skip_t *skip = NULL;
+   tvhpoll_t *pd;
+@@ -806,7 +875,8 @@ void *timeshift_reader ( void *p )
+       }
+ 
+       /* Find packet */
+-      if (_timeshift_read(ts, seek, &sm, &wait) == -1) {
++      read_pos = seek->file ? seek->file->roff : 0;
++      if (_timeshift_read(ts, seek, &sm, &wait, !skip) == -1) {
+         tvh_mutex_unlock(&ts->state_mutex);
+         break;
+       }
+@@ -829,6 +899,10 @@ void *timeshift_reader ( void *p )
+         tvhdebug(LS_TIMESHIFT, "ts %d skip failed (%d)", ts->id, sm ? sm->sm_type : -1);
+       }
+       streaming_target_deliver2(ts->output, ctrl);
++
++      /* The skip handler flushes queued output before acknowledging a seek. */
++      if (skip && sm && seek->file)
++        _timeshift_apply_sstart(ts, seek->file, read_pos);
+     } else {
+       streaming_msg_free(ctrl);
+     }
+diff --git a/src/timeshift/timeshift_writer.c b/src/timeshift/timeshift_writer.c
+index 9c6591c37..5a9a58d95 100644
+--- a/src/timeshift/timeshift_writer.c
++++ b/src/timeshift/timeshift_writer.c
+@@ -381,13 +381,15 @@ static void _process_msg
+       tvh_mutex_lock(&ts->state_mutex);
+       if (!teletext) /* do not use time from teletext packets */
+         ts->buf_time = sm->sm_time;
++      if (sm->sm_type == SMT_START)
++        _update_smt_start(ts, (streaming_start_t *)sm->sm_data);
+       if (ts->state == TS_LIVE) {
++        if (sm->sm_type == SMT_START)
++          timeshift_play_start_set(ts, (streaming_start_t *)sm->sm_data);
+         streaming_target_deliver2(ts->output, streaming_msg_clone(sm));
+         if (sm->sm_type == SMT_PACKET)
+           timeshift_packet_log("liv", ts, sm);
+       }
+-      if (sm->sm_type == SMT_START)
+-        _update_smt_start(ts, (streaming_start_t *)sm->sm_data);
+       /* do buffering, but without teletext packets */
+       if (ts->dobuf && !teletext) {
+         if ((tsf = timeshift_filemgr_get(ts, sm->sm_time)) != NULL) {
+-- 
+2.47.3
+
