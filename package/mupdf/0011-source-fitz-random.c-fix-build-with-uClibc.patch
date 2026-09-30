@@ -1,0 +1,66 @@
+From 65dccf58c115090ce008ae517e2835226f3764ac Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Tue, 29 Sep 2026 18:30:40 +0200
+Subject: [PATCH] source/fitz/random.c: fix build with uClibc
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+uClibc does not have getentropy(). uClibc-ng has it starting from
+version 1.0.54, and only when it is built with UCLIBC_LINUX_SPECIFIC
+[1].
+
+In addition, uClibc-ng declares getentropy() in <unistd.h> only if
+_DEFAULT_SOURCE is defined [2]. Unlike glibc, uClibc-ng does not
+define _DEFAULT_SOURCE by default [3], and we do not define it.
+<sys/random.h> always declares getentropy() [4].
+
+To build with all versions of uClibc and uClibc-ng, check the
+__UCLIBC_* macros:
+- Before 1.0.54, or without __UCLIBC_LINUX_SPECIFIC__, use the
+  fallback.
+- Otherwise, include <sys/random.h> to get the getentropy()
+  declaration.
+
+[1] https://github.com/wbx-github/uclibc-ng/blob/master/libc/sysdeps/linux/common/Makefile.in
+[2] https://github.com/wbx-github/uclibc-ng/blob/master/include/unistd.h
+[3] https://github.com/wbx-github/uclibc-ng/blob/master/include/features.h
+[4] https://github.com/wbx-github/uclibc-ng/blob/master/libc/sysdeps/linux/common/sys/random.h
+
+Upstream: https://bugs.ghostscript.com/show_bug.cgi?id=709779
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ source/fitz/random.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/source/fitz/random.c b/source/fitz/random.c
+index ad92c6369..51b016217 100644
+--- a/source/fitz/random.c
++++ b/source/fitz/random.c
+@@ -34,6 +34,14 @@
+ #else
+ #include <unistd.h> // for getentropy()
+ #endif
++#ifdef __UCLIBC__
++#if __UCLIBC_MAJOR__ < 1 || (__UCLIBC_MAJOR__ == 1 && __UCLIBC_MINOR__ == 0 && __UCLIBC_SUBLEVEL__ < 54) || \
++	!defined(__UCLIBC_LINUX_SPECIFIC__)
++#define NO_GETENTROPY // uClibc-ng before 1.0.54, or without UCLIBC_LINUX_SPECIFIC, does not have getentropy()
++#else
++#include <sys/random.h> // unistd.h declares getentropy() only with _DEFAULT_SOURCE
++#endif
++#endif
+ #endif
+ 
+ #ifdef _WIN32
+@@ -95,6 +103,8 @@ void fz_memrnd(fz_context *ctx, unsigned char *data, int len)
+ 		// Android before 9.0 does not have getentropy(), but does have
+ 		// arc4random_buf that sources from /dev/urandom.
+ 		arc4random_buf(entropy, sizeof entropy);
++#elif defined(NO_GETENTROPY)
++		getentropy_fallback(entropy, sizeof entropy);
+ #else
+ 		if (getentropy(entropy, sizeof entropy) < 0)
+ 			getentropy_fallback(entropy, sizeof entropy);
+-- 
+2.54.0
+

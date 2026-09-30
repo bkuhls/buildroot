@@ -1,0 +1,35 @@
+From b8efb551ba65f6f0d737ca3760fe5e2dbac5743c Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Tue, 3 Sep 2024 15:35:33 +0200
+Subject: [PATCH] setup.py: add the non-versioned symlink to the build
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Starting from bf1c28cc4f2dd4bd17e35783fa3c1f98ded22296, the generated
+mupdf libraries are versioned. This means that if we want to link
+against them without knowing their version number (i.e. using
+'-lmupdf'), we also need to install the symlink to the wheel.
+
+Upstream: https://github.com/ArtifexSoftware/mupdf/pull/59
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ setup.py | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/setup.py b/setup.py
+index 49199f5..3252412 100755
+--- a/setup.py
++++ b/setup.py
+@@ -357,6 +357,8 @@ def build():
+         names = [
+                 pipcl.get_soname(f'{build_dir()}/libmupdf.so'),     # C.
+                 pipcl.get_soname(f'{build_dir()}/libmupdfcpp.so'),  # C++.
++                f'{build_dir()}/libmupdf.so',                       # C symlink.
++                f'{build_dir()}/libmupdfcpp.so',                    # C++ symlink.
+                 f'{build_dir()}/_mupdf.so',                         # Python internals.
+                 f'{build_dir()}/mupdf.py',                          # Python.
+                 ]
+-- 
+2.54.0
+

@@ -1,0 +1,52 @@
+From c55d406be771b626d5a2a4870203c700a34d4b1d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Tue, 29 Sep 2026 21:32:59 +0200
+Subject: [PATCH] scripts: make venv optional
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Commit e7901bed9b85031b6e6769e49c4ba3a2cbb5033f ("scripts/:fix
+venv-related failures in python/c# bindings tests.") introduced the
+unconditional use of a venv. This is not always
+possible/desirable (e.g. when building in Buildroot).
+
+To make it possible to skip the use of a venv, introduce the
+MUPDF_NO_AUTOVENV variable.
+
+The default behavior remains the same as before.
+
+Upstream: https://bugs.ghostscript.com/show_bug.cgi?id=709778
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/wrap/__main__.py | 13 +++++++------
+ 1 file changed, 7 insertions(+), 6 deletions(-)
+
+diff --git a/scripts/wrap/__main__.py b/scripts/wrap/__main__.py
+index 4440a70..7e5dc38 100644
+--- a/scripts/wrap/__main__.py
++++ b/scripts/wrap/__main__.py
+@@ -918,13 +918,14 @@ import sysconfig
+ import tempfile
+ import textwrap
+ 
+-sys.path.insert(0, os.path.normpath(f'{__file__}/../..'))
+-try:
+-    import autovenv
+-finally:
+-    del sys.path[0]
++if os.environ.get('MUPDF_NO_AUTOVENV') != '1':
++    sys.path.insert(0, os.path.normpath(f'{__file__}/../..'))
++    try:
++        import autovenv
++    finally:
++        del sys.path[0]
+ 
+-autovenv.enter()
++    autovenv.enter()
+ 
+ # Install/import pipcl. We don't pass 'pipcl' to above call to autovenv.enter()
+ # because this would do `pip install pipcl`, which seems to fail if we are
+-- 
+2.54.0
+

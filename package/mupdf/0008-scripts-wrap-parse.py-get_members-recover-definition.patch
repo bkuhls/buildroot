@@ -1,0 +1,53 @@
+From 8e780ba4b057e2c2174bbd3f4c123ced32dd78f2 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Mon, 27 Jul 2026 12:43:52 +0200
+Subject: [PATCH] scripts/wrap/parse.py: get_members(): recover definition
+ cursor for clang-22.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This fixes the same issue as the preceding has_refs() fix, but for
+get_members()'s own typedef-to-struct resolution:
+cursor.underlying_typedef_type.get_declaration() is not guaranteed to
+return the defining cursor for the struct, only some declaration of
+it. Under libclang from clang 22.1.3 this can be a
+non-defining (forward-declaration) cursor even when a full definition
+exists in the TU, which left cursor2.get_children() empty and made
+get_members() yield no members at all for affected types - e.g.
+class_accessors() would then hit "assert n, f'No fields found for
+{struct_cursor.spelling}.'" for fz_pixmap.
+
+Recover via get_definition() (clang_getCursorDefinition), which looks up
+the actual definition cursor for a declaration cursor across the whole
+TU, independent of what get_declaration() happened to return.
+
+Upstream: https://bugs.ghostscript.com/show_bug.cgi?id=709448
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/wrap/parse.py | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/scripts/wrap/parse.py b/scripts/wrap/parse.py
+index d8c09f2a9..ed1737b34 100644
+--- a/scripts/wrap/parse.py
++++ b/scripts/wrap/parse.py
+@@ -120,6 +120,15 @@ def get_members( type_or_cursor, include_empty=False):
+         cursor2 = cursor.underlying_typedef_type.get_declaration()
+     else:
+         cursor2 = cursor
++    if not cursor2.is_definition():
++        # get_declaration() is not guaranteed to return the defining cursor
++        # - depending on libclang version, it may instead return a
++        # non-defining declaration cursor (e.g. a forward-declaring typedef)
++        # even though a definition exists elsewhere in the TU. Recover the
++        # actual definition cursor if we can find one.
++        definition_cursor2 = cursor2.get_definition()
++        if definition_cursor2 is not None and definition_cursor2.is_definition():
++            cursor2 = definition_cursor2
+ 
+     if 0:
+         # Diagnostics to show the difference between
+-- 
+2.54.0
+

@@ -1,0 +1,41 @@
+From 176e9a4eac3375b19d53e15a24ddfdae5767e04f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Mon, 27 Jul 2026 12:44:40 +0200
+Subject: [PATCH] scripts/wrap/cpp.py: class_add_iterator(): assert on
+ find_name() failure.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+parse.find_name() returns None when the requested dotted member path
+isn't found, e.g. because the corresponding classextras.iterator_next
+entry is stale or a libclang change broke traversal into an anonymous
+struct/union. Immediately using the result as `c.type.kind` then fails
+with an opaque "AttributeError: 'NoneType' object has no attribute
+'type'" that gives no indication of which struct or field lookup
+failed.
+
+Assert explicitly and name the struct and field path involved, so a
+future failure here is easier to debug from the messageq.
+
+Upstream: https://bugs.ghostscript.com/show_bug.cgi?id=709448
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/wrap/cpp.py | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/scripts/wrap/cpp.py b/scripts/wrap/cpp.py
+index cd79b9c..c1bd3b6 100644
+--- a/scripts/wrap/cpp.py
++++ b/scripts/wrap/cpp.py
+@@ -2536,6 +2536,7 @@ def class_add_iterator( tu, struct_cursor, struct_name, classname, extras, refch
+     # <it_begin>.
+     if it_begin:
+         c = parse.find_name( struct_cursor, it_begin)
++        assert c, f'Failed to find {it_begin=} in {struct_name=} ({struct_cursor.spelling=})'
+         assert c.type.kind == state.clang.cindex.TypeKind.POINTER
+         it_internal_type = state.get_name_canonical( c.type.get_pointee()).spelling
+         it_internal_type = util.clip( it_internal_type, 'struct ')
+-- 
+2.54.0
+

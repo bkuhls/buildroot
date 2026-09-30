@@ -3,10 +3,12 @@ config BR2_PACKAGE_PYTHON_PYMUPDF
 	depends on BR2_INSTALL_LIBSTDCPP # mupdf -> harfbuzz
 	depends on BR2_TOOLCHAIN_HAS_SYNC_4 # mupdf -> harfbuzz
 	depends on BR2_TOOLCHAIN_GCC_AT_LEAST_4_9 # mupdf -> harfbuzz
-	depends on !BR2_STATIC_LIBS # runtime failure
+	depends on !BR2_STATIC_LIBS # mupdf python bindings
 	select BR2_PACKAGE_HOST_SWIG
 	select BR2_PACKAGE_FREETYPE
 	select BR2_PACKAGE_MUPDF
+	select BR2_PACKAGE_MUPDF_PYTHON_BINDINGS
+	select BR2_PACKAGE_PYTHON_PIPCL
 	select BR2_PACKAGE_PYTHON3_ZLIB # runtime
 	help
 	  Python bindings for the PDF rendering library MuPDF.

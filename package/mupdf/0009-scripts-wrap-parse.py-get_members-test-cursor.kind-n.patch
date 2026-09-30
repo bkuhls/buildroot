@@ -1,0 +1,78 @@
+From d4b9583147fe8b15b284f4fbbfd9fe2b02723fec Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Mon, 27 Jul 2026 12:41:46 +0200
+Subject: [PATCH] scripts/wrap/parse.py: get_members(): test cursor.kind, not
+ cursor.type.kind.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+get_members() resolves a typedef to its underlying type's declaration
+before looking at its children:
+
+    if cursor.type.kind in (TypeKind.TYPEDEF, TypeKind.ELABORATED):
+        cursor2 = cursor.underlying_typedef_type.get_declaration()
+
+The intent seems to be "if <cursor> is itself a typedef declaration,
+follow it to the real declaration", but the condition instead tests
+the *type* of the entity the cursor declares. Those are not the same
+thing: a FIELD_DECL cursor for a plain data member can have a type
+whose .kind is ELABORATED - this is normal for a field whose type is
+an anonymous struct/union defined inline, e.g. `union { struct {...}
+t; ...} u;`. The old condition therefore matched such fields too, and
+went on to call `.underlying_typedef_type` on a cursor that is not a
+TYPEDEF_DECL at all.
+
+clang_getTypedefDeclUnderlyingType() is documented to return an
+invalid type if the cursor does not reference a typedef
+declaration (clang/include/clang-c/Index.h) - but the result for a
+field cursor is unusable: on clang 18, the invalid type's
+.get_declaration() comes back as a NO_DECL_FOUND cursor with no
+location, whose .get_children() is unconditionally empty.
+get_members() falls through to its type_.get_fields() fallback in that
+case, which happens to still find the real members, so this was
+previously masked rather than fixed.
+
+On clang 22, this same call is not reached in the first place: clang
+22 removed ElaboratedType from the AST (see the "Clang Python Bindings
+Potentially Breaking Changes" entry in the Clang 22.1.0 release notes:
+"TypeKind ELABORATED is not used anymore, per clang AST changes
+removing ElaboratedTypes"), so a field whose type is an anonymous
+struct/union now reports TypeKind.RECORD instead of
+TypeKind.ELABORATED, and the old condition is simply false. This
+commit should therefore be needed only for clang<22.1.0.
+
+Fix by checking cursor.kind == CursorKind.TYPEDEF_DECL, which matches
+only genuine typedef declarations (e.g.  `typedef struct fz_pixmap
+fz_pixmap;`) and leaves plain fields - whose type merely happens to be
+elaborated/anonymous - to fall through to direct child inspection,
+which is what actually finds their members.
+
+Combined with the next commit (which makes get_members() descend into
+the placeholder cursor libclang gives us for an anonymous struct/union
+field), this makes get_members() resolve such fields the same way, for
+the same reason, on both clang 18 and clang 22, rather than clang 18
+only working by accident.
+
+Upstream: https://bugs.ghostscript.com/show_bug.cgi?id=709448
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/wrap/parse.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/wrap/parse.py b/scripts/wrap/parse.py
+index ed1737b34..8881c68d0 100644
+--- a/scripts/wrap/parse.py
++++ b/scripts/wrap/parse.py
+@@ -116,7 +116,7 @@ def get_members( type_or_cursor, include_empty=False):
+         cursor = type_or_cursor
+     else:
+         assert 0
+-    if cursor.type.kind in (state.clang.cindex.TypeKind.TYPEDEF, state.clang.cindex.TypeKind.ELABORATED):
++    if cursor.kind == state.clang.cindex.CursorKind.TYPEDEF_DECL:
+         cursor2 = cursor.underlying_typedef_type.get_declaration()
+     else:
+         cursor2 = cursor
+-- 
+2.54.0
+

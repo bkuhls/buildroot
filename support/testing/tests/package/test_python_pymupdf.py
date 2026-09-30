@@ -9,7 +9,7 @@ class TestPythonPy3PyMuPDF(TestPythonPackageBase):
         BR2_PACKAGE_PYTHON3=y
         BR2_PACKAGE_PYTHON_PYMUPDF=y
         BR2_TARGET_ROOTFS_EXT2=y
-        BR2_TARGET_ROOTFS_EXT2_SIZE="120M"
+        BR2_TARGET_ROOTFS_EXT2_SIZE="240M"
         """
     sample_scripts = ["tests/package/sample_python_pymupdf.py"]
     timeout = 30

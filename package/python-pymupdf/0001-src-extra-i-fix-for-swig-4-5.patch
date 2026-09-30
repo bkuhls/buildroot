@@ -1,0 +1,25 @@
+From d2ddf9032d61f8344cd06ab2c4bb077771047e22 Mon Sep 17 00:00:00 2001
+From: Julian Smith <julian.smith@artifex.com>
+Date: Sat, 22 Aug 2026 08:11:57 +0100
+Subject: [PATCH] src/extra.i: fix for swig-4.5.
+
+Python 2's PyString_FromString() is no longer provided by swig code.
+Upstream: https://github.com/pymupdf/PyMuPDF/commit/d2ddf9032d61f8344cd06ab2c4bb077771047e22
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ src/extra.i | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/extra.i b/src/extra.i
+index f62cdf83c..dd1670a2e 100644
+--- a/src/extra.i
++++ b/src/extra.i
+@@ -225,7 +225,7 @@ static void messagev(const char* format, va_list va)
+     static PyObject* message_fn = PyObject_GetAttrString(pymupdf_module, "message");
+     char* text;
+     vasprintf(&text, format, va);
+-    PyObject* text_py = PyString_FromString(text);
++    PyObject* text_py = PyUnicode_FromString(text);
+     PyObject* args = PyTuple_Pack(1, text_py);
+     PyObject* ret = PyObject_CallObject(message_fn, args);
+     Py_XDECREF(ret);

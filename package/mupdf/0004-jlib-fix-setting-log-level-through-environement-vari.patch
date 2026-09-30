@@ -1,0 +1,53 @@
+From e033e1a8b8a1674e1e7ee6638008bd005b511920 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Mon, 24 Feb 2025 22:29:13 +0100
+Subject: [PATCH] jlib: fix setting log level through environement variable
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Currently, setting a log level through the JLIB_log_levels environment
+fails in this way:
+  File "/home/rme/Documents/mupdf/scripts/jlib.py", line 185, in __call__
+    ret += ' (+%s)' % time_duration( time.time() - self.t0, s_format='%.1f')
+                      ^^^^^^^^^^^^^
+This is because at the time log_levels_add_env() is invoked,
+time_duration is not defined yet.
+
+To fix it, just move the invocation further down, after time_duration
+is defined.
+
+Upstream: https://github.com/ArtifexSoftware/mupdf/pull/58
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/jlib.py | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/scripts/jlib.py b/scripts/jlib.py
+index 4c7e2a0f0..788a4bec8 100644
+--- a/scripts/jlib.py
++++ b/scripts/jlib.py
+@@ -743,10 +743,6 @@ def text_split_last_of( text, substrings):
+     return text[ :pos], text[ pos:]
+ 
+ 
+-
+-log_levels_add_env()
+-
+-
+ def force_line_buffering():
+     '''
+     Ensure `sys.stdout` and `sys.stderr` are line-buffered. E.g. makes things
+@@ -1246,6 +1242,9 @@ def time_duration( seconds, verbose=False, s_format='%i'):
+     return ret
+ 
+ 
++log_levels_add_env()
++
++
+ def date_time( t=None):
+     if t is None:
+         t = time.time()
+-- 
+2.48.1
+
