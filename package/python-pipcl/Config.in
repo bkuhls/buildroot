@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_PIPCL
+	bool "python-pipcl"
+	help
+	  Python packaging operations, including PEP-517 support, for
+	  use by a setup.py script.
+
+	  https://github.com/ArtifexSoftware/pipcl
