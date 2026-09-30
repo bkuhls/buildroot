@@ -1,0 +1,92 @@
+From 6ec47b449386c7d7f3105d3e33c2095cd1a73c09 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Mon, 27 Jul 2026 12:41:16 +0200
+Subject: [PATCH] scripts/wrap/parse.py: has_refs(): recover definition cursor
+ for clang-22.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+clang.cindex.Type.get_declaration() is documented to return "the
+cursor for the declaration of the given type", but is not guaranteed
+to return the *defining* declaration when a type is forward-declared
+in one header:(e.g. `typedef struct fz_pixmap fz_pixmap;` in
+fitz/color.h) and defined elsewhere (`struct fz_pixmap { ... }` in
+fitz/pixmap.h).
+
+Older libclang versions apparently happened to resolve straight
+through to the defining cursor here, so has_refs()'s
+`base_type_cursor.is_definition()` check was reliably true whenever a
+definition existed in the translation unit. Under libclang from clang
+22.1.3, get_declaration() can instead return a non-defining
+declaration cursor even though the full definition is present, so
+is_definition() now incorrectly reports false for types such as
+fz_pixmap and fz_stream. This falls through to has_refs()'s hard-coded
+fallback table, which has no entry for these types, and trips the
+final `assert ret` with "has fz_keep_...() but have not found
+size/location of .refs member."
+
+This libclang behavior can be reproduced with the following minimal
+example:
+  min.h (2 lines):
+  typedef struct Foo Foo;   /* forward declaration, e.g. in a "public" header */
+  struct Foo { int x; };    /* definition, e.g. in a different "private" header */
+
+  min.py (6 lines):
+  import clang.cindex
+
+  tu = clang.cindex.Index.create().parse('min.h', args=['-x', 'c'])
+  typedef_decl = next(c for c in tu.cursor.get_children() if c.kind == clang.cindex.CursorKind.TYPEDEF_DECL)
+  struct_decl = typedef_decl.underlying_typedef_type.get_declaration()
+
+  print('cursor:', struct_decl.location, 'is_definition:', struct_decl.is_definition())
+  print('children:', [c.spelling for c in struct_decl.get_children()])
+
+Which gives:
+  clang 18 (libclang==18.1.1):
+  cursor: <SourceLocation file 'min.h', line 2, column 8> is_definition: True
+  children: ['x']
+
+  clang 22 (libclang-ng==22.1.4.2):
+  cursor: <SourceLocation file 'min.h', line 1, column 16> is_definition: False
+  children: []
+
+To fix it, call cursor.get_definition() that explicitly looks up the
+actual defining cursor for a declaration/reference cursor anywhere in
+the TU when the initial cursor is not itself a definition. This makes
+has_refs() work the same way regardless of which cursor
+get_declaration() happens to hand back.
+
+Upstream: https://bugs.ghostscript.com/show_bug.cgi?id=709448
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/wrap/parse.py | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/scripts/wrap/parse.py b/scripts/wrap/parse.py
+index c3bd1278c..d8c09f2a9 100644
+--- a/scripts/wrap/parse.py
++++ b/scripts/wrap/parse.py
+@@ -252,6 +252,19 @@ def has_refs( tu, type_):
+                     if verbose:
+                         jlib.log( 'There is a keep() fn for this type so it uses reference counting: {keep_name=}')
+                     base_type_cursor = get_base_type( type_).get_declaration()
++                    if not base_type_cursor.is_definition():
++                        # get_declaration() is not guaranteed to return the
++                        # defining cursor when the type is declared in one
++                        # place (e.g. an opaque forward-declaring typedef)
++                        # and defined elsewhere - depending on libclang
++                        # version, it may instead return a non-defining
++                        # declaration cursor even though a definition exists
++                        # in the TU. get_definition() explicitly looks up the
++                        # actual definition cursor, so use it to recover in
++                        # that case.
++                        definition_cursor = base_type_cursor.get_definition()
++                        if definition_cursor is not None and definition_cursor.is_definition():
++                            base_type_cursor = definition_cursor
+                     if base_type_cursor.is_definition():
+                         if verbose:
+                             jlib.log( 'Type definition is available so we look for .refs member: {key=} {type_.spelling=} {fileline(base_type_cursor)=}')
+-- 
+2.54.0
+

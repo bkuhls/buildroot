@@ -1,0 +1,48 @@
+From 553bb924e032646739362c586adbcd5e931f02b9 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Mon, 24 Feb 2025 13:06:00 +0100
+Subject: [PATCH] jlib: fix setting filename log level
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Building using JLIB_log_levels for filenames only currently fails.
+
+For example, building with the following command:
+make JLIB_log_levels=cpp.py=-5 python
+
+... leads to the following trace:
+
+  File "/home/rme/Documents/mupdf/scripts/jlib.py", line 427, in log
+    level += log_levels_find( caller)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/rme/Documents/mupdf/scripts/jlib.py", line 350, in log_levels_find
+    if item_filename and not filename.startswith( item_filename):
+
+This is because ffl is always a list (unpacked in case len==2), and
+the filename is the first element of this list.
+To fix it, only keep the first element of ffl when there is exactly
+one.
+
+Upstream: https://github.com/ArtifexSoftware/mupdf/pull/58
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/jlib.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/scripts/jlib.py b/scripts/jlib.py
+index 8d7ecc6cd..4c7e2a0f0 100644
+--- a/scripts/jlib.py
++++ b/scripts/jlib.py
+@@ -509,7 +509,7 @@ def log_levels_add_env( name='JLIB_log_levels'):
+             if 0:   # lgtm [py/unreachable-statement]
+                 pass
+             elif len( ffl) == 1:
+-                filename = ffl
++                filename = ffl[0]
+                 function = None
+             elif len( ffl) == 2:
+                 filename, function = ffl
+-- 
+2.48.1
+

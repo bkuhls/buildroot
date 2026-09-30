@@ -1,8 +1,6 @@
 # From https://mupdf.com/releases:
-sha1  d79600bccd70ab9d0e8ee19dae4e275f2af95ced  mupdf-1.23.9-source.tar.lz
-
-# Locally computed:
-sha256  2c2f89deb9f425ba637dac226191d547f2b40975c4d21a340965f52c001e15c5  mupdf-1.23.9-source.tar.lz
+sha1  1f0a14123a2410c3bdb63cb6bbef69d0f2518f6e  mupdf-1.28.5-source.tar.lz
+sha256  f33f3c672033324c38c7c9a1444c28436ede9669a28e2da672df7f6c62b8cfc8  mupdf-1.28.5-source.tar.lz
 
 # Hash for license files:
 sha256  57c8ff33c9c0cfc3ef00e650a1cc910d7ee479a8bc509f6c9209a7c2a11399d6  COPYING

@@ -1,0 +1,53 @@
+From 0e1f9060e1110a293df2f62912aba234b0904309 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Thu, 20 Feb 2025 12:50:01 +0100
+Subject: [PATCH] scripts: add a way to provide libclang include dirs
+ externally
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When cross-compiling, libclang doesn't necessarily have the right
+include directories configured by default.
+See for example: https://bugs.ghostscript.com/show_bug.cgi?id=708041
+
+Since we also have no way to figure out the right include directories
+from our scripts, add a new environment variable that can be used to
+provide them externally.
+
+Upstream: https://github.com/ArtifexSoftware/mupdf/pull/63
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/wrap/cpp.py | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/scripts/wrap/cpp.py b/scripts/wrap/cpp.py
+index 604c1ee..cd79b9c 100644
+--- a/scripts/wrap/cpp.py
++++ b/scripts/wrap/cpp.py
+@@ -6,6 +6,7 @@ import io
+ import os
+ import pickle
+ import re
++import shlex
+ import textwrap
+ 
+ import jlib
+@@ -5579,6 +5580,14 @@ def cpp_source(
+                 '-D', 'MUPDF_WRAP_LIBCLANG',
+                 '-D', 'FZ_FUNCTION=',
+                 ]
++
++        # In some circumstances (e.g. when cross-compiling when
++        # libclang doesn't have the right include directories by
++        # default) the includes are provided externally:
++        libclang_args = os.environ.get('MUPDF_LIBCLANG_ARGS', '')
++        if libclang_args:
++            args += shlex.split(libclang_args)
++
+         tu = index.parse(
+                 temp_h,
+                 args = args,
+-- 
+2.54.0
+

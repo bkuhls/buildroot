@@ -1,0 +1,44 @@
+From a568ae50e32e8b209edc9720360d873b10769f60 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Rapha=C3=ABl=20M=C3=A9lotte?= <raphael.melotte@mind.be>
+Date: Mon, 24 Feb 2025 22:48:36 +0100
+Subject: [PATCH] jlib: fix unsupported operand type when setting log level
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This fixes the following issue when log_levels_find() is used (for
+example when setting a log level delta using JLIB_log_levels):
+[...]
+    scripts/jlib.py:424:log(): level += log_levels_find( caller)
+    scripts/jlib.py:334:log_levels_find(): tb = traceback.extract_stack( None, 1+caller)
+TypeError: unsupported operand type(s) for +: 'int' and 'FrameInfo'
+
+Note that this fix get JLIB_log_levels working, but it might be
+incorrect.
+
+Upstream: https://github.com/ArtifexSoftware/mupdf/pull/58
+Signed-off-by: Raphaël Mélotte <raphael.melotte@mind.be>
+---
+ scripts/jlib.py | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/scripts/jlib.py b/scripts/jlib.py
+index 788a4bec8..452b3ae00 100644
+--- a/scripts/jlib.py
++++ b/scripts/jlib.py
+@@ -331,7 +331,11 @@ def log_levels_find( caller):
+     if not s_log_levels_items:
+         return 0
+ 
+-    tb = traceback.extract_stack( None, 1+caller)
++    if isinstance(caller, inspect.FrameInfo):
++        tb = traceback.extract_stack( None, 1)
++    else:
++        tb = traceback.extract_stack( None, 1+caller)
++
+     if len(tb) == 0:
+         return 0
+     filename, line, function, text = tb[0]
+-- 
+2.48.1
+
