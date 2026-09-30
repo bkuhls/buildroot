@@ -2847,6 +2847,7 @@ F:	package/mupdf/
 F:	package/python-boto3/
 F:	package/python-botocore/
 F:	package/python-jmespath/
+F:	package/python-pipcl/
 F:	package/python-pymupdf/
 F:	package/python-rsa/
 F:	package/python-s3transfer/
