@@ -1,6 +1,6 @@
 # md5, sha256 from https://pypi.org/pypi/scipy/json
-md5  d36aba61d4b01c50551efd38ca03752f  scipy-1.17.1.tar.gz
-sha256  95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0  scipy-1.17.1.tar.gz
+md5  e71b80d5afd37a5abf6e413f287315d3  scipy-1.18.1.tar.gz
+sha256  52c4b7422442aba924d03ad4019852b08a92e64ea187b933135687bfe2747307  scipy-1.18.1.tar.gz
 # Locally computed sha256 checksums
 sha256  221e59f5e910fd7f94e44f0dac77436a11338c285c6346232e4a850a50da0e94  LICENSE.txt
 sha256  606209a000716c5f66e33e180ce08434b96ed17db4975ab9723c6b5fbcc89609  scipy/ndimage/LICENSE.txt
