@@ -85,7 +85,7 @@ update_linux_hash() {
                 fi
 
                 updated_releases_list="${updated_releases_list} ${release_version}.x"
-                updated_versions="${updated_versions}\n - ${old_version} -> ${new_version}"
+                updated_versions="${updated_versions}"$'\n'" - ${old_version} -> ${new_version}"
             fi
         else
             # Different line: Reset hash list and just copy this line over as is.
