@@ -14,7 +14,7 @@ Signed-off-by: Adam Duskett <aduskett@gmail.com>
 Signed-off-by: Thomas Petazzoni <thomas.petazzoni@bootlin.com>
 [ Vincent Fazio: ported to Python 3.13.2 ]
 Signed-off-by: Vincent Fazio <vfazio@gmail.com>
-[ Bernd Kuhls: ported to Python 3.15.0]
+[ Bernd Kuhls: ported to Python 3.14.2]
 Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
 ---
  Makefile.pre.in | 5 ++++-
@@ -26,7 +26,7 @@ index 2197bb18434..c8f7ab1e6a9 100644
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
 @@ -2569,7 +2569,6 @@ LIBSUBDIRS=	asyncio \
- 		profiling/sampling/_vendor/d3-flame-graph/4.1.3 \
+ 		pathlib \
  		re \
  		site-packages \
 -		sqlite3 \
