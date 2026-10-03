@@ -1,4 +1,4 @@
-# From https://www.python.org/downloads/release/python-3149/
-sha256  e02d9ac21cebda6e46435369744a92c65cc7cd8669697694122cf97ffacd1e53  Python-3.14.9.tar.xz
+# From https://www.python.org/downloads/release/python-3151/
+sha256  673ae7232d84c894729882c8257d300ef2d26523911bfd3917ec8ce7f526f99b  Python-3.15.1.tar.xz
 # Locally computed
 sha256  b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231  LICENSE
