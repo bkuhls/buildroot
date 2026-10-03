@@ -18,7 +18,7 @@ Signed-off-by: Adam Duskett <aduskett@gmail.com>
 Signed-off-by: Adam Duskett <adam.duskett@amarulasolutions.com>
 [ Vincent Fazio: ported to Python 3.13.2 ]
 Signed-off-by: Vincent Fazio <vfazio@gmail.com>
-[ Bernd Kuhls: ported to Python 3.14.2]
+[ Bernd Kuhls: ported to Python 3.15.0]
 Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
 ---
  Makefile.pre.in | 9 ++++++++-
@@ -40,9 +40,9 @@ index 486a35ed99b..c3732bedb30 100644
  		rm -f $(DESTDIR)$(BINDIR)/python3-32$(EXE); \
  		(cd $(DESTDIR)$(BINDIR); $(LN) -s python$(VERSION)-32$(EXE) python3-32$(EXE)) \
 @@ -2564,7 +2566,6 @@ LIBSUBDIRS=	asyncio \
- 		logging \
- 		multiprocessing multiprocessing/dummy \
- 		pathlib \
+ 		profiling/sampling/live_collector \
+ 		profiling/sampling/_vendor/d3/7.8.5 \
+ 		profiling/sampling/_vendor/d3-flame-graph/4.1.3 \
 -		pydoc_data \
  		re \
  		site-packages \

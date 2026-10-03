@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-PYTHON3_VERSION_MAJOR = 3.14
-PYTHON3_VERSION = $(PYTHON3_VERSION_MAJOR).8
-PYTHON3_SOURCE = Python-$(PYTHON3_VERSION).tar.xz
+PYTHON3_VERSION_MAJOR = 3.15
+PYTHON3_VERSION = $(PYTHON3_VERSION_MAJOR).0
+PYTHON3_SOURCE = Python-$(PYTHON3_VERSION)rc3.tar.xz
 PYTHON3_SITE = https://python.org/ftp/python/$(PYTHON3_VERSION)
 PYTHON3_LICENSE = Python-2.0, others
 PYTHON3_LICENSE_FILES = LICENSE
