@@ -19,7 +19,6 @@ PYTHON_SCIPY_LICENSE_FILES = \
 	scipy/ndimage/LICENSE.txt \
 	scipy/optimize/tnc/LICENSE \
 	scipy/sparse/linalg/_dsolve/SuperLU/License.txt \
-	scipy/sparse/linalg/_eigen/arpack/ARPACK/COPYING \
 	scipy/spatial/COPYING_QHULL.txt
 PYTHON_SCIPY_CPE_ID_VENDOR = scipy
 PYTHON_SCIPY_CPE_ID_PRODUCT = scipy
