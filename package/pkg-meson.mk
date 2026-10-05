@@ -113,6 +113,13 @@ PKG_MESON_HOST_OPTS = \
 	--wrap-mode=nodownload \
 	-Dstrip=true
 
+define PKG_MESON_SET_TARGET_FLAGS
+$(1)_CFLAGS ?= $$(TARGET_CFLAGS)
+$(1)_LDFLAGS ?= $$(TARGET_LDFLAGS)
+$(1)_CXXFLAGS ?= $$(TARGET_CXXFLAGS)
+$(1)_FCFLAGS ?= $$(TARGET_FCFLAGS)
+endef
+
 # Generates sed patterns for patching the cross-compilation.conf template,
 # since Flags might contain commas the arguments are passed indirectly by
 # variable name (stripped to deal with whitespaces).
@@ -136,6 +143,14 @@ define PKG_MESON_CROSSCONFIG_SED
         -e "s%@STAGING_DIR@%$(STAGING_DIR)%g" \
         -e "s%@STATIC@%$(if $(BR2_STATIC_LIBS),true,false)%g" \
         $(TOPDIR)/support/misc/cross-compilation.conf.in
+endef
+
+define PKG_MESON_GENERATE_CROSS_FILE
+	mkdir -p $($(PKG)_SRCDIR)/buildroot-build
+	sed -e "/^\[binaries\]$$/s:$$:$(foreach x,$($(PKG)_MESON_EXTRA_BINARIES),\n$(x)):" \
+	    -e "/^\[properties\]$$/s:$$:$(foreach x,$($(PKG)_MESON_EXTRA_PROPERTIES),\n$(x)):" \
+	    $(call PKG_MESON_CROSSCONFIG_SED,$(PKG)_CFLAGS,$(PKG)_CXXFLAGS,$(PKG)_LDFLAGS,$(PKG)_FCFLAGS) \
+	    > $($(PKG)_SRCDIR)/buildroot-build/cross-compilation.conf
 endef
 
 ################################################################################
@@ -162,20 +177,14 @@ define inner-meson-package
 ifndef $(2)_CONFIGURE_CMDS
 ifeq ($(4),target)
 
-$(2)_CFLAGS ?= $$(TARGET_CFLAGS)
-$(2)_LDFLAGS ?= $$(TARGET_LDFLAGS)
-$(2)_CXXFLAGS ?= $$(TARGET_CXXFLAGS)
+$(call PKG_MESON_SET_TARGET_FLAGS,$(2))
 
 # Configure package for target
 #
 #
 define $(2)_CONFIGURE_CMDS
 	rm -rf $$($$(PKG)_SRCDIR)/buildroot-build
-	mkdir -p $$($$(PKG)_SRCDIR)/buildroot-build
-	sed -e "/^\[binaries\]$$$$/s:$$$$:$$(foreach x,$$($(2)_MESON_EXTRA_BINARIES),\n$$(x)):" \
-	    -e "/^\[properties\]$$$$/s:$$$$:$$(foreach x,$$($(2)_MESON_EXTRA_PROPERTIES),\n$$(x)):" \
-	    $$(call PKG_MESON_CROSSCONFIG_SED,$(2)_CFLAGS,$(2)_CXXFLAGS,$(2)_LDFLAGS,$(2)_FCFLAGS) \
-	    > $$($$(PKG)_SRCDIR)/buildroot-build/cross-compilation.conf
+	$$(PKG_MESON_GENERATE_CROSS_FILE)
 	PATH=$$(BR_PATH) \
 	CC_FOR_BUILD="$$(HOSTCC)" \
 	CXX_FOR_BUILD="$$(HOSTCXX)" \
