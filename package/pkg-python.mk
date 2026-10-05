@@ -285,6 +285,27 @@ HOST_PKG_PYTHON_POETRY_BUILD_CMD = \
 HOST_PKG_PYTHON_POETRY_INSTALL_CMD = \
 	$(HOST_PKG_PYTHON_PEP517_INSTALL_CMD)
 
+# Target meson packages
+PKG_PYTHON_MESON_ENV = \
+	$(PKG_PYTHON_PEP517_ENV)
+
+PKG_PYTHON_MESON_INSTALL_TARGET_CMD = \
+	$(PKG_PYTHON_PEP517_INSTALL_TARGET_CMD)
+
+PKG_PYTHON_MESON_INSTALL_STAGING_CMD = \
+	$(PKG_PYTHON_PEP517_INSTALL_STAGING_CMD)
+
+PKG_PYTHON_MESON_DEPENDENCIES = \
+	$(PKG_PYTHON_PEP517_DEPENDENCIES) \
+	host-python-meson-python
+
+# Host meson packages
+HOST_PKG_PYTHON_MESON_ENV = \
+	$(HOST_PKG_PYTHON_PEP517_ENV)
+
+HOST_PKG_PYTHON_MESON_INSTALL_CMD = \
+	$(HOST_PKG_PYTHON_PEP517_INSTALL_CMD)
+
 ################################################################################
 # inner-python-package -- defines how the configuration, compilation
 # and installation of a Python package should be done, implements a
@@ -311,8 +332,8 @@ endif
 
 $(2)_SETUP_TYPE_UPPER = $$(call UPPERCASE,$$($(2)_SETUP_TYPE))
 
-ifneq ($$(filter-out setuptools setuptools-rust pep517 flit flit-bootstrap hatch maturin poetry,$$($(2)_SETUP_TYPE)),)
-$$(error "Invalid $(2)_SETUP_TYPE. Valid options are 'maturin', 'setuptools', 'setuptools-rust', 'pep517', 'flit', 'hatch' or 'poetry'.")
+ifneq ($$(filter-out setuptools setuptools-rust pep517 flit flit-bootstrap hatch maturin poetry meson,$$($(2)_SETUP_TYPE)),)
+$$(error "Invalid $(2)_SETUP_TYPE. Valid options are 'maturin', 'setuptools', 'setuptools-rust', 'pep517', 'flit', 'hatch', 'poetry' or 'meson'.")
 endif
 ifeq ($(4)-$$($(2)_SETUP_TYPE),target-flit-bootstrap)
 $$(error flit-bootstrap setup type only supported for host packages)
@@ -373,6 +394,35 @@ $(2)_DEPENDENCIES += host-rustc
 $(2)_DOWNLOAD_POST_PROCESS = cargo
 $(2)_DOWNLOAD_DEPENDENCIES = host-rustc
 endif # SETUP_TYPE
+
+ifeq ($$($(2)_SETUP_TYPE),meson)
+ifeq ($(4),target)
+$(call PKG_MESON_SET_TARGET_FLAGS,$(2))
+
+ifndef $(2)_CONFIGURE_CMDS
+define $(2)_CONFIGURE_CMDS
+	$$(PKG_MESON_GENERATE_CROSS_FILE)
+endef
+endif
+endif
+
+ifndef $(2)_BUILD_CMDS
+define $(2)_BUILD_CMDS
+	(cd $$($$(PKG)_BUILDDIR)/; \
+		set --; \
+		for arg in $$(PKG_MESON_$(call UPPERCASE,$(4))_OPTS) $$($$(PKG)_CONF_OPTS); do \
+			set -- "$$$$@" "-Csetup-args=$$$$arg"; \
+		done; \
+		$$($(if $(filter host,$(4)),HOST_)PKG_PYTHON_MESON_ENV) \
+		$$($$(PKG)_ENV) \
+		$$(HOST_DIR)/bin/python3 \
+		$$($(if $(filter host,$(4)),HOST_)PKG_PYTHON_PEP517_BUILD_CMD) \
+		-Cbuild-dir=$$($$(PKG)_SRCDIR)/buildroot-build \
+		$$(addprefix -Ccompile-args=,$$(NINJA_OPTS)) \
+		"$$$$@" $$($$(PKG)_BUILD_OPTS))
+endef
+endif
+endif
 
 ifeq ($(4),target)
 #
