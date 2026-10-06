@@ -1,0 +1,59 @@
+From 670ad64ea1f012bc06ed4d657e6b8a4b530abd82 Mon Sep 17 00:00:00 2001
+From: WXbet <57314510+WXbet@users.noreply.github.com>
+Date: Sat, 1 Aug 2026 17:01:19 +0200
+Subject: [PATCH] fix: process/v2/exit_code: guard static_asserts on MIPS
+
+glibc 2.44 added sysdeps/unix/sysv/linux/mips/bits/waitstatus.h
+(commit c19cdbf66ff62a4578ac2117d43ebb306ae36aeb) which defines
+WIFSTOPPED and WIFSIGNALED as `static inline int` functions rather
+than macros so that MIPS's SIGRTMAX=127 special-case (status 0x7f)
+can be handled. Since those inline functions are not constexpr, the
+four static_assert lines guarding still_active fail to compile on
+MIPS with
+
+  error: non-constant condition for static assertion
+  error: call to non-'constexpr' function 'int __WIFSTOPPED(int)'
+
+whenever env.cpp (or any other TU pulling exit_code.hpp) is compiled.
+
+Earlier glibc versions used the generic macro-based header on MIPS
+too and Boost.Process compiled fine there. musl has taken the same
+approach for MIPS since 2018 (musl commit 41c632824c...); this is the
+same class of problem previously reported for is_running.hpp / musl
+in issue #48, which was fixed by the v1 rewrite but resurfaced in
+v2's exit_code.hpp.
+
+The asserts are compile-time sanity checks on Boost's own still_active
+constant (0x17f); the semantics on MIPS are unchanged (WIFSTOPPED
+returns true, the other three return false, as intended). Guard the
+block with `#ifndef __mips__` so the checks keep firing on every port
+where they can, and are skipped only on the one arch where glibc
+implements the underlying primitives as inline functions.
+
+Upstream: https://github.com/boostorg/process/pull/565
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ boost/process/v2/exit_code.hpp | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/boost/process/v2/exit_code.hpp b/boost/process/v2/exit_code.hpp
+index 24e51fa..b87c544 100644
+--- a/boost/process/v2/exit_code.hpp
++++ b/boost/process/v2/exit_code.hpp
+@@ -73,10 +73,12 @@ typedef int native_exit_code_type;
+ namespace detail
+ {
+ constexpr native_exit_code_type still_active = 0x17f;
++#ifndef __mips__
+ static_assert(WIFSTOPPED(still_active), "Expected still_active to indicate WIFSTOPPED");
+ static_assert(!WIFEXITED(still_active), "Expected still_active to not indicate WIFEXITED");
+ static_assert(!WIFSIGNALED(still_active), "Expected still_active to not indicate WIFSIGNALED");
+ static_assert(!WIFCONTINUED(still_active), "Expected still_active to not indicate WIFCONTINUED");
++#endif
+ }
+ 
+ inline bool process_is_running(int code)
+-- 
+2.47.3
+
