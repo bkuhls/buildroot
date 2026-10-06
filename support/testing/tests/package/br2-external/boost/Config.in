@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_BOOST_RUNTIME_TEST_PATH/package/boost-runtime-test/Config.in"
