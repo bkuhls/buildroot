@@ -5,5 +5,6 @@ sha512  8d12d476e352def9716ecbd7ba184a70dd9bae87dcde669b8647a0ef9ac1991f617c9918
 # From https://github.com/xbmc/xbmc/blob/master/tools/depends/target/libdvdread/LIBDVDREAD-VERSION
 sha512  b5390a1acb8fdf6e24188f9259199eb0fef2dd4b332447ba2bfa571f9fc0c3bfad00c1d27a8b8806180a853c04a818b7802d3075ff787142c1a175ad798c6a3d  libdvdread-7.0.1.tar.bz2
 # Locally computed
+sha256  83e75bead4089b2f0dc9adcc55888ff75d87bb3ad893c7b13184171296d3f5ef  kodi-a0a1c71bc1b52a7f91b05c73b33771e73b896a98.tar.gz
 sha256  21daa839b978ff3fc6a7a058717fe9232f1ae4087d492b31c288eeffb2a7a447  kodi-22.0rc1-Piers.tar.gz
 sha256  9d2396ef3e091d3b82bc84143e070700412984e8589513570f54e0675d1e8851  LICENSE.md
