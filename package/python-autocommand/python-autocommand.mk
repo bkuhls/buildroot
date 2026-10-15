@@ -12,3 +12,4 @@ PYTHON_AUTOCOMMAND_LICENSE = LGPL-3.0+
 PYTHON_AUTOCOMMAND_LICENSE_FILES = LICENSE
 
 $(eval $(python-package))
+$(eval $(host-python-package))
