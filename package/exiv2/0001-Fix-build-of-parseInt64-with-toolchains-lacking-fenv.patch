@@ -1,0 +1,67 @@
+From 1df7011e88d23b8f1dde7661719af2c14f3a4c62 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Fri, 23 Oct 2026 19:28:51 +0200
+Subject: [PATCH] Fix build of parseInt64() with toolchains lacking fenv
+ functions
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+uClibc-ng supports C99 Floating-point on a restricted set of platforms:
+https://github.com/wbx-github/uclibc-ng/blob/v1.0.59/extra/Configs/Config.in.arch#L163
+
+causing build errors on the other supported platforms:
+
+/builds/bkuhls/buildroot/br-test-pkg/bootlin-openrisc-uclibc/build/exiv2-0.28.9/src/types.cpp:
+ In function ‘int64_t Exiv2::parseInt64(const std::string&, bool&)’:
+/builds/bkuhls/buildroot/br-test-pkg/bootlin-openrisc-uclibc/build/exiv2-0.28.9/src/types.cpp:550:10:
+ error: ‘feclearexcept’ is not a member of ‘std’
+
+/builds/bkuhls/buildroot/br-test-pkg/bootlin-powerpc-e500mc-uclibc/build/exiv2-0.28.9/src/types.cpp:
+ In function ‘int64_t Exiv2::parseInt64(const std::string&, bool&)’:
+/builds/bkuhls/buildroot/br-test-pkg/bootlin-powerpc-e500mc-uclibc/build/exiv2-0.28.9/src/types.cpp:550:10:
+ error: ‘feclearexcept’ is not a member of ‘std’
+
+/builds/bkuhls/buildroot/br-test-pkg/bootlin-xtensa-uclibc/build/exiv2-0.28.9/src/types.cpp:
+ In function ‘int64_t Exiv2::parseInt64(const std::string&, bool&)’:
+/builds/bkuhls/buildroot/br-test-pkg/bootlin-xtensa-uclibc/build/exiv2-0.28.9/src/types.cpp:550:10:
+ error: ‘feclearexcept’ is not a member of ‘std’
+
+To fix the problem the old code path which was removed with commit
+https://github.com/Exiv2/exiv2/commit/ebe85e7e872e6f743d6267e406660f50287bf4bc
+is restored and guarded with ifdef.
+
+Upstream: https://github.com/Exiv2/exiv2/pull/9549
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ src/types.cpp | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/src/types.cpp b/src/types.cpp
+index 428db87d2..535499326 100644
+--- a/src/types.cpp
++++ b/src/types.cpp
+@@ -586,6 +586,7 @@ int64_t parseInt64(const std::string& s, bool& ok) {
+   if (ok)
+     return ret;
+ 
++#ifdef FE_ALL_EXCEPT
+   auto d = stringTo<double>(s, ok);
+   if (ok) {
+     std::feclearexcept(FE_ALL_EXCEPT);
+@@ -595,6 +596,11 @@ int64_t parseInt64(const std::string& s, bool& ok) {
+       return static_cast<int64_t>(ll);
+     }
+   }
++#else
++  auto f = stringTo<float>(s, ok);
++  if (ok)
++    return static_cast<int64_t>(f);
++#endif
+ 
+   auto [r, st] = stringTo<Rational>(s, ok);
+   if (ok) {
+-- 
+2.47.3
+
