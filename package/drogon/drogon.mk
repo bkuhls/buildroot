@@ -18,6 +18,13 @@ DROGON_IGNORE_CVES += CVE-2023-26137 CVE-2023-26138
 DROGON_DEPENDENCIES = jsoncpp util-linux zlib
 HOST_DROGON_DEPENDENCIES = host-jsoncpp host-util-linux host-zlib
 
+define DROGON_DISABLE_WERROR
+	$(SED) 's/-Wall -Wextra -Werror//g' -i $(@D)/CMakeLists.txt
+	$(SED) 's/-Wall -Wextra -Werror//g' -i $(@D)/trantor/CMakeLists.txt
+endef
+DROGON_PRE_CONFIGURE_HOOKS += DROGON_DISABLE_WERROR
+HOST_DROGON_PRE_CONFIGURE_HOOKS += DROGON_DISABLE_WERROR
+
 DROGON_CONF_OPTS = \
 	-DBUILD_TESTS=OFF
 
