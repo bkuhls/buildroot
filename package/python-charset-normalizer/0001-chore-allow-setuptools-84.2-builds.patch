@@ -1,0 +1,26 @@
+From e836793ecb0bb79b87a14e369370591e87a8bc97 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Sun, 25 Oct 2026 22:07:00 +0100
+Subject: [PATCH] chore: allow setuptools 84.2 builds
+
+Upstream: https://github.com/jawah/charset_normalizer/pull/828
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ pyproject.toml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/pyproject.toml b/pyproject.toml
+index b80909b..aae3185 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -1,5 +1,5 @@
+ [build-system]
+-requires = ["setuptools>=68,<84.1"]
++requires = ["setuptools>=68,<84.3"]
+ build-backend = "backend"
+ backend-path = ["_build_hook"]
+ 
+-- 
+2.47.3
+
