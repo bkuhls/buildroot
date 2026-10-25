@@ -9,6 +9,8 @@ Upstream: https://github.com/openssl/openssl/pull/5218 (rejected)
 
 [Rebased on openssl-1.1.1.a]
 Signed-off-by: Peter Seiderer <ps.report@gmx.net>
+[Bernd: rebased for 4.1.0]
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
 ---
  crypto/build.info | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
@@ -17,7 +19,7 @@ diff --git a/crypto/build.info b/crypto/build.info
 index 2c619c6..49ca6ab 100644
 --- a/crypto/build.info
 +++ b/crypto/build.info
-@@ -115,7 +115,7 @@ EXTRA=  ../ms/uplink-x86.pl ../ms/uplink.c ../ms/applink.c \
+@@ -113,7 +113,7 @@ EXTRA=  ../ms/uplink-x86.pl ../ms/uplink.c ../ms/applink.c \
  
  DEPEND[info.o]=buildinf.h
  DEPEND[cversion.o]=buildinf.h
