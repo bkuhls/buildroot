@@ -11,6 +11,10 @@ ZFS_LICENSE = CDDL
 ZFS_LICENSE_FILES = LICENSE COPYRIGHT
 ZFS_CPE_ID_VENDOR = openzfs
 ZFS_CPE_ID_PRODUCT = openzfs
+# 0003-Linux-7.3-bvec_iter.bi_bvec_done-is-now-bi_offset.patch
+# 0004-Linux-7.3-inode_operations.create-dropped-flag-arg.patch
+# 0005-Linux-7.3-make-host-filesystem-available-to-kernel-t.patch
+ZFS_AUTORECONF = YES
 
 ZFS_DEPENDENCIES = libaio openssl udev util-linux zlib libcurl linux
 
