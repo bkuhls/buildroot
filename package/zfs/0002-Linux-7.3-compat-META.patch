@@ -1,0 +1,34 @@
+From a128b8a075b5b13c737e56914cd7043bd3e9ebf8 Mon Sep 17 00:00:00 2001
+From: "ooonea.eth" <35407790+ooonea@users.noreply.github.com>
+Date: Mon, 26 Oct 2026 01:28:51 +0100
+Subject: [PATCH] Linux 7.3 compat: META
+
+Update the META file to reflect compatibility with the 7.3
+kernel.
+
+Assisted-by: OpenAI Codex
+Reviewed-by: Brian Behlendorf <behlendorf1@llnl.gov>
+Signed-off-by: ooonea <35407790+ooonea@users.noreply.github.com>
+Closes #19553
+
+Upstream: https://github.com/openzfs/zfs/commit/a128b8a075b5b13c737e56914cd7043bd3e9ebf8
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ META | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/META b/META
+index 800b6137a..f419ec35a 100644
+--- a/META
++++ b/META
+@@ -6,5 +6,5 @@ Release:       1
+ Release-Tags:  relext
+ License:       CDDL
+ Author:        OpenZFS
+-Linux-Maximum: 7.2
++Linux-Maximum: 7.3
+ Linux-Minimum: 4.18
+-- 
+2.47.3
+
