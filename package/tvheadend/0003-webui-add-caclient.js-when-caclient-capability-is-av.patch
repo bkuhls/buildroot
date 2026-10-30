@@ -1,0 +1,32 @@
+From 2b7481730a2daf88919855cfb28e6cee021d6f10 Mon Sep 17 00:00:00 2001
+From: Bernd Kuhls <bernd@kuhls.net>
+Date: Fri, 30 Oct 2026 21:02:57 +0100
+Subject: [PATCH] webui: add caclient.js when caclient capability is
+ available
+
+https://github.com/tvheadend/tvheadend/commit/87de3f422c7d9ac8bbaf537f452855ef1d410a80
+enabled caclient when ENABLE_LINUXDVB_CA was set during configure but
+forgot to add caclient.js to the webui.
+
+Upstream: https://github.com/tvheadend/tvheadend/pull/2370
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ Makefile.webui | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/Makefile.webui b/Makefile.webui
+index ed0fcc2a2..be2183b7c 100644
+--- a/Makefile.webui
++++ b/Makefile.webui
+@@ -131,6 +131,7 @@ JAVASCRIPT += $(ROOTPATH)/app/acleditor.js
+ CACLIENT-$(CONFIG_CWC) = yes
+ CACLIENT-$(CONFIG_CCCAM) = yes
+ CACLIENT-$(CONFIG_CAPMT) = yes
++CACLIENT-$(CONFIG_LINUXDVB_CA) = yes
+ 
+ ifeq ($(CACLIENT-yes), yes)
+ JAVASCRIPT += $(ROOTPATH)/app/caclient.js
+-- 
+2.47.3
+
