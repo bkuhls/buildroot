@@ -1,0 +1,419 @@
+From 93da56ff72e7c774da003021d54b4e3338133734 Mon Sep 17 00:00:00 2001
+From: Stephan Sundermann <stephansundermann@gmail.com>
+Date: Fri, 20 Nov 2026 16:44:45 +0100
+Subject: [PATCH] Update ffmpeg to 9.1
+
+Drop the yuv2rgb odd width patch, which is part of 9.1, and the Windows
+zlib patch, as configure now picks z.lib or zlib.lib by itself. Refresh
+the Windows libdav1d patch for the new libcurl check in configure.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+Upstream: https://github.com/xbmc/xbmc/pull/30674
+
+Signed-off-by: Bernd Kuhls <bernd@kuhls.net>
+---
+ cmake/modules/FindFFMPEG.cmake                |  17 +-
+ .../001-ffmpeg-all-libpostproc-plugin.patch   |   2 +-
+ ...eg-windows-configure-detect-libdav1d.patch |   6 +-
+ ...ffmpeg-windows-configure-detect-zlib.patch |  13 -
+ ...ffmpeg-all-swscale-yuv2rgb-odd-width.patch | 249 ------------------
+ tools/depends/target/ffmpeg/CMakeLists.txt    |   1 -
+ tools/depends/target/ffmpeg/FFMPEG-VERSION    |   4 +-
+ tools/depends/target/ffmpeg/Makefile          |   5 +-
+ 8 files changed, 15 insertions(+), 282 deletions(-)
+ delete mode 100644 tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch
+ delete mode 100644 tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
+
+diff --git a/cmake/modules/FindFFMPEG.cmake b/cmake/modules/FindFFMPEG.cmake
+index e1d8c701ca..22372daebf 100644
+--- a/cmake/modules/FindFFMPEG.cmake
++++ b/cmake/modules/FindFFMPEG.cmake
+@@ -222,9 +222,6 @@ macro(buildFFMPEG)
+                       COMMAND ${CMAKE_COMMAND} -E copy
+                       ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch
+                       <SOURCE_DIR>
+-                      COMMAND ${CMAKE_COMMAND} -E copy
+-                      ${CMAKE_SOURCE_DIR}/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
+-                      <SOURCE_DIR>
+     )
+ 
+     if(NOT DISABLE_FFMPEG_SOURCE_PLUGINS)
+@@ -320,13 +317,13 @@ else()
+   # have latest version to properly track rebuiling.
+   if(KODI_DEPENDSBUILD OR (WIN32 OR WINDOWS_STORE))
+     # required ffmpeg library versions - tools/depends/target/ffmpeg versions
+-    set(REQUIRED_FFMPEG_VERSION 9.0.2)
+-    set(_avutil_ver "=61.1.102")
+-    set(_avcodec_ver "=63.1.102")
+-    set(_avformat_ver "=63.1.102")
+-    set(_avfilter_ver "=12.1.102")
+-    set(_swscale_ver "=10.1.102")
+-    set(_swresample_ver "=7.1.102")
++    set(REQUIRED_FFMPEG_VERSION 9.1)
++    set(_avutil_ver "=61.19.100")
++    set(_avcodec_ver "=63.24.100")
++    set(_avformat_ver "=63.16.100")
++    set(_avfilter_ver "=12.8.100")
++    set(_swscale_ver "=10.5.100")
++    set(_swresample_ver "=7.6.100")
+     set(_postproc_ver "=59.1.100")
+   else()
+     # required ffmpeg library versions - minimum supported API compat versions
+diff --git a/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch b/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch
+index 9ebfc8c2e3..06fa350b57 100644
+--- a/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch
++++ b/tools/depends/target/ffmpeg/001-ffmpeg-all-libpostproc-plugin.patch
+@@ -173,7 +173,7 @@ index 374bd5c151..0436370443 100755
+  swresample_suggest="libm libsoxr stdatomic"
+  swscale_deps="avutil"
+ @@ -7992,7 +7997,7 @@ void (^block)(void);
+- EOF
++ check_disable_warning_headers -Wno-unused-variable
+  
+  # add some linker flags
+ -check_ldflags -Wl,-rpath-link=:libswresample:libswscale:libavfilter:libavdevice:libavformat:libavcodec:libavutil
+diff --git a/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch b/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch
+index 12459699ed..108d45e811 100644
+--- a/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch
++++ b/tools/depends/target/ffmpeg/005-ffmpeg-windows-configure-detect-libdav1d.patch
+@@ -8,13 +8,13 @@ Subject: [PATCH] ffmpeg: windows: configure: detect libdav1d
+  1 file changed, 1 insertion(+), 1 deletion(-)
+ 
+ diff --git a/configure b/configure
+-index 4b0ddd9b11..189a8d0b60 100755
++index f5e1fbb71b..d611507760 100755
+ --- a/configure
+ +++ b/configure
+-@@ -7339,7 +7339,7 @@ enabled libbluray         && require_pkg_config libbluray libbluray libbluray/bl
+- enabled libbs2b           && require_pkg_config libbs2b libbs2b bs2b.h bs2b_open
++@@ -7239,7 +7239,7 @@ enabled libbs2b           && require_pkg_config libbs2b libbs2b bs2b.h bs2b_open
+  enabled libcaca           && require_pkg_config libcaca caca caca.h caca_create_canvas
+  enabled libcodec2         && require libcodec2 codec2/codec2.h codec2_create -lcodec2
++ enabled libcurl           && check_pkg_config libcurl "libcurl >= 7.88.0" curl/curl.h curl_easy_init
+ -enabled libdav1d          && require_pkg_config libdav1d "dav1d >= 1.0.0" "dav1d/dav1d.h" dav1d_version
+ +enabled libdav1d          && require libdav1d dav1d/dav1d.h dav1d_version -llibdav1d
+  enabled libdavs2          && require_pkg_config libdavs2 "davs2 >= 1.6.0" davs2.h davs2_decoder_open
+diff --git a/tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch b/tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch
+deleted file mode 100644
+index f222f2301c..0000000000
+--- a/tools/depends/target/ffmpeg/007-ffmpeg-windows-configure-detect-zlib.patch
++++ /dev/null
+@@ -1,13 +0,0 @@
+-diff --git a/configure b/configure
+-index a0eed36abf..467c79a7cb 100755
+---- a/configure
+-+++ b/configure
+-@@ -4939,7 +4939,7 @@ msvc_common_flags(){
+-             -mthumb)              ;;
+-             -march=*)             ;;
+-             -mfp16-format=*)      ;;
+--            -lz)                  echo zlib.lib ;;
+-+            -lz)                  echo z.lib ;;
+-             -lx264)               echo libx264.lib ;;
+-             -lstdc++)             ;;
+-             -l*)                  echo ${flag#-l}.lib ;;
+diff --git a/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch b/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
+deleted file mode 100644
+index 1c975a5b3c..0000000000
+--- a/tools/depends/target/ffmpeg/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
++++ /dev/null
+@@ -1,249 +0,0 @@
+-From 72f8c3376be3fe77f17a3c3b27eff1326895250f Mon Sep 17 00:00:00 2001
+-From: Dom Cobley <popcornmix@gmail.com>
+-Date: Tue, 3 Nov 2026 16:53:22 +0000
+-Subject: [PATCH] swscale/yuv2rgb: write the last pixel of odd width rows
+-
+-The C YUV420P/YUV422P/YUVA420P to RGB converters process each row in
+-blocks of 8, 4 and 2 pixels, so for an odd output width the final
+-pixel of every row was never written and kept whatever was in the
+-destination buffer.
+-
+-The unscaled path selection only rejects odd heights, and the ARM and
+-AArch64 NEON versions require widths divisible by 16, so on those
+-platforms odd widths always reach this code. x86 SSSE3 rounds the row
+-up to 8 pixels and so is unaffected when the destination stride has
+-room for that.
+-
+-Add a single pixel stage after the 2 pixel stage. The dithered formats
+-use the dither matrix column of the final pixel, and packed RGB4/BGR4
+-put it in the high nibble, which is the first pixel of the byte.
+-
+-Add FATE tests at an odd width for output formats which have no SIMD
+-version.
+-
+-Signed-off-by: Dom Cobley <popcornmix@gmail.com>
+----
+- libswscale/yuv2rgb.c | 99 ++++++++++++++++++++++++++++++++++++++++++++
+- 1 file changed, 99 insertions(+)
+-
+-diff --git a/libswscale/yuv2rgb.c b/libswscale/yuv2rgb.c
+-index bb15ab1f77..37ff1b140e 100644
+---- a/libswscale/yuv2rgb.c
+-+++ b/libswscale/yuv2rgb.c
+-@@ -78,6 +78,10 @@ const int *sws_getCoefficients(int colorspace)
+-     Y                  = py_##l[2 * i + 1];         \
+-     dst_##l[2 * i + 1] = r[Y] + g[Y] + b[Y];
+- 
+-+#define PUTRGB_ODD(l, i, abase)                     \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[2 * i]     = r[Y] + g[Y] + b[Y];
+-+
+- #define PUTRGB24(l, i, abase)                       \
+-     Y                  = py_##l[2 * i];             \
+-     dst_##l[6 * i + 0] = r[Y];                      \
+-@@ -88,6 +92,12 @@ const int *sws_getCoefficients(int colorspace)
+-     dst_##l[6 * i + 4] = g[Y];                      \
+-     dst_##l[6 * i + 5] = b[Y];
+- 
+-+#define PUTRGB24_ODD(l, i, abase)                   \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[6 * i + 0] = r[Y];                      \
+-+    dst_##l[6 * i + 1] = g[Y];                      \
+-+    dst_##l[6 * i + 2] = b[Y];
+-+
+- #define PUTBGR24(l, i, abase)                       \
+-     Y                  = py_##l[2 * i];             \
+-     dst_##l[6 * i + 0] = b[Y];                      \
+-@@ -98,12 +108,22 @@ const int *sws_getCoefficients(int colorspace)
+-     dst_##l[6 * i + 4] = g[Y];                      \
+-     dst_##l[6 * i + 5] = r[Y];
+- 
+-+#define PUTBGR24_ODD(l, i, abase)                   \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[6 * i + 0] = b[Y];                      \
+-+    dst_##l[6 * i + 1] = g[Y];                      \
+-+    dst_##l[6 * i + 2] = r[Y];
+-+
+- #define PUTRGBA(l, i, abase)                        \
+-     Y                  = py_##l[2 * i];             \
+-     dst_##l[2 * i]     = r[Y] + g[Y] + b[Y] + ((uint32_t)(pa_##l[2 * i])     << abase); \
+-     Y                  = py_##l[2 * i + 1];         \
+-     dst_##l[2 * i + 1] = r[Y] + g[Y] + b[Y] + ((uint32_t)(pa_##l[2 * i + 1]) << abase);
+- 
+-+#define PUTRGBA_ODD(l, i, abase)                    \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[2 * i]     = r[Y] + g[Y] + b[Y] + ((uint32_t)(pa_##l[2 * i])     << abase);
+-+
+- #define PUTRGB48(l, i, abase)                       \
+-     Y                    = py_##l[ 2 * i];          \
+-     dst_##l[12 * i +  0] = dst_##l[12 * i +  1] = r[Y]; \
+-@@ -114,6 +134,12 @@ const int *sws_getCoefficients(int colorspace)
+-     dst_##l[12 * i +  8] = dst_##l[12 * i +  9] = g[Y]; \
+-     dst_##l[12 * i + 10] = dst_##l[12 * i + 11] = b[Y];
+- 
+-+#define PUTRGB48_ODD(l, i, abase)                   \
+-+    Y                    = py_##l[ 2 * i];          \
+-+    dst_##l[12 * i +  0] = dst_##l[12 * i +  1] = r[Y]; \
+-+    dst_##l[12 * i +  2] = dst_##l[12 * i +  3] = g[Y]; \
+-+    dst_##l[12 * i +  4] = dst_##l[12 * i +  5] = b[Y];
+-+
+- #define PUTBGR48(l, i, abase)                       \
+-     Y                    = py_##l[2 * i];           \
+-     dst_##l[12 * i +  0] = dst_##l[12 * i +  1] = b[Y]; \
+-@@ -124,6 +150,12 @@ const int *sws_getCoefficients(int colorspace)
+-     dst_##l[12 * i +  8] = dst_##l[12 * i +  9] = g[Y]; \
+-     dst_##l[12 * i + 10] = dst_##l[12 * i + 11] = r[Y];
+- 
+-+#define PUTBGR48_ODD(l, i, abase)                   \
+-+    Y                    = py_##l[2 * i];           \
+-+    dst_##l[12 * i +  0] = dst_##l[12 * i +  1] = b[Y]; \
+-+    dst_##l[12 * i +  2] = dst_##l[12 * i +  3] = g[Y]; \
+-+    dst_##l[12 * i +  4] = dst_##l[12 * i +  5] = r[Y];
+-+
+- #define PUTGBRP(l, i, abase)                        \
+-     Y                   = py_##l[2 * i];            \
+-     dst_##l [2 * i + 0] = g[Y];                     \
+-@@ -134,6 +166,12 @@ const int *sws_getCoefficients(int colorspace)
+-     dst1_##l[2 * i + 1] = b[Y];                     \
+-     dst2_##l[2 * i + 1] = r[Y];
+- 
+-+#define PUTGBRP_ODD(l, i, abase)                    \
+-+    Y                   = py_##l[2 * i];            \
+-+    dst_##l [2 * i + 0] = g[Y];                     \
+-+    dst1_##l[2 * i + 0] = b[Y];                     \
+-+    dst2_##l[2 * i + 0] = r[Y];
+-+
+- #define YUV2RGBFUNC(func_name, dst_type, alpha, yuv422, nb_dst_planes)      \
+-     static int func_name(SwsInternal *c, const uint8_t *const src[],         \
+-                          const int srcStride[], int srcSliceY, int srcSliceH, \
+-@@ -233,6 +271,10 @@ const int *sws_getCoefficients(int colorspace)
+-         LOADCHROMA(1, 0);                                               \
+-         PUTFUNC(1, 0, abase);                                           \
+-         PUTFUNC(2, 0, abase);                                           \
+-+    ENDYUV2RGBLINE(dst_delta, 2, alpha, 0, nb_dst_planes)               \
+-+        LOADCHROMA(1, 0);                                               \
+-+        PUTFUNC##_ODD(1, 0, abase);                                     \
+-+        PUTFUNC##_ODD(2, 0, abase);                                     \
+-     ENDYUV2RGBFUNC()
+- 
+- #define YUV422FUNC(func_name, dst_type, alpha, abase, PUTFUNC, dst_delta, nb_dst_planes) \
+-@@ -278,6 +320,12 @@ const int *sws_getCoefficients(int colorspace)
+-                                                                         \
+-         LOADCHROMA(2, 0);                                               \
+-         PUTFUNC(2, 0, abase);                                           \
+-+    ENDYUV2RGBLINE(dst_delta, 2, alpha, 1, nb_dst_planes)               \
+-+        LOADCHROMA(1, 0);                                               \
+-+        PUTFUNC##_ODD(1, 0, abase);                                     \
+-+                                                                        \
+-+        LOADCHROMA(2, 0);                                               \
+-+        PUTFUNC##_ODD(2, 0, abase);                                     \
+-     ENDYUV2RGBFUNC()
+- 
+- #define YUV420FUNC_DITHER(func_name, dst_type, LOADDITHER, PUTFUNC, dst_delta) \
+-@@ -315,6 +363,12 @@ const int *sws_getCoefficients(int colorspace)
+-         LOADCHROMA(1, 0);                                               \
+-         PUTFUNC(1, 0, 0);                                               \
+-         PUTFUNC(2, 0, 0 + 8);                                           \
+-+    ENDYUV2RGBLINE(dst_delta, 2, 0, 0, 1)                               \
+-+        LOADDITHER                                                      \
+-+                                                                        \
+-+        LOADCHROMA(1, 0);                                               \
+-+        PUTFUNC##_ODD(1, 0, (c->opts.dst_w & 6));                       \
+-+        PUTFUNC##_ODD(2, 0, ((c->opts.dst_w & 6) + 8));                 \
+-     ENDYUV2RGBFUNC()
+- 
+- #define YUV422FUNC_DITHER(func_name, dst_type, LOADDITHER, PUTFUNC, dst_delta) \
+-@@ -366,6 +420,14 @@ const int *sws_getCoefficients(int colorspace)
+-                                                                         \
+-         LOADCHROMA(2, 0);                                               \
+-         PUTFUNC(2, 0, 0 + 8);                                           \
+-+    ENDYUV2RGBLINE(dst_delta, 2, 0, 1, 1)                               \
+-+        LOADDITHER                                                      \
+-+                                                                        \
+-+        LOADCHROMA(1, 0);                                               \
+-+        PUTFUNC##_ODD(1, 0, (c->opts.dst_w & 6));                       \
+-+                                                                        \
+-+        LOADCHROMA(2, 0);                                               \
+-+        PUTFUNC##_ODD(2, 0, ((c->opts.dst_w & 6) + 8));                 \
+-     ENDYUV2RGBFUNC()
+- 
+- #define LOADDITHER16                                    \
+-@@ -383,6 +445,12 @@ const int *sws_getCoefficients(int colorspace)
+-                          g[Y + e16[1 + o]] +        \
+-                          b[Y + f16[1 + o]];
+- 
+-+#define PUTRGB16_ODD(l, i, o)                       \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[2 * i]     = r[Y + d16[0 + o]] +        \
+-+                         g[Y + e16[0 + o]] +        \
+-+                         b[Y + f16[0 + o]];
+-+
+- #define LOADDITHER15                                    \
+-     const uint8_t *d16 = ff_dither_2x2_8[y & 1];        \
+-     const uint8_t *e16 = ff_dither_2x2_8[(y & 1)^1];
+-@@ -397,6 +465,12 @@ const int *sws_getCoefficients(int colorspace)
+-                          g[Y + d16[0 + o]] +        \
+-                          b[Y + e16[1 + o]];
+- 
+-+#define PUTRGB15_ODD(l, i, o)                       \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[2 * i]     = r[Y + d16[0 + o]] +        \
+-+                         g[Y + d16[1 + o]] +        \
+-+                         b[Y + e16[0 + o]];
+-+
+- #define LOADDITHER12                                    \
+-     const uint8_t *d16 = ff_dither_4x4_16[y & 3];
+- 
+-@@ -410,6 +484,12 @@ const int *sws_getCoefficients(int colorspace)
+-                          g[Y + d16[1 + o]] +        \
+-                          b[Y + d16[1 + o]];
+- 
+-+#define PUTRGB12_ODD(l, i, o)                       \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[2 * i]     = r[Y + d16[0 + o]] +        \
+-+                         g[Y + d16[0 + o]] +        \
+-+                         b[Y + d16[0 + o]];
+-+
+- #define LOADDITHER8                                     \
+-     const uint8_t *d32 = ff_dither_8x8_32[yd & 7];      \
+-     const uint8_t *d64 = ff_dither_8x8_73[yd & 7];
+-@@ -424,6 +504,12 @@ const int *sws_getCoefficients(int colorspace)
+-                          g[Y + d32[1 + o]] +        \
+-                          b[Y + d64[1 + o]];
+- 
+-+#define PUTRGB8_ODD(l, i, o)                        \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[2 * i]     = r[Y + d32[0 + o]] +        \
+-+                         g[Y + d32[0 + o]] +        \
+-+                         b[Y + d64[0 + o]];
+-+
+- #define LOADDITHER4D                                    \
+-     const uint8_t * d64 = ff_dither_8x8_73[yd & 7];     \
+-     const uint8_t *d128 = ff_dither_8x8_220[yd & 7];    \
+-@@ -440,6 +526,13 @@ const int *sws_getCoefficients(int colorspace)
+-               b[Y + d128[1 + o]]) << 4;             \
+-     dst_##l[i] = acc;
+- 
+-+#define PUTRGB4D_ODD(l, i, o)                       \
+-+    Y      = py_##l[2 * i];                         \
+-+    acc    = r[Y + d128[0 + o]] +                   \
+-+             g[Y +  d64[0 + o]] +                   \
+-+             b[Y + d128[0 + o]];                    \
+-+    dst_##l[i] = acc << 4;
+-+
+- #define LOADDITHER4DB                                   \
+-     const uint8_t *d64  = ff_dither_8x8_73[yd & 7];     \
+-     const uint8_t *d128 = ff_dither_8x8_220[yd & 7];
+-@@ -454,6 +547,12 @@ const int *sws_getCoefficients(int colorspace)
+-                          g[Y +  d64[1 + o]] +       \
+-                          b[Y + d128[1 + o]];
+- 
+-+#define PUTRGB4DB_ODD(l, i, o)                      \
+-+    Y                  = py_##l[2 * i];             \
+-+    dst_##l[2 * i]     = r[Y + d128[0 + o]] +       \
+-+                         g[Y +  d64[0 + o]] +       \
+-+                         b[Y + d128[0 + o]];
+-+
+- YUV2RGBFUNC(yuv2rgb_c_1_ordered_dither, uint8_t, 0, 0, 1)
+-     const uint8_t *d128 = ff_dither_8x8_220[yd & 7];
+-     char out_1 = 0, out_2 = 0;
+diff --git a/tools/depends/target/ffmpeg/CMakeLists.txt b/tools/depends/target/ffmpeg/CMakeLists.txt
+index 32dcfb1e6d..44f92e795b 100644
+--- a/tools/depends/target/ffmpeg/CMakeLists.txt
++++ b/tools/depends/target/ffmpeg/CMakeLists.txt
+@@ -165,7 +165,6 @@ else()
+   set(sourceplugin_patch PATCH_COMMAND patch -p1 -i <SOURCE_DIR>/002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch)
+ endif()
+ list(APPEND sourceplugin_patch COMMAND patch -p1 -i <SOURCE_DIR>/008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch)
+-list(APPEND sourceplugin_patch COMMAND patch -p1 -i <SOURCE_DIR>/009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch)
+ 
+ include(ExternalProject)
+ externalproject_add(ffmpeg
+diff --git a/tools/depends/target/ffmpeg/FFMPEG-VERSION b/tools/depends/target/ffmpeg/FFMPEG-VERSION
+index dbee7148ae..b06efa2c66 100644
+--- a/tools/depends/target/ffmpeg/FFMPEG-VERSION
++++ b/tools/depends/target/ffmpeg/FFMPEG-VERSION
+@@ -1,4 +1,4 @@
+ LIBNAME=ffmpeg
+-VERSION=9.0.2
++VERSION=9.1
+ ARCHIVE=$(LIBNAME)-$(VERSION).tar.xz
+-SHA512=7756f8434371b9bc1d01cf578bf49014e058b0869c3c1df05030f5f4035f1def64b2e7dba3cf340da4dc8dd9239dd5f894530c9e45793ac27876807079aa546a
++SHA512=9f1578270ebe924fad8309d254b6adbef9a710d0d5a8a78628b94ef01ae0f8ce9286a780901d9aa37f663d26c685acffaa8f4c2d6ffce956a06b6a0928d2cf96
+diff --git a/tools/depends/target/ffmpeg/Makefile b/tools/depends/target/ffmpeg/Makefile
+index b7180cd8c9..53da6f9457 100644
+--- a/tools/depends/target/ffmpeg/Makefile
++++ b/tools/depends/target/ffmpeg/Makefile
+@@ -4,8 +4,7 @@ DEPS = FFMPEG-VERSION Makefile ../../download-files.include \
+                       CMakeLists.txt \
+                       001-ffmpeg-all-libpostproc-plugin.patch \
+                       002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch \
+-                      008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch \
+-                      009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch
++                      008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch
+ 
+ BUILD_TYPE = Release
+ ifeq ($(DEBUG_BUILD),yes)
+@@ -48,7 +47,7 @@ all: .installed-$(PLATFORM)
+ 	rm -rf $(PLATFORM); mkdir -p $(PLATFORM)/build
+ 	cd $(PLATFORM); $(ARCHIVE_TOOL) $(ARCHIVE_TOOL_FLAGS) $(TARBALLS_LOCATION)/$(ARCHIVE)
+ 	cd $(PLATFORM); cp ../CMakeLists.txt ./
+-	cd $(PLATFORM); cp ../001-ffmpeg-all-libpostproc-plugin.patch ../002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch ../008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch ../009-ffmpeg-all-swscale-yuv2rgb-odd-width.patch ./
++	cd $(PLATFORM); cp ../001-ffmpeg-all-libpostproc-plugin.patch ../002-ffmpeg-libavutil-common-h-cpp11-constant-macros.patch ../008-ffmpeg-all-pgssubdec-use-caller-colorspace.patch ./
+ 	cd $(PLATFORM)/build; $(CMAKE) $(CMAKE_ARGS) ..
+ 	touch $@
+ 
+-- 
+2.47.3
+
